@@ -1,0 +1,7 @@
+build
+*.exe
+*.pdb
+*.ilk
+*.rdbg
+*.spv
+ignore

@@ -1,0 +1,50 @@
+#include "util.hpp"
+#include <cctype>
+
+char *Util::json_string_serialize(const char *json_string) {
+    const u32 length = std::strlen(json_string);
+    IchigoVector<char> data(length);
+    for (u32 i = 0; i < length; ++i) {
+        if (json_string[i] == '"') {
+            data.append('\\');
+            data.append('\"');
+        } else {
+            data.append(json_string[i]);
+        }
+    }
+
+    return data.release_data();
+}
+
+void Util::json_return_serialized_string(char *json_string) {
+    delete[] json_string;
+}
+
+char *Util::strcat_escape_quotes(char *dest, const char *source) {
+    for (; *dest != '\0'; ++dest);
+
+    for (; *source != '\0'; ++source, ++dest) {
+        if (*source == '"') {
+            *dest++ = '\\';
+        } else if (*source == '\\') {
+            *dest++ = '\\';
+        }
+
+        *dest = *source;
+    }
+
+    *dest = '\0';
+    return dest;
+}
+
+bool Util::str_equal_case_insensitive(const char *lhs, const char *rhs) {
+    for (;; ++lhs, ++rhs) {
+        if (*lhs == '\0' || *rhs == '\0')
+            return *lhs == '\0' && *rhs == '\0';
+
+        if (std::tolower(*lhs) != std::tolower(*rhs))
+            return false;
+    }
+
+    return true;
+}
