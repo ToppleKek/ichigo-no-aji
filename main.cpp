@@ -1,10 +1,5 @@
 #include <cassert>
 
-#ifdef _WIN32
-#include <windows.h>
-#endif
-#include <gl/GL.h>
-
 #include "common.hpp"
 #include "ichigo.hpp"
 
@@ -27,16 +22,18 @@
 
 extern "C" {
 EMBED("noto.ttf", noto_font)
-EMBED("build/frag.spv", fragment_shader)
-EMBED("build/vert.spv", vertex_shader)
+EMBED("shaders/opengl/frag.glsl", fragment_shader_source)
+EMBED("shaders/opengl/vert.glsl", vertex_shader_source)
 }
 
 static f32 scale = 1;
 static ImGuiStyle initial_style;
 static ImFontConfig font_config;
 
-static u8 current_frame = 0;
+static u32 vertex_buffer_id;
+static u32 vertex_shader_id;
 bool Ichigo::must_rebuild_swapchain = false;
+
 
 struct Vec2 {
     f32 x;
@@ -53,17 +50,23 @@ struct Vertex {
     Vec3 color;
 };
 
-static Vertex vertices[] = {
-    {{0.0f, -0.5f}, {0.2f, 0.0f, 1.0f}},
-    {{0.5f, 0.5f}, {0.2f, 0.0f, 1.0f}},
-    {{0.5f, -0.5f}, {0.2f, 0.0f, 1.0f}},
+// static Vertex vertices[] = {
+//     {{0.0f, -0.5f}, {0.2f, 0.0f, 1.0f}},
+//     {{0.5f, 0.5f}, {0.2f, 0.0f, 1.0f}},
+//     {{0.5f, -0.5f}, {0.2f, 0.0f, 1.0f}},
 
-    {{0.0f, -0.5f}, {0.2f, 0.0f, 1.0f}},
-    {{0.5f, 0.5f}, {0.2f, 0.0f, 1.0f}},
-    {{0.0f, 0.5f}, {0.2f, 0.0f, 1.0f}},
-    // {{0.0f, -0.5f}, {1.0f, 1.0f, 1.0f}},
-    // {{0.5f, -0.5f}, {1.0f, 1.0f, 1.0f}},
-    // {{0.0f, 0.5f}, {1.0f, 1.0f, 1.0f}},
+//     {{0.0f, -0.5f}, {0.2f, 0.0f, 1.0f}},
+//     {{0.5f, 0.5f}, {0.2f, 0.0f, 1.0f}},
+//     {{0.0f, 0.5f}, {0.2f, 0.0f, 1.0f}},
+//     // {{0.0f, -0.5f}, {1.0f, 1.0f, 1.0f}},
+//     // {{0.5f, -0.5f}, {1.0f, 1.0f, 1.0f}},
+//     // {{0.0f, 0.5f}, {1.0f, 1.0f, 1.0f}},
+// };
+
+Vec3 vertices[] = {
+    {-0.5f, -0.5f, 0.0f},
+    {0.5f, -0.5f, 0.0f},
+    {0.0f, 0.5f, 0.0f},
 };
 
 static void frame_render() {
@@ -72,9 +75,9 @@ static void frame_render() {
     if (imgui_draw_data->DisplaySize.x <= 0.0f || imgui_draw_data->DisplaySize.y <= 0.0f)
         return;
 
-    glViewport(0, 0, Ichigo::window_width, Ichigo::window_height);
-    glClearColor(0, 0, 0, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT);
+    Ichigo::ogl_ctx.glViewport(0, 0, Ichigo::window_width, Ichigo::window_height);
+    Ichigo::ogl_ctx.glClearColor(0, 0, 0, 1.0f);
+    Ichigo::ogl_ctx.glClear(GL_COLOR_BUFFER_BIT);
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 }
 
@@ -133,9 +136,18 @@ void Ichigo::init() {
         auto io = ImGui::GetIO();
         io.Fonts->AddFontFromMemoryTTF((void *) noto_font, noto_font_len, 18, &font_config, io.Fonts->GetGlyphRangesJapanese());
     }
+
+    ICHIGO_INFO("GL_VERSION=%s", Ichigo::ogl_ctx.glGetString(GL_VERSION));
+
+    Ichigo::ogl_ctx.glGenBuffers(1, &vertex_buffer_id);
+    Ichigo::ogl_ctx.glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer_id);
+    Ichigo::ogl_ctx.glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+
+    vertex_shader_id = Ichigo::ogl_ctx.glCreateShader(GL_VERTEX_SHADER);
+
+    const GLchar *p = (const GLchar *) vertex_shader_source;
+    Ichigo::ogl_ctx.glShaderSource(vertex_shader_id, 1, &p, nullptr);
+    Ichigo::ogl_ctx.glCompileShader(vertex_shader_id);
 }
 
-/*
-    Cleanup done before closing the application
-*/
 void Ichigo::deinit() {}

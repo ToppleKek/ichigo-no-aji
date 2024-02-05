@@ -1,8 +1,10 @@
 #pragma once
 #include "util.hpp"
 #include <string>
+#include "opengl.hpp"
 
 namespace Ichigo {
+extern OpenGL ogl_ctx;
 extern bool must_rebuild_swapchain;
 extern u32 window_width;
 extern u32 window_height;

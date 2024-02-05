@@ -215,7 +215,7 @@ void Ichigo::do_frame(float dpi_scale) {
             err = vkBeginCommandBuffer(command_buffer, &begin_info);
             VK_ASSERT_OK(err);
 
-            ImGui_ImplVulkan_CreateFontsTexture(command_buffer);
+            ImGui_ImplVulkan_CreateFontsTexture();
 
             VkSubmitInfo end_info{};
             end_info.sType              = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -228,12 +228,12 @@ void Ichigo::do_frame(float dpi_scale) {
 
             err = vkDeviceWaitIdle(Ichigo::vk_context.logical_device);
             VK_ASSERT_OK(err);
-            ImGui_ImplVulkan_DestroyFontUploadObjects();
+            ImGui_ImplVulkan_DestroyFontsTexture();
 
             vkFreeCommandBuffers(Ichigo::vk_context.logical_device, command_pool, 1, &command_buffer);
         }
         // Scale all Dear ImGui sizes based on the inital style
-        ImGui::HACK_SetStyle(initial_style);
+        std::memcpy(&ImGui::GetStyle(), &initial_style, sizeof(initial_style));
         ImGui::GetStyle().ScaleAllSizes(dpi_scale);
         scale = dpi_scale;
     }
@@ -578,7 +578,7 @@ found_present_mode:
         err = vkBeginCommandBuffer(command_buffer, &begin_info);
         VK_ASSERT_OK(err);
 
-        ImGui_ImplVulkan_CreateFontsTexture(command_buffer);
+        ImGui_ImplVulkan_CreateFontsTexture();
 
         VkSubmitInfo end_info{};
         end_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -591,7 +591,7 @@ found_present_mode:
 
         err = vkDeviceWaitIdle(Ichigo::vk_context.logical_device);
         VK_ASSERT_OK(err);
-        ImGui_ImplVulkan_DestroyFontUploadObjects();
+        ImGui_ImplVulkan_DestroyFontsTexture();
         // io.Fonts->Build();
     }
 }

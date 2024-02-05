@@ -12,6 +12,7 @@
 
 u32 Ichigo::window_width = 1920;
 u32 Ichigo::window_height = 1080;
+OpenGL Ichigo::ogl_ctx{};
 
 static HWND window_handle;
 static HDC hdc;
@@ -255,6 +256,19 @@ i32 main() {
 
     wgl_context = wglCreateContext(hdc);
     wglMakeCurrent(hdc, wgl_context);
+
+#define GET_ADDR_OF_OPENGL_FUNCTION(FUNC_NAME) Ichigo::ogl_ctx.FUNC_NAME = (Type_##FUNC_NAME *) wglGetProcAddress(#FUNC_NAME); assert(Ichigo::ogl_ctx.FUNC_NAME != nullptr)
+    Ichigo::ogl_ctx.glViewport   = glViewport;
+    Ichigo::ogl_ctx.glClearColor = glClearColor;
+    Ichigo::ogl_ctx.glClear      = glClear;
+    Ichigo::ogl_ctx.glGetString  = glGetString;
+
+    GET_ADDR_OF_OPENGL_FUNCTION(glGenBuffers);
+    GET_ADDR_OF_OPENGL_FUNCTION(glBindBuffer);
+    GET_ADDR_OF_OPENGL_FUNCTION(glBufferData);
+    GET_ADDR_OF_OPENGL_FUNCTION(glCreateShader);
+    GET_ADDR_OF_OPENGL_FUNCTION(glShaderSource);
+    GET_ADDR_OF_OPENGL_FUNCTION(glCompileShader);
 
     Ichigo::init();
 
