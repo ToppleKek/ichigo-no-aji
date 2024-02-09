@@ -12,7 +12,7 @@
 
 u32 Ichigo::window_width = 1920;
 u32 Ichigo::window_height = 1080;
-OpenGL Ichigo::ogl_ctx{};
+OpenGL Ichigo::gl{};
 
 static HWND window_handle;
 static HDC hdc;
@@ -257,18 +257,73 @@ i32 main() {
     wgl_context = wglCreateContext(hdc);
     wglMakeCurrent(hdc, wgl_context);
 
-#define GET_ADDR_OF_OPENGL_FUNCTION(FUNC_NAME) Ichigo::ogl_ctx.FUNC_NAME = (Type_##FUNC_NAME *) wglGetProcAddress(#FUNC_NAME); assert(Ichigo::ogl_ctx.FUNC_NAME != nullptr)
-    Ichigo::ogl_ctx.glViewport   = glViewport;
-    Ichigo::ogl_ctx.glClearColor = glClearColor;
-    Ichigo::ogl_ctx.glClear      = glClear;
-    Ichigo::ogl_ctx.glGetString  = glGetString;
+#define GET_ADDR_OF_OPENGL_FUNCTION(FUNC_NAME) Ichigo::gl.FUNC_NAME = (Type_##FUNC_NAME *) wglGetProcAddress(#FUNC_NAME); assert(Ichigo::gl.FUNC_NAME != nullptr)
+    Ichigo::gl.glViewport    = glViewport;
+    Ichigo::gl.glClearColor  = glClearColor;
+    Ichigo::gl.glClear       = glClear;
+    Ichigo::gl.glGetString   = glGetString;
+    Ichigo::gl.glPolygonMode = glPolygonMode;
 
     GET_ADDR_OF_OPENGL_FUNCTION(glGenBuffers);
+    GET_ADDR_OF_OPENGL_FUNCTION(glGenVertexArrays);
     GET_ADDR_OF_OPENGL_FUNCTION(glBindBuffer);
+    GET_ADDR_OF_OPENGL_FUNCTION(glBindVertexArray);
     GET_ADDR_OF_OPENGL_FUNCTION(glBufferData);
     GET_ADDR_OF_OPENGL_FUNCTION(glCreateShader);
     GET_ADDR_OF_OPENGL_FUNCTION(glShaderSource);
     GET_ADDR_OF_OPENGL_FUNCTION(glCompileShader);
+    GET_ADDR_OF_OPENGL_FUNCTION(glGetShaderiv);
+    GET_ADDR_OF_OPENGL_FUNCTION(glGetProgramiv);
+    GET_ADDR_OF_OPENGL_FUNCTION(glGetShaderInfoLog);
+    GET_ADDR_OF_OPENGL_FUNCTION(glGetProgramInfoLog);
+    GET_ADDR_OF_OPENGL_FUNCTION(glCreateProgram);
+    GET_ADDR_OF_OPENGL_FUNCTION(glAttachShader);
+    GET_ADDR_OF_OPENGL_FUNCTION(glLinkProgram);
+    GET_ADDR_OF_OPENGL_FUNCTION(glUseProgram);
+    GET_ADDR_OF_OPENGL_FUNCTION(glDeleteShader);
+    GET_ADDR_OF_OPENGL_FUNCTION(glVertexAttribPointer);
+    GET_ADDR_OF_OPENGL_FUNCTION(glEnableVertexAttribArray);
+    GET_ADDR_OF_OPENGL_FUNCTION(glDisableVertexAttribArray);
+    GET_ADDR_OF_OPENGL_FUNCTION(glDrawArrays);
+    GET_ADDR_OF_OPENGL_FUNCTION(glDrawElements);
+    GET_ADDR_OF_OPENGL_FUNCTION(glGetUniformLocation);
+    GET_ADDR_OF_OPENGL_FUNCTION(glUniform1f);
+    GET_ADDR_OF_OPENGL_FUNCTION(glUniform2f);
+    GET_ADDR_OF_OPENGL_FUNCTION(glUniform3f);
+    GET_ADDR_OF_OPENGL_FUNCTION(glUniform4f);
+    GET_ADDR_OF_OPENGL_FUNCTION(glUniform1i);
+    GET_ADDR_OF_OPENGL_FUNCTION(glUniform2i);
+    GET_ADDR_OF_OPENGL_FUNCTION(glUniform3i);
+    GET_ADDR_OF_OPENGL_FUNCTION(glUniform4i);
+    GET_ADDR_OF_OPENGL_FUNCTION(glUniform1ui);
+    GET_ADDR_OF_OPENGL_FUNCTION(glUniform2ui);
+    GET_ADDR_OF_OPENGL_FUNCTION(glUniform3ui);
+    GET_ADDR_OF_OPENGL_FUNCTION(glUniform4ui);
+    GET_ADDR_OF_OPENGL_FUNCTION(glUniform1ui);
+    GET_ADDR_OF_OPENGL_FUNCTION(glUniform2ui);
+    GET_ADDR_OF_OPENGL_FUNCTION(glUniform3ui);
+    GET_ADDR_OF_OPENGL_FUNCTION(glUniform4ui);
+    GET_ADDR_OF_OPENGL_FUNCTION(glUniform1fv);
+    GET_ADDR_OF_OPENGL_FUNCTION(glUniform2fv);
+    GET_ADDR_OF_OPENGL_FUNCTION(glUniform3fv);
+    GET_ADDR_OF_OPENGL_FUNCTION(glUniform4fv);
+    GET_ADDR_OF_OPENGL_FUNCTION(glUniform1iv);
+    GET_ADDR_OF_OPENGL_FUNCTION(glUniform2iv);
+    GET_ADDR_OF_OPENGL_FUNCTION(glUniform3iv);
+    GET_ADDR_OF_OPENGL_FUNCTION(glUniform4iv);
+    GET_ADDR_OF_OPENGL_FUNCTION(glUniform1uiv);
+    GET_ADDR_OF_OPENGL_FUNCTION(glUniform2uiv);
+    GET_ADDR_OF_OPENGL_FUNCTION(glUniform3uiv);
+    GET_ADDR_OF_OPENGL_FUNCTION(glUniform4uiv);
+    GET_ADDR_OF_OPENGL_FUNCTION(glUniformMatrix2fv);
+    GET_ADDR_OF_OPENGL_FUNCTION(glUniformMatrix3fv);
+    GET_ADDR_OF_OPENGL_FUNCTION(glUniformMatrix4fv);
+    GET_ADDR_OF_OPENGL_FUNCTION(glUniformMatrix2x3fv);
+    GET_ADDR_OF_OPENGL_FUNCTION(glUniformMatrix3x2fv);
+    GET_ADDR_OF_OPENGL_FUNCTION(glUniformMatrix2x4fv);
+    GET_ADDR_OF_OPENGL_FUNCTION(glUniformMatrix4x2fv);
+    GET_ADDR_OF_OPENGL_FUNCTION(glUniformMatrix3x4fv);
+    GET_ADDR_OF_OPENGL_FUNCTION(glUniformMatrix4x3fv);
 
     Ichigo::init();
 

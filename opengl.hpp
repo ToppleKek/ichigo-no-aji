@@ -336,7 +336,13 @@
 #define GL_DOT3_RGB                       0x86AE
 #define GL_DOT3_RGBA                      0x86AF
 
+#define GL_FRAGMENT_SHADER                0x8B30
 #define GL_VERTEX_SHADER                  0x8B31
+#define GL_COMPILE_STATUS                 0x8B81
+#define GL_LINK_STATUS                    0x8B82
+#define GL_UNSIGNED_INT                   0x1405
+#define GL_LINE                           0x1B01
+#define GL_FILL                           0x1B02
 
 using GLbyte     = i8;
 using GLshort    = i16;
@@ -360,29 +366,132 @@ using GLenum     = u32;
 
 using GLchar     = char;
 using GLvoid     = void;
+using GLboolean  = u8;
 
-using Type_glViewport      = void (GLint x, GLint y, GLsizei width, GLsizei height);
-using Type_glClearColor    = void (GLclampf red, GLclampf green, GLclampf blue, GLclampf alpha);
-using Type_glClear         = void (Glbitfield mask);
-using Type_glGetString     = const GLubyte *(GLenum name);
-using Type_glGenBuffers    = void *(GLsizei n, GLuint * buffers);
-using Type_glBindBuffer    = void (GLenum target, GLuint buffer);
-using Type_glBufferData    = void (GLenum target, GLsizeiptr size, const GLvoid *data, GLenum usage);
-using Type_glCreateShader  = GLuint (GLenum shaderType);
-using Type_glShaderSource  = void (GLuint shader, GLsizei count, const GLchar **string, const GLint *length);
-using Type_glCompileShader = void (GLuint shader);
+using Type_glViewport                 = void (GLint x, GLint y, GLsizei width, GLsizei height);
+using Type_glClearColor               = void (GLclampf red, GLclampf green, GLclampf blue, GLclampf alpha);
+using Type_glClear                    = void (Glbitfield mask);
+using Type_glGetString                = const GLubyte *(GLenum name);
+using Type_glGenBuffers               = void (GLsizei n, GLuint *buffers);
+using Type_glGenVertexArrays          = void (GLsizei n, GLuint *arrays);
+using Type_glBindBuffer               = void (GLenum target, GLuint buffer);
+using Type_glBindVertexArray          = void (GLuint array);
+using Type_glBufferData               = void (GLenum target, GLsizeiptr size, const GLvoid *data, GLenum usage);
+using Type_glCreateShader             = GLuint (GLenum shaderType);
+using Type_glShaderSource             = void (GLuint shader, GLsizei count, const GLchar **string, const GLint *length);
+using Type_glCompileShader            = void (GLuint shader);
+using Type_glGetShaderiv              = void (GLuint shader, GLenum pname, GLint *params);
+using Type_glGetProgramiv             = void (GLuint program, GLenum pname, GLint *params);
+using Type_glGetShaderInfoLog         = void (GLuint shader, GLsizei maxLength, GLsizei *length, GLchar *infoLog);
+using Type_glGetProgramInfoLog        = void (GLuint program, GLsizei maxLength, GLsizei *length, GLchar *infoLog);
+using Type_glCreateProgram            = GLuint (void);
+using Type_glAttachShader             = void (GLuint program, GLuint shader);
+using Type_glLinkProgram              = void (GLuint program);
+using Type_glUseProgram               = void (GLuint program);
+using Type_glDeleteShader             = void (GLuint shader);
+using Type_glVertexAttribPointer      = void (GLuint index, GLint size, GLenum type, GLboolean normalized, GLsizei stride, const GLvoid *pointer);
+using Type_glEnableVertexAttribArray  = void (GLuint index);
+using Type_glDisableVertexAttribArray = void (GLuint index);
+using Type_glDrawArrays               = void (GLenum mode, GLint first, GLsizei count);
+using Type_glDrawElements             = void (GLenum mode, GLsizei count, GLenum type, const GLvoid *indicies);
+using Type_glPolygonMode              = void (GLenum face, GLenum mode);
+using Type_glGetUniformLocation       = GLint (GLuint program, const GLchar *name);
+
+using Type_glUniform1f = void (GLint location, GLfloat v0);
+using Type_glUniform2f = void ( GLint location, GLfloat v0, GLfloat v1);
+using Type_glUniform3f = void ( GLint location, GLfloat v0, GLfloat v1, GLfloat v2);
+using Type_glUniform4f = void ( GLint location, GLfloat v0, GLfloat v1, GLfloat v2, GLfloat v3);
+using Type_glUniform1i = void (GLint location, GLint v0);
+using Type_glUniform2i = void ( GLint location, GLint v0, GLint v1);
+using Type_glUniform3i = void ( GLint location, GLint v0, GLint v1, GLint v2);
+using Type_glUniform4i = void ( GLint location, GLint v0, GLint v1, GLint v2, GLint v3);
+using Type_glUniform1ui = void (GLint location, GLuint v0);
+using Type_glUniform2ui = void ( GLint location, GLuint v0, GLuint v1);
+using Type_glUniform3ui = void ( GLint location, GLuint v0, GLuint v1, GLuint v2);
+using Type_glUniform4ui = void (GLint location, GLuint v0, GLuint v1, GLuint v2, GLuint v3);
+using Type_glUniform1fv = void ( GLint location, GLsizei count, const GLfloat *value);
+using Type_glUniform2fv = void ( GLint location, GLsizei count, const GLfloat *value);
+using Type_glUniform3fv = void ( GLint location, GLsizei count, const GLfloat *value);
+using Type_glUniform4fv = void ( GLint location, GLsizei count, const GLfloat *value);
+using Type_glUniform1iv = void ( GLint location, GLsizei count, const GLint *value);
+using Type_glUniform2iv = void ( GLint location, GLsizei count, const GLint *value);
+using Type_glUniform3iv = void (GLint location, GLsizei count, const GLint *value);
+using Type_glUniform4iv = void (GLint location, GLsizei count, const GLint *value);
+using Type_glUniform1uiv = void (GLint location, GLsizei count, const GLuint *value);
+using Type_glUniform2uiv = void (GLint location, GLsizei count, const GLuint *value);
+using Type_glUniform3uiv = void (GLint location, GLsizei count, const GLuint *value);
+using Type_glUniform4uiv = void (GLint location, GLsizei count, const GLuint *value);
+using Type_glUniformMatrix2fv = void (GLint location, GLsizei count, GLboolean transpose, const GLfloat *value);
+using Type_glUniformMatrix3fv = void (GLint location, GLsizei count, GLboolean transpose, const GLfloat *value);
+using Type_glUniformMatrix4fv = void (GLint location, GLsizei count, GLboolean transpose, const GLfloat *value);
+using Type_glUniformMatrix2x3fv = void (GLint location, GLsizei count, GLboolean transpose, const GLfloat *value);
+using Type_glUniformMatrix3x2fv = void (GLint location, GLsizei count, GLboolean transpose, const GLfloat *value);
+using Type_glUniformMatrix2x4fv = void (GLint location, GLsizei count, GLboolean transpose, const GLfloat *value);
+using Type_glUniformMatrix4x2fv = void (GLint location, GLsizei count, GLboolean transpose, const GLfloat *value);
+using Type_glUniformMatrix3x4fv = void (GLint location, GLsizei count, GLboolean transpose, const GLfloat *value);
+using Type_glUniformMatrix4x3fv = void (GLint location, GLsizei count, GLboolean transpose, const GLfloat *value);
 
 #define OPENGL_FUNC_PTR(FUNC_NAME) Type_##FUNC_NAME *FUNC_NAME
-
 struct OpenGL {
     OPENGL_FUNC_PTR(glViewport);
     OPENGL_FUNC_PTR(glClearColor);
     OPENGL_FUNC_PTR(glClear);
     OPENGL_FUNC_PTR(glGetString);
     OPENGL_FUNC_PTR(glGenBuffers);
+    OPENGL_FUNC_PTR(glGenVertexArrays);
     OPENGL_FUNC_PTR(glBindBuffer);
     OPENGL_FUNC_PTR(glBufferData);
     OPENGL_FUNC_PTR(glCreateShader);
     OPENGL_FUNC_PTR(glShaderSource);
     OPENGL_FUNC_PTR(glCompileShader);
+    OPENGL_FUNC_PTR(glGetShaderiv);
+    OPENGL_FUNC_PTR(glGetProgramiv);
+    OPENGL_FUNC_PTR(glGetShaderInfoLog);
+    OPENGL_FUNC_PTR(glGetProgramInfoLog);
+    OPENGL_FUNC_PTR(glCreateProgram);
+    OPENGL_FUNC_PTR(glAttachShader);
+    OPENGL_FUNC_PTR(glLinkProgram);
+    OPENGL_FUNC_PTR(glUseProgram);
+    OPENGL_FUNC_PTR(glDeleteShader);
+    OPENGL_FUNC_PTR(glVertexAttribPointer);
+    OPENGL_FUNC_PTR(glEnableVertexAttribArray);
+    OPENGL_FUNC_PTR(glDisableVertexAttribArray);
+    OPENGL_FUNC_PTR(glBindVertexArray);
+    OPENGL_FUNC_PTR(glDrawArrays);
+    OPENGL_FUNC_PTR(glDrawElements);
+    OPENGL_FUNC_PTR(glPolygonMode);
+    OPENGL_FUNC_PTR(glGetUniformLocation);
+    OPENGL_FUNC_PTR(glUniform1f);
+    OPENGL_FUNC_PTR(glUniform2f);
+    OPENGL_FUNC_PTR(glUniform3f);
+    OPENGL_FUNC_PTR(glUniform4f);
+    OPENGL_FUNC_PTR(glUniform1i);
+    OPENGL_FUNC_PTR(glUniform2i);
+    OPENGL_FUNC_PTR(glUniform3i);
+    OPENGL_FUNC_PTR(glUniform4i);
+    OPENGL_FUNC_PTR(glUniform1ui);
+    OPENGL_FUNC_PTR(glUniform2ui);
+    OPENGL_FUNC_PTR(glUniform3ui);
+    OPENGL_FUNC_PTR(glUniform4ui);
+    OPENGL_FUNC_PTR(glUniform1fv);
+    OPENGL_FUNC_PTR(glUniform2fv);
+    OPENGL_FUNC_PTR(glUniform3fv);
+    OPENGL_FUNC_PTR(glUniform4fv);
+    OPENGL_FUNC_PTR(glUniform1iv);
+    OPENGL_FUNC_PTR(glUniform2iv);
+    OPENGL_FUNC_PTR(glUniform3iv);
+    OPENGL_FUNC_PTR(glUniform4iv);
+    OPENGL_FUNC_PTR(glUniform1uiv);
+    OPENGL_FUNC_PTR(glUniform2uiv);
+    OPENGL_FUNC_PTR(glUniform3uiv);
+    OPENGL_FUNC_PTR(glUniform4uiv);
+    OPENGL_FUNC_PTR(glUniformMatrix2fv);
+    OPENGL_FUNC_PTR(glUniformMatrix3fv);
+    OPENGL_FUNC_PTR(glUniformMatrix4fv);
+    OPENGL_FUNC_PTR(glUniformMatrix2x3fv);
+    OPENGL_FUNC_PTR(glUniformMatrix3x2fv);
+    OPENGL_FUNC_PTR(glUniformMatrix2x4fv);
+    OPENGL_FUNC_PTR(glUniformMatrix4x2fv);
+    OPENGL_FUNC_PTR(glUniformMatrix3x4fv);
+    OPENGL_FUNC_PTR(glUniformMatrix4x3fv);
 };
