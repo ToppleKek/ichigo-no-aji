@@ -3,15 +3,53 @@
 
 template<typename T>
 struct Vec2 {
-    T x;
-    T y;
+    union {
+        struct {
+            T x;
+            T y;
+        };
+
+        struct {
+            T r;
+            T g;
+        };
+    };
 };
 
 template<typename T>
 struct Vec3 {
-    T x;
-    T y;
-    T z;
+    union {
+        struct {
+            T x;
+            T y;
+            T z;
+        };
+
+        struct {
+            T r;
+            T g;
+            T b;
+        };
+    };
+};
+
+template<typename T>
+struct Vec4 {
+    union {
+        struct {
+            T x;
+            T y;
+            T z;
+            T w;
+        };
+
+        struct {
+            T r;
+            T g;
+            T b;
+            T a;
+        };
+    };
 };
 
 template<typename T>

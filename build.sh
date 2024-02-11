@@ -1,7 +1,7 @@
 set -e
 
 #-Wall -Wextra -Wpedantic -Wconversion
-CXX_FLAGS="-std=c++20 -Wall -Wextra -fno-exceptions -Wno-deprecated-declarations"
+CXX_FLAGS="-std=c++20 -Wall -Wextra -fno-exceptions -Wno-deprecated-declarations -Wno-missing-braces"
 CXX_FLAGS_GAME="-g"
 CXX_FLAGS_IMGUI="-O3"
 CXX_FILES="main.cpp win32_ichigo.cpp util.cpp"
@@ -46,5 +46,5 @@ fi
 glslc shaders/main.frag -o build/frag.spv
 glslc shaders/main.vert -o build/vert.spv
 # clang ${CXX_FLAGS} -l ${LIBS} -I ${INCLUDE} ${CXX_FILES} -o ${EXE_NAME}
-clang++ ${CXX_FLAGS} -l ${LIBS} -I ${INCLUDE} ${CXX_FILES} ${IMGUI_OBJECT_FILES_DIRECTORY}/*.o -o build/${EXE_NAME}
+clang++ ${CXX_FLAGS_GAME} -l ${LIBS} -I ${INCLUDE} ${CXX_FILES} ${IMGUI_OBJECT_FILES_DIRECTORY}/*.o -o build/${EXE_NAME}
 

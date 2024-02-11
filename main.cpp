@@ -34,21 +34,17 @@ static f32 scale = 1;
 static ImGuiStyle initial_style;
 static ImFontConfig font_config;
 
-static u32 vertex_array_id;
-static u32 vertex_buffer_id;
+// static u32 vertex_array_id;
+// static u32 vertex_buffer_id;
 static u32 vertex_shader_id;
 static u32 fragment_shader_id;
 static u32 shader_program_id;
-static u32 element_buffer_id;
+static u32 last_window_height;
+static u32 last_window_width;
 
 static char string_buffer[1024];
 
 bool Ichigo::must_rebuild_swapchain = false;
-
-struct Vertex {
-    Vec2<f32> pos;
-    Vec3<f32> color;
-};
 
 // static Vertex vertices[] = {
 //     {{0.0f, -0.5f}, {0.2f, 0.0f, 1.0f}},
@@ -63,12 +59,12 @@ struct Vertex {
 //     // {{0.0f, 0.5f}, {1.0f, 1.0f, 1.0f}},
 // };
 
-Vec3<f32> vertices[] = {
-    {300.f, 100.f, 0.0f}, // top left
-    {600.f, 100.f, 0.0f},
-    {300.f, 600.f, 0.0f}, // bottom left
-    {600.f, 600.f, 0.0f},
-};
+// Vec3<f32> vertices[] = {
+//     {300.f, 100.f, 0.0f}, // top left
+//     {600.f, 100.f, 0.0f},
+//     {300.f, 600.f, 0.0f}, // bottom left
+//     {600.f, 600.f, 0.0f},
+// };
 // Vec3<f32> vertices[] = {
 //     {-0.5f, 0.5f, 0.0f}, // top
 //     {0.5f, 0.5f, 0.0f},
@@ -76,10 +72,75 @@ Vec3<f32> vertices[] = {
 //     {0.5f, -0.5f, 0.0f},
 // };
 
-u32 indicies[] = {
-    0, 2, 3,
-    0, 1, 3,
+// u32 indicies[] = {
+//     0, 2, 3,
+//     0, 1, 3,
+// };
+
+struct DrawData {
+    u32 vertex_array_id;
+    u32 vertex_buffer_id;
 };
+
+struct Entity {
+    Entity() : draw_data(0, 0) {}
+    Entity(Vec2<f32> pos, Vec4<f32> colour, f32 w, f32 h) : pos(pos), colour(colour), w(w), h(h) {
+        Ichigo::gl.glGenVertexArrays(1, &draw_data.vertex_array_id);
+        Ichigo::gl.glGenBuffers(1, &draw_data.vertex_buffer_id);
+
+        Ichigo::gl.glBindVertexArray(draw_data.vertex_array_id);
+
+        Vec3<f32> vertices[] = {
+            {pos.x, pos.y, 0.0f},
+            {pos.x + w, pos.y, 0.0f},
+            {pos.x, pos.y + h, 0.0f},
+            {pos.x + w, pos.y +h, 0.0f},
+            {pos.x + w, pos.y, 0.0f},
+            {pos.x, pos.y + h, 0.0f},
+        };
+
+        Ichigo::gl.glBindBuffer(GL_ARRAY_BUFFER, draw_data.vertex_buffer_id);
+        Ichigo::gl.glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+        Ichigo::gl.glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vec3<f32>), 0);
+        Ichigo::gl.glBindVertexArray(0);
+    }
+
+    void render() {
+        if (draw_data.vertex_array_id == 0)
+            return;
+
+        Vec3<f32> vertices[] = {
+            {pos.x, pos.y, 0.0f},
+            {pos.x + w, pos.y, 0.0f},
+            {pos.x, pos.y + h, 0.0f},
+            {pos.x + w, pos.y +h, 0.0f},
+            {pos.x + w, pos.y, 0.0f},
+            {pos.x, pos.y + h, 0.0f},
+        };
+
+        Ichigo::gl.glBindVertexArray(draw_data.vertex_array_id);
+        Ichigo::gl.glBindBuffer(GL_ARRAY_BUFFER, draw_data.vertex_buffer_id);
+        Ichigo::gl.glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+
+        Ichigo::gl.glEnableVertexAttribArray(0);
+
+        i32 color_uniform = Ichigo::gl.glGetUniformLocation(shader_program_id, "entity_color");
+        Ichigo::gl.glUniform4fv(color_uniform, 1, (const GLfloat *) &colour);
+        Ichigo::gl.glDrawArrays(GL_TRIANGLES, 0, 6);
+        Ichigo::gl.glBindVertexArray(0);
+        Ichigo::gl.glDisableVertexAttribArray(0);
+    }
+
+    Vec2<f32> pos;
+    Vec4<f32> colour;
+    f32 w;
+    f32 h;
+    DrawData draw_data;
+};
+
+static u32 aspect_fit_width  = 0;
+static u32 aspect_fit_height = 0;
+static Util::IchigoVector<Entity> entities{64};
 
 static void frame_render() {
     ImGui::Render();
@@ -87,23 +148,37 @@ static void frame_render() {
     if (imgui_draw_data->DisplaySize.x <= 0.0f || imgui_draw_data->DisplaySize.y <= 0.0f)
         return;
 
-    auto proj = glm::ortho(0.0f, 1280.0f, 0.0f, 720.0f, -1.0f, 1.0f);
+    auto proj = glm::ortho(0.0f, 480.0f, 0.0f, 270.0f, -1.0f, 1.0f);
     i32 proj_uniform = Ichigo::gl.glGetUniformLocation(shader_program_id, "proj");
     Ichigo::gl.glUniformMatrix4fv(proj_uniform, 1, GL_FALSE, glm::value_ptr(proj));
 
-    Ichigo::gl.glViewport(0, 0, Ichigo::window_width, Ichigo::window_height);
-    Ichigo::gl.glClearColor(0, 0, 0, 1.0f);
+    Ichigo::gl.glViewport(0, 0, aspect_fit_width, aspect_fit_height);
+    Ichigo::gl.glClearColor(0, 0.5, 0.2, 1.0f);
     Ichigo::gl.glClear(GL_COLOR_BUFFER_BIT);
 
     Ichigo::gl.glUseProgram(shader_program_id);
-    Ichigo::gl.glBindVertexArray(vertex_array_id);
-    Ichigo::gl.glDrawElements(GL_TRIANGLES, ARRAY_LEN(indicies), GL_UNSIGNED_INT, 0);
+
+    for (u32 i = 0; i < entities.size; ++i) {
+        entities.at(i).render();
+        // ICHIGO_INFO("ENTITY: pos=%f,%f", entities.at(i).pos.x, entities.at(i).pos.y);
+    }
 
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 }
 
 void Ichigo::do_frame(float dpi_scale) {
     static bool do_wireframe = 0;
+
+    if (Ichigo::window_height != last_window_height || Ichigo::window_width != last_window_width) {
+        last_window_height = Ichigo::window_height;
+        last_window_width  = Ichigo::window_width;
+        u32 height_factor  = Ichigo::window_height / 9;
+        u32 width_factor   = Ichigo::window_width  / 16;
+        aspect_fit_height  = MIN(height_factor, width_factor) * 9;
+        aspect_fit_width   = MIN(height_factor, width_factor) * 16;
+
+        ICHIGO_INFO("Window resize to: %ux%u Aspect fix to: %ux%u", Ichigo::window_width, Ichigo::window_height, aspect_fit_width, aspect_fit_height);
+    }
 
     if (dpi_scale != scale) {
         ICHIGO_INFO("scaling to scale=%f", dpi_scale);
@@ -137,18 +212,23 @@ void Ichigo::do_frame(float dpi_scale) {
 
     Ichigo::gl.glPolygonMode(GL_FRONT_AND_BACK, do_wireframe ? GL_LINE : GL_FILL);
 
-    if (Ichigo::window_height != 0 && Ichigo::window_width != 0)
+    entities.at(0).pos.x += 0.2;
+    if (Ichigo::window_height != 0 && Ichigo::window_width != 0) {
+
         frame_render();
+    }
 }
 
-// Initialization for the UI module
 void Ichigo::init() {
+    // Util::IchigoVector<Entity> fuck;
+    // fuck.append({ {100.0f, 100.0f}, {0.5f, 0.2f, 0.8f}, 25, 35 });
+    // fucking_shit.append({ {100.0f, 100.0f}, {0.5f, 0.2f, 0.8f}, 25, 35 });
     font_config.FontDataOwnedByAtlas = false;
     font_config.OversampleH = 2;
     font_config.OversampleV = 2;
     font_config.RasterizerMultiply = 1.5f;
 
-    // Init imgui
+    // // Init imgui
     {
         IMGUI_CHECKVERSION();
         ImGui::CreateContext();
@@ -211,21 +291,8 @@ void Ichigo::init() {
     Ichigo::gl.glDeleteShader(vertex_shader_id);
     Ichigo::gl.glDeleteShader(fragment_shader_id);
 
-    Ichigo::gl.glGenVertexArrays(1, &vertex_array_id);
-    Ichigo::gl.glGenBuffers(1, &vertex_buffer_id);
-
-    Ichigo::gl.glBindVertexArray(vertex_array_id);
-
-    Ichigo::gl.glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer_id);
-    Ichigo::gl.glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-
-    Ichigo::gl.glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(f32), 0);
-    Ichigo::gl.glEnableVertexAttribArray(0);
-
-    Ichigo::gl.glGenBuffers(1, &element_buffer_id);
-
-    Ichigo::gl.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, element_buffer_id);
-    Ichigo::gl.glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indicies), indicies, GL_STATIC_DRAW);
+    entities.append({ {100.0f, 100.0f}, {0.5f, 0.2f, 0.8f, 1.0f}, 25, 35 });
+    entities.append({ {200.3f, 150.57f}, {0.0f, 0.0f, 1.0f, 0.5f}, 25, 35 });
 }
 
 void Ichigo::deinit() {}

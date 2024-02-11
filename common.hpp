@@ -19,10 +19,12 @@ using usize = std::size_t;
 using f32 = float;
 using f64 = double;
 
-#define VK_ASSERT_OK(err) assert(err == VK_SUCCESS)
+#define MIN(A, B) (A < B ? A : B)
+#define MAX(A, B) (A > B ? A : B)
 #define ARRAY_LEN(a) (sizeof(a) / sizeof(a[0]))
 #define ICHIGO_INFO(fmt, ...) std::printf("(info) %s:%d: " fmt "\n", __FILE__, __LINE__ __VA_OPT__(, ) __VA_ARGS__)
 #define ICHIGO_ERROR(fmt, ...) std::printf("(error) %s:%d: " fmt "\n", __FILE__, __LINE__ __VA_OPT__(, ) __VA_ARGS__)
+#define VK_ASSERT_OK(err) assert(err == VK_SUCCESS)
 
 #ifdef _WIN32
 #define platform_alloca _alloca

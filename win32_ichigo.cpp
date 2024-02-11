@@ -263,6 +263,7 @@ i32 main() {
     Ichigo::gl.glClear       = glClear;
     Ichigo::gl.glGetString   = glGetString;
     Ichigo::gl.glPolygonMode = glPolygonMode;
+    Ichigo::gl.glGetError    = glGetError;
 
     GET_ADDR_OF_OPENGL_FUNCTION(glGenBuffers);
     GET_ADDR_OF_OPENGL_FUNCTION(glGenVertexArrays);

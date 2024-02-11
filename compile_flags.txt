@@ -5,3 +5,4 @@
 -Wextra
 -fno-exceptions
 -Wno-deprecated-declarations
+-Wno-missing-braces
