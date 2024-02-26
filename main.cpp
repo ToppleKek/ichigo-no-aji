@@ -97,6 +97,10 @@ struct Entity {
     }
 };
 
+struct Player : public Entity {
+    bool on_ground;
+};
+
 #define SCREEN_TILE_WIDTH 16
 #define SCREEN_TILE_HEIGHT 9
 
@@ -104,6 +108,8 @@ static u32 aspect_fit_width  = 0;
 static u32 aspect_fit_height = 0;
 static Util::IchigoVector<Entity> entities{64};
 static Texture textures[Ichigo::IT_ENUM_COUNT];
+static Player player_entity{{{4.0f, 4.0f}, {0.5f, 0.2f, 0.8f, 1.0f}, 2.0f, 1.0f, &textures[Ichigo::IT_PLAYER]}, false};
+
 static u32 tile_map[SCREEN_TILE_HEIGHT][SCREEN_TILE_WIDTH] = {
     {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
     {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
@@ -115,6 +121,21 @@ static u32 tile_map[SCREEN_TILE_HEIGHT][SCREEN_TILE_WIDTH] = {
     {0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0},
     {0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0},
 };
+
+static void tick_player(Ichigo::KeyState *keyboard_state, f32 dt) {
+    Vec2<f32> potential_next_position = player_entity.pos;
+
+    if (keyboard_state[Ichigo::IK_RIGHT].down)
+        potential_next_position.x += 16 * dt;
+    if (keyboard_state[Ichigo::IK_LEFT].down)
+        potential_next_position.x -= 16 * dt;
+
+    if (!player_entity.on_ground) {
+        // potential_next_position.y += 2 * dt;
+    }
+
+    player_entity.pos = potential_next_position;
+}
 
 static void render_tile(u32 tile, Vec2<f32> pos) {
     if (tile == 1) {
@@ -162,11 +183,14 @@ static void frame_render() {
         // ICHIGO_INFO("ENTITY: pos=%f,%f", entities.at(i).pos.x, entities.at(i).pos.y);
     }
 
+    // Always render the player last (on top)
+    player_entity.render();
+
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 }
 
 void Ichigo::do_frame(f32 dpi_scale, f32 dt, Ichigo::KeyState *keyboard_state) {
-    static bool do_wireframe = 0;
+    // static bool do_wireframe = 0;
 
     if (Ichigo::window_height != last_window_height || Ichigo::window_width != last_window_width) {
         last_window_height = Ichigo::window_height;
@@ -201,18 +225,15 @@ void Ichigo::do_frame(f32 dpi_scale, f32 dt, Ichigo::KeyState *keyboard_state) {
     ImGui::Text("がんばりまー");
     ImGui::Text("FPS=%f", ImGui::GetIO().Framerate);
 
-    ImGui::Checkbox("Wireframe", &do_wireframe);
+    // ImGui::Checkbox("Wireframe", &do_wireframe);
 
     ImGui::End();
 
     ImGui::EndFrame();
 
-    Ichigo::gl.glPolygonMode(GL_FRONT_AND_BACK, do_wireframe ? GL_LINE : GL_FILL);
+    // Ichigo::gl.glPolygonMode(GL_FRONT_AND_BACK, do_wireframe ? GL_LINE : GL_FILL);
 
-    if (keyboard_state[Ichigo::IK_RIGHT].down)
-        entities.at(0).pos.x += 16 * dt;
-    if (keyboard_state[Ichigo::IK_LEFT].down)
-        entities.at(0).pos.x -= 16 * dt;
+    tick_player(keyboard_state, dt);
 
     if (Ichigo::window_height != 0 && Ichigo::window_width != 0) {
         frame_render();
@@ -326,7 +347,7 @@ void Ichigo::init() {
     load_texture(Ichigo::IT_PLAYER, test_png_image, test_png_image_len);
     load_texture(Ichigo::IT_GRASS_TILE, grass_tile_png, grass_tile_png_len);
 
-    entities.append({ {4.0f, 4.0f}, {0.5f, 0.2f, 0.8f, 1.0f}, 2.0f, 1.0f, &textures[Ichigo::IT_PLAYER] });
+    // entities.append();
     // entities.append({ {10.3f, 20.57f}, {0.0f, 0.0f, 1.0f, 0.5f}, 25.0f, 35.0f });
 }
 
