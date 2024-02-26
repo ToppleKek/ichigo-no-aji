@@ -4,12 +4,94 @@
 #include "opengl.hpp"
 
 namespace Ichigo {
+struct KeyState {
+    bool down_this_frame;
+    bool up_this_frame;
+    bool down;
+    bool up;
+};
+
+enum Keycode {
+    IK_UNKNOWN,
+    IK_MOUSE_1,
+    IK_MOUSE_2,
+    IK_MOUSE_3,
+    IK_MOUSE_4,
+    IK_MOUSE_5,
+    IK_BACKSPACE,
+    IK_TAB,
+    IK_ENTER,
+    IK_LEFT_SHIFT,
+    IK_LEFT_CONTROL,
+    IK_RIGHT_SHIFT,
+    IK_RIGHT_CONTROL,
+    IK_ALT,
+    IK_ESCAPE,
+    IK_SPACE,
+    IK_PAGE_UP,
+    IK_PAGE_DOWN,
+    IK_END,
+    IK_HOME,
+    IK_LEFT,
+    IK_UP,
+    IK_RIGHT,
+    IK_DOWN,
+    IK_PRINT_SCREEN,
+    IK_INSERT,
+    IK_DELETE,
+
+    IK_0 = '0',
+    IK_1,
+    IK_2,
+    IK_3,
+    IK_4,
+    IK_5,
+    IK_6,
+    IK_7,
+    IK_8,
+    IK_9,
+
+    IK_A = 'A',
+    IK_B,
+    IK_C,
+    IK_D,
+    IK_E,
+    IK_F,
+    IK_G,
+    IK_H,
+    IK_I,
+    IK_J,
+    IK_K,
+    IK_L,
+    IK_M,
+    IK_N,
+    IK_O,
+    IK_P,
+    IK_Q,
+    IK_R,
+    IK_S,
+    IK_T,
+    IK_U,
+    IK_V,
+    IK_W,
+    IK_X,
+    IK_Y,
+    IK_Z,
+    IK_ENUM_COUNT
+};
+
+enum TextureType {
+    IT_PLAYER,
+    IT_GRASS_TILE,
+    IT_ENUM_COUNT
+};
+
 extern OpenGL gl;
 extern bool must_rebuild_swapchain;
 extern u32 window_width;
 extern u32 window_height;
 void init();
-void do_frame(f32 dpi_scale);
+void do_frame(f32 dpi_scale, f32 dt, KeyState *keyboard_state);
 void deinit();
 
 /*

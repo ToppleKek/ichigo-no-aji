@@ -14,6 +14,9 @@ u32 Ichigo::window_width = 1920;
 u32 Ichigo::window_height = 1080;
 OpenGL Ichigo::gl{};
 
+static Ichigo::KeyState keyboard_state[Ichigo::Keycode::IK_ENUM_COUNT] = {};
+static i64 performance_frequency;
+static i64 last_frame_time;
 static HWND window_handle;
 static HDC hdc;
 static HGLRC wgl_context;
@@ -145,9 +148,19 @@ Util::IchigoVector<std::string> Ichigo::platform_recurse_directory(const std::st
     return ret;
 }
 
+static i64 platform_get_time() {
+    LARGE_INTEGER i;
+    QueryPerformanceCounter(&i);
+    return i.QuadPart;
+}
+
 static void platform_do_frame() {
     ImGui_ImplWin32_NewFrame();
-    Ichigo::do_frame(ImGui_ImplWin32_GetDpiScaleForHwnd(window_handle));
+
+    i64 now = platform_get_time();
+    Ichigo::do_frame(ImGui_ImplWin32_GetDpiScaleForHwnd(window_handle), (now - last_frame_time) / (f32) performance_frequency, keyboard_state);
+    last_frame_time = now;
+
     SwapBuffers(hdc);
 }
 
@@ -183,11 +196,47 @@ static LRESULT window_proc(HWND window, u32 msg, WPARAM wparam, LPARAM lparam) {
         return 0;
     } break;
 
-    case WM_TIMER: {
-        if (in_sizing_loop)
-            platform_do_frame();
+    case WM_KEYDOWN:
+    case WM_KEYUP: {
+        u32 vk_code = (u32) wparam;
+        bool was_down = ((lparam & (1 << 30)) != 0);
+        bool is_down  = ((lparam & (1 << 31)) == 0);
+        // ICHIGO_INFO("VK input: %u was_down: %u is_down %u", vk_code, was_down, is_down);
 
-        return 0;
+#define SET_KEY_STATE(IK_KEY) keyboard_state[IK_KEY].down = is_down; keyboard_state[IK_KEY].up = !is_down; keyboard_state[IK_KEY].down_this_frame = is_down && !was_down; keyboard_state[IK_KEY].up_this_frame = !is_down && was_down
+        switch (vk_code) {
+            case VK_LBUTTON:  SET_KEY_STATE(Ichigo::IK_MOUSE_1);       break;
+            case VK_RBUTTON:  SET_KEY_STATE(Ichigo::IK_MOUSE_2);       break;
+            case VK_MBUTTON:  SET_KEY_STATE(Ichigo::IK_MOUSE_3);       break;
+            case VK_XBUTTON1: SET_KEY_STATE(Ichigo::IK_MOUSE_4);       break;
+            case VK_XBUTTON2: SET_KEY_STATE(Ichigo::IK_MOUSE_5);       break;
+            case VK_BACK:     SET_KEY_STATE(Ichigo::IK_BACKSPACE);     break;
+            case VK_TAB:      SET_KEY_STATE(Ichigo::IK_TAB);           break;
+            case VK_RETURN:   SET_KEY_STATE(Ichigo::IK_ENTER);         break;
+            case VK_LSHIFT:   SET_KEY_STATE(Ichigo::IK_LEFT_SHIFT);    break;
+            case VK_LCONTROL: SET_KEY_STATE(Ichigo::IK_LEFT_CONTROL);  break;
+            case VK_RSHIFT:   SET_KEY_STATE(Ichigo::IK_RIGHT_SHIFT);   break;
+            case VK_RCONTROL: SET_KEY_STATE(Ichigo::IK_RIGHT_CONTROL); break;
+            case VK_MENU:     SET_KEY_STATE(Ichigo::IK_ALT);           break;
+            case VK_ESCAPE:   SET_KEY_STATE(Ichigo::IK_ESCAPE);        break;
+            case VK_SPACE:    SET_KEY_STATE(Ichigo::IK_SPACE);         break;
+            case VK_PRIOR:    SET_KEY_STATE(Ichigo::IK_PAGE_UP);       break;
+            case VK_NEXT:     SET_KEY_STATE(Ichigo::IK_PAGE_DOWN);     break;
+            case VK_END:      SET_KEY_STATE(Ichigo::IK_END);           break;
+            case VK_HOME:     SET_KEY_STATE(Ichigo::IK_HOME);          break;
+            case VK_LEFT:     SET_KEY_STATE(Ichigo::IK_LEFT);          break;
+            case VK_UP:       SET_KEY_STATE(Ichigo::IK_UP);            break;
+            case VK_RIGHT:    SET_KEY_STATE(Ichigo::IK_RIGHT);         break;
+            case VK_DOWN:     SET_KEY_STATE(Ichigo::IK_DOWN);          break;
+            case VK_SNAPSHOT: SET_KEY_STATE(Ichigo::IK_PRINT_SCREEN);  break;
+            case VK_INSERT:   SET_KEY_STATE(Ichigo::IK_INSERT);        break;
+            case VK_DELETE:   SET_KEY_STATE(Ichigo::IK_DELETE);        break;
+        }
+
+        if ((vk_code >= '0' && vk_code <= '9') || (vk_code >= 'A' && vk_code <= 'Z'))
+            SET_KEY_STATE(vk_code);
+
+#undef SET_KEY_STATE
     } break;
 
     case WM_PAINT: {
@@ -258,17 +307,24 @@ i32 main() {
     wglMakeCurrent(hdc, wgl_context);
 
 #define GET_ADDR_OF_OPENGL_FUNCTION(FUNC_NAME) Ichigo::gl.FUNC_NAME = (Type_##FUNC_NAME *) wglGetProcAddress(#FUNC_NAME); assert(Ichigo::gl.FUNC_NAME != nullptr)
-    Ichigo::gl.glViewport    = glViewport;
-    Ichigo::gl.glClearColor  = glClearColor;
-    Ichigo::gl.glClear       = glClear;
-    Ichigo::gl.glGetString   = glGetString;
-    Ichigo::gl.glPolygonMode = glPolygonMode;
-    Ichigo::gl.glGetError    = glGetError;
+    Ichigo::gl.glViewport       = glViewport;
+    Ichigo::gl.glClearColor     = glClearColor;
+    Ichigo::gl.glClear          = glClear;
+    Ichigo::gl.glGetString      = glGetString;
+    Ichigo::gl.glPolygonMode    = glPolygonMode;
+    Ichigo::gl.glGetError       = glGetError;
+    Ichigo::gl.glTexParameterf  = glTexParameterf;
+    Ichigo::gl.glTexParameterfv = glTexParameterfv;
+    Ichigo::gl.glTexParameteri  = glTexParameteri;
+    Ichigo::gl.glTexParameteriv = glTexParameteriv;
+    Ichigo::gl.glTexImage2D     = glTexImage2D;
 
     GET_ADDR_OF_OPENGL_FUNCTION(glGenBuffers);
     GET_ADDR_OF_OPENGL_FUNCTION(glGenVertexArrays);
+    GET_ADDR_OF_OPENGL_FUNCTION(glGenTextures);
     GET_ADDR_OF_OPENGL_FUNCTION(glBindBuffer);
     GET_ADDR_OF_OPENGL_FUNCTION(glBindVertexArray);
+    GET_ADDR_OF_OPENGL_FUNCTION(glBindTexture);
     GET_ADDR_OF_OPENGL_FUNCTION(glBufferData);
     GET_ADDR_OF_OPENGL_FUNCTION(glCreateShader);
     GET_ADDR_OF_OPENGL_FUNCTION(glShaderSource);
@@ -288,6 +344,9 @@ i32 main() {
     GET_ADDR_OF_OPENGL_FUNCTION(glDrawArrays);
     GET_ADDR_OF_OPENGL_FUNCTION(glDrawElements);
     GET_ADDR_OF_OPENGL_FUNCTION(glGetUniformLocation);
+    GET_ADDR_OF_OPENGL_FUNCTION(glTexParameterIiv);
+    GET_ADDR_OF_OPENGL_FUNCTION(glTexParameterIuiv);
+    GET_ADDR_OF_OPENGL_FUNCTION(glGenerateMipmap);
     GET_ADDR_OF_OPENGL_FUNCTION(glUniform1f);
     GET_ADDR_OF_OPENGL_FUNCTION(glUniform2f);
     GET_ADDR_OF_OPENGL_FUNCTION(glUniform3f);
@@ -330,9 +389,20 @@ i32 main() {
 
     // Platform init
     ImGui_ImplWin32_InitForOpenGL(window_handle);
+
+    LARGE_INTEGER frequency;
+    QueryPerformanceFrequency(&frequency);
+    performance_frequency = frequency.QuadPart;
+
+    last_frame_time = platform_get_time();
     init_completed = true;
 
     for (;;) {
+        for (u32 i = 0; i < Ichigo::IK_ENUM_COUNT; ++i) {
+            keyboard_state[i].down_this_frame = false;
+            keyboard_state[i].up_this_frame   = false;
+        }
+
         MSG message;
         while (PeekMessageA(&message, nullptr, 0, 0, PM_REMOVE)) {
             if (message.message == WM_QUIT)
