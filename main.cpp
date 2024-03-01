@@ -31,7 +31,7 @@ extern "C" {
 EMBED("noto.ttf", noto_font)
 EMBED("shaders/opengl/frag.glsl", fragment_shader_source)
 EMBED("shaders/opengl/vert.glsl", vertex_shader_source)
-EMBED("assets/test2.png", test_png_image)
+EMBED("assets/test3.png", test_png_image)
 EMBED("assets/grass.png", grass_tile_png)
 }
 
@@ -73,20 +73,18 @@ struct DrawData {
 };
 
 struct Entity {
-    Vec2<f32> pos;
-    Vec4<f32> colour;
-    f32 w;
-    f32 h;
+    RectangleCollider col;
     Texture *texture;
 
     void render() {
         Ichigo::gl.glBindTexture(GL_TEXTURE_2D, texture->id);
 
+        // The vertices should probably be based on the texture dimensions so that animation frames can extend outside the collider
         Vertex vertices[] = {
-            {{pos.x, pos.y, 0.0f}, {0.0f, 1.0f}},  // top left
-            {{pos.x + w, pos.y, 0.0f}, {1.0f, 1.0f}}, // top right
-            {{pos.x, pos.y + h, 0.0f}, {0.0f, 0.0f}}, // bottom left
-            {{pos.x + w, pos.y + h, 0.0f}, {1.0f, 0.0f}}, // bottom right
+            {{col.pos.x, col.pos.y, 0.0f}, {0.0f, 1.0f}},  // top left
+            {{col.pos.x + col.w, col.pos.y, 0.0f}, {1.0f, 1.0f}}, // top right
+            {{col.pos.x, col.pos.y + col.h, 0.0f}, {0.0f, 0.0f}}, // bottom left
+            {{col.pos.x + col.w, col.pos.y + col.h, 0.0f}, {1.0f, 0.0f}}, // bottom right
         };
 
         Ichigo::gl.glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
@@ -108,33 +106,110 @@ static u32 aspect_fit_width  = 0;
 static u32 aspect_fit_height = 0;
 static Util::IchigoVector<Entity> entities{64};
 static Texture textures[Ichigo::IT_ENUM_COUNT];
-static Player player_entity{{{4.0f, 4.0f}, {0.5f, 0.2f, 0.8f, 1.0f}, 2.0f, 1.0f, &textures[Ichigo::IT_PLAYER]}, false};
+static Player player_entity{{{{4.0f, 4.0f}, 1.0f, 1.0f}, &textures[Ichigo::IT_PLAYER]}, false};
 
 static u32 tile_map[SCREEN_TILE_HEIGHT][SCREEN_TILE_WIDTH] = {
     {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
     {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
     {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
     {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0},
-    {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+    {0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0},
     {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
     {1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1},
     {0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0},
     {0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0},
 };
 
-static void tick_player(Ichigo::KeyState *keyboard_state, f32 dt) {
-    Vec2<f32> potential_next_position = player_entity.pos;
+static u32 tile_at(Vec2<u32> tile_coord) {
+    if (tile_coord.x >= SCREEN_TILE_WIDTH || tile_coord.x < 0 || tile_coord.y >= SCREEN_TILE_HEIGHT || tile_coord.y < 0)
+        return 0;
 
-    if (keyboard_state[Ichigo::IK_RIGHT].down)
-        potential_next_position.x += 16 * dt;
-    if (keyboard_state[Ichigo::IK_LEFT].down)
-        potential_next_position.x -= 16 * dt;
+    return tile_map[tile_coord.y][tile_coord.x];
+}
 
-    if (!player_entity.on_ground) {
-        // potential_next_position.y += 2 * dt;
+
+// x = a + t*(b-a)
+static bool test_wall(f32 x, f32 x0, f32 dx, f32 *best_t) {
+    // SEARCH IN T (x - x_0)/(x_1 - x_0) = t
+    f32 t = safe_ratio_1(x - x0, dx);
+    if (t >= 0 && t < *best_t) {
+        *best_t = t;
+        return true;
     }
 
-    player_entity.pos = potential_next_position;
+    return false;
+}
+
+static void tick_player(Ichigo::KeyState *keyboard_state, f32 dt) {
+    Vec2<f32> requested_move{0.0f, 0.0f};
+
+#define PLAYER_SPEED 6
+    if (keyboard_state[Ichigo::IK_RIGHT].down)
+        requested_move.x += PLAYER_SPEED * dt;
+    if (keyboard_state[Ichigo::IK_LEFT].down)
+        requested_move.x -= PLAYER_SPEED * dt;
+    if (keyboard_state[Ichigo::IK_DOWN].down)
+        requested_move.y += PLAYER_SPEED * dt;
+    if (keyboard_state[Ichigo::IK_UP].down)
+        requested_move.y -= PLAYER_SPEED * dt;
+
+    if (!player_entity.on_ground) {
+        // requested_move.y += 4 * dt;
+    }
+
+    if (requested_move.x == 0.0f && requested_move.y == 0.0f) {
+        return;
+    }
+
+    u32 max_tile_y = std::ceil(MAX(player_entity.col.pos.y + requested_move.y, player_entity.col.pos.y));
+    u32 max_tile_x = std::ceil(MAX(player_entity.col.pos.x + requested_move.x, player_entity.col.pos.x));
+    u32 min_tile_y = MIN(player_entity.col.pos.y + requested_move.y, player_entity.col.pos.y);
+    u32 min_tile_x = MIN(player_entity.col.pos.x + requested_move.x, player_entity.col.pos.x);
+
+    RectangleCollider potential_next_col = player_entity.col;
+    potential_next_col.pos += requested_move;
+
+    // ICHIGO_INFO("Nearby tiles this frame:");
+    f32 best_t = 1.0;
+    for (u32 tile_y = min_tile_y; tile_y <= max_tile_y; ++tile_y) {
+        for (u32 tile_x = min_tile_x; tile_x <= max_tile_x; ++tile_x) {
+            // ICHIGO_INFO("%u,%u", tile_x, tile_y);
+
+            // BINARY SEARCH FOR BEST POSITION
+            // if (tile_at({tile_x, tile_y}) != 0) {
+            //     RectangleCollider tile_col = {{(f32) tile_x, (f32) tile_y}, 1.0f, 1.0f};
+            //     if (rectangles_intersect(potential_next_col, tile_col)) {
+            //         ICHIGO_INFO("Collision at tile %u,%u", tile_x, tile_y);
+            //         requested_move *= 0.5;
+            //         for (u32 i = 0; i < 32; ++i) {
+            //             potential_next_col.pos = player_entity.col.pos + requested_move;
+
+            //             if (rectangles_intersect(potential_next_col, tile_col)) {
+            //                 requested_move *= 0.5;
+            //             } else {
+            //                 requested_move *= 1.5;
+            //             }
+            //         }
+            //     }
+            // }
+
+            // SEARCH IN T (x - x_0)/(x_1 - x_0) = t
+            if (tile_map[tile_y][tile_x] != 0) {
+                test_wall(tile_x, (player_entity.col.pos.x + player_entity.col.w), requested_move.x, &best_t);
+                test_wall(tile_x + 1, player_entity.col.pos.x, requested_move.x, &best_t);
+                test_wall(tile_y, (player_entity.col.pos.y + player_entity.col.h), requested_move.y, &best_t);
+                test_wall(tile_y + 1, player_entity.col.pos.y, requested_move.y, &best_t);
+            }
+        }
+    }
+
+    // f32 shit = requested_move.x;
+    requested_move *= (best_t);
+    // if (best_t < 1.0f) {
+    //     ICHIGO_INFO("best_t=%f requested x=%f before=%f", best_t, requested_move.x, shit);
+    // }
+
+    player_entity.col.pos += requested_move;
 }
 
 static void render_tile(u32 tile, Vec2<f32> pos) {
@@ -174,7 +249,7 @@ static void frame_render() {
 
     for (u32 row = 0; row < SCREEN_TILE_HEIGHT; ++row) {
         for (u32 col = 0; col < SCREEN_TILE_WIDTH; ++col) {
-            render_tile(tile_map[row][col], {(f32) col, (f32) row});
+            render_tile(tile_at({col, row}), {(f32) col, (f32) row});
         }
     }
 
@@ -190,6 +265,8 @@ static void frame_render() {
 }
 
 void Ichigo::do_frame(f32 dpi_scale, f32 dt, Ichigo::KeyState *keyboard_state) {
+    if (dt > 0.1)
+        dt = 0.1;
     // static bool do_wireframe = 0;
 
     if (Ichigo::window_height != last_window_height || Ichigo::window_width != last_window_width) {
@@ -224,6 +301,7 @@ void Ichigo::do_frame(f32 dpi_scale, f32 dt, Ichigo::KeyState *keyboard_state) {
 
     ImGui::Text("がんばりまー");
     ImGui::Text("FPS=%f", ImGui::GetIO().Framerate);
+    ImGui::Text("player_pos=%f,%f", player_entity.col.pos.x, player_entity.col.pos.y);
 
     // ImGui::Checkbox("Wireframe", &do_wireframe);
 
