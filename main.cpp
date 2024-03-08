@@ -171,6 +171,8 @@ static void tick_player(Ichigo::KeyState *keyboard_state, f32 dt) {
 
     // ICHIGO_INFO("Nearby tiles this frame:");
     f32 best_t = 1.0;
+    Vec2<f32> wall_normal = { 0, 0 };
+
     for (u32 tile_y = min_tile_y; tile_y <= max_tile_y; ++tile_y) {
         for (u32 tile_x = min_tile_x; tile_x <= max_tile_x; ++tile_x) {
             // ICHIGO_INFO("%u,%u", tile_x, tile_y);
@@ -194,21 +196,47 @@ static void tick_player(Ichigo::KeyState *keyboard_state, f32 dt) {
             // }
 
             // SEARCH IN T (x - x_0)/(x_1 - x_0) = t
-            if (tile_map[tile_y][tile_x] != 0) {
-                test_wall(tile_x, (player_entity.col.pos.x + player_entity.col.w), requested_move.x, &best_t);
-                test_wall(tile_x + 1, player_entity.col.pos.x, requested_move.x, &best_t);
-                test_wall(tile_y, (player_entity.col.pos.y + player_entity.col.h), requested_move.y, &best_t);
-                test_wall(tile_y + 1, player_entity.col.pos.y, requested_move.y, &best_t);
+            if (tile_at({tile_x, tile_y}) != 0) {
+
+                if (test_wall(tile_x, (player_entity.col.pos.x + player_entity.col.w), requested_move.x, &best_t)) {
+                    wall_normal = { -1, 0 };
+                }
+                if (test_wall(tile_x + 1, player_entity.col.pos.x, requested_move.x, &best_t)) {
+                    wall_normal = { 1, 0 };
+                }
+                if (test_wall(tile_y, (player_entity.col.pos.y + player_entity.col.h), requested_move.y, &best_t)) {
+                    wall_normal = { 0, -1 };
+                }
+                if (test_wall(tile_y + 1, player_entity.col.pos.y, requested_move.y, &best_t)) {
+                    wall_normal = { 0, 1 };
+                }
+
+                // f32 remaining_time = 1.0f - best_t;
+                // f32 dp = (requested_move.x * wall_normal.y + requested_move.y * wall_normal.x) * remaining_time;
+                // requested_move.x = dp * wall_normal.y;
+                // requested_move.y = dp * wall_normal.x;
             }
         }
     }
 
     // f32 shit = requested_move.x;
-    requested_move *= (best_t);
+    // requested_move *= (best_t);
     // if (best_t < 1.0f) {
     //     ICHIGO_INFO("best_t=%f requested x=%f before=%f", best_t, requested_move.x, shit);
     // }
 
+    if (best_t != 1.0f) {
+        f32 remaining_time = 1.0f - best_t;
+        f32 mag = requested_move.length() * remaining_time;
+        f32 dp = requested_move.x * wall_normal.y + requested_move.y * wall_normal.x;
+
+        if (dp > 0.0f) dp = 1.0f;
+        if (dp < 0.0f) dp = -1.0f;
+
+        requested_move.x = dp * wall_normal.y * mag;
+        requested_move.y = dp * wall_normal.x * mag;
+    }
+    // requested_move = requested_move - 1 * dot(requested_move, wall_normal) * wall_normal;
     player_entity.col.pos += requested_move;
 }
 

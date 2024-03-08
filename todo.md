@@ -1,4 +1,4 @@
-# Unnamed Mystery Dungeon Type Game OR "Ichigo no Aji!" OR kekslop magical girl game
+# Unnamed Mystery Dungeon Type Game OR "Ichigo no Aji!" OR kekslop magical girl game OR simple single shade (puzzle?) game
 
 ## Programming (vulkan)
 - ~~Draw triangle~~
@@ -15,7 +15,9 @@
 ## Game
 - ~~Textured rectangles~~
 - ~~World tile format, draw world~~
-- Collision detection, jumping
+- ~~Collision detection~~
+- Wall gliding
+- jumping
 - Follow camera
 
 ## Art

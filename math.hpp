@@ -31,10 +31,23 @@ struct Vec2 {
         return { x + rhs.x, y + rhs.y };
     }
 
+    Vec2<T> operator*(const T rhs) {
+        return { x * rhs, y * rhs };
+    }
+
+    Vec2<T> operator-(const Vec2<T> &rhs) {
+        return { x - rhs.x, y - rhs.y };
+    }
+
     T length() {
         return sqrt(x * x + y * y);
     }
 };
+
+template<typename T>
+Vec2<T> operator*(const T lhs, const Vec2<T> &rhs) {
+    return { rhs.x * lhs, rhs.y * lhs };
+}
 
 template<typename T>
 struct Vec3 {
@@ -70,10 +83,24 @@ struct Vec3 {
         return { x + rhs.x, y + rhs.y, z + rhs.z };
     }
 
+    Vec3<T> operator*(const T rhs) {
+        return { x * rhs, y * rhs, z * rhs };
+    }
+
+    Vec3<T> operator-(const Vec3<T> &rhs) {
+        return { x - rhs.x, y - rhs.y, z - rhs.z };
+    }
+
+
     T length() {
         return sqrt(x * x + y * y + z * z);
     }
 };
+
+template<typename T>
+Vec3<T> operator*(const T lhs, const Vec3<T> &rhs) {
+    return { rhs.x * lhs, rhs.y * lhs, rhs.z * lhs };
+}
 
 template<typename T>
 struct Vec4 {
