@@ -74,6 +74,7 @@ struct DrawData {
 
 struct Entity {
     RectangleCollider col;
+    Vec2<f32> velocity;
     Texture *texture;
 
     void render() {
@@ -106,18 +107,18 @@ static u32 aspect_fit_width  = 0;
 static u32 aspect_fit_height = 0;
 static Util::IchigoVector<Entity> entities{64};
 static Texture textures[Ichigo::IT_ENUM_COUNT];
-static Player player_entity{{{{4.0f, 4.0f}, 1.0f, 1.0f}, &textures[Ichigo::IT_PLAYER]}, false};
+static Player player_entity{{{{3.0f, 5.0f}, 1.0f, 1.0f}, {0.0f, 0.0f}, &textures[Ichigo::IT_PLAYER]}, false};
 
 static u32 tile_map[SCREEN_TILE_HEIGHT][SCREEN_TILE_WIDTH] = {
+    {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
     {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-    {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-    {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-    {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0},
-    {0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0},
-    {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+    {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+    {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0},
+    {1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0},
+    {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
     {1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1},
-    {0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0},
-    {0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0},
+    {1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0},
+    {1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0},
 };
 
 static u32 tile_at(Vec2<u32> tile_coord) {
@@ -129,115 +130,160 @@ static u32 tile_at(Vec2<u32> tile_coord) {
 
 
 // x = a + t*(b-a)
-static bool test_wall(f32 x, f32 x0, f32 dx, f32 *best_t) {
+static bool test_wall(f32 x, f32 x0, f32 dx, f32 py, f32 dy, f32 ty0, f32 ty1, f32 *best_t) {
     // SEARCH IN T (x - x_0)/(x_1 - x_0) = t
     f32 t = safe_ratio_1(x - x0, dx);
+    f32 y = t * dy + py;
     if (t >= 0 && t < *best_t) {
-        *best_t = t;
-        return true;
+        if ((y > ty0 && y < ty1)) {
+            *best_t = t;
+            return true;
+        } else {
+            ICHIGO_INFO("y test failed");
+        }
+        // *best_t = t;
+        // return true;
+    // if (t >= 0 && t < *best_t) {
     }
 
     return false;
 }
 
 static void tick_player(Ichigo::KeyState *keyboard_state, f32 dt) {
-    Vec2<f32> requested_move{0.0f, 0.0f};
-
 #define PLAYER_SPEED 6
+    player_entity.velocity = {0.0f, 0.0f};
+    // player_entity.velocity = {-PLAYER_SPEED * dt, PLAYER_SPEED * dt};
     if (keyboard_state[Ichigo::IK_RIGHT].down)
-        requested_move.x += PLAYER_SPEED * dt;
+        player_entity.velocity.x += PLAYER_SPEED * dt;
     if (keyboard_state[Ichigo::IK_LEFT].down)
-        requested_move.x -= PLAYER_SPEED * dt;
+        player_entity.velocity.x -= PLAYER_SPEED * dt;
     if (keyboard_state[Ichigo::IK_DOWN].down)
-        requested_move.y += PLAYER_SPEED * dt;
+        player_entity.velocity.y += PLAYER_SPEED * dt;
     if (keyboard_state[Ichigo::IK_UP].down)
-        requested_move.y -= PLAYER_SPEED * dt;
+        player_entity.velocity.y -= PLAYER_SPEED * dt;
 
     if (!player_entity.on_ground) {
-        // requested_move.y += 4 * dt;
+        // player_entity.velocity.y += 4 * dt;
     }
 
-    if (requested_move.x == 0.0f && requested_move.y == 0.0f) {
+    if (player_entity.velocity.x == 0.0f && player_entity.velocity.y == 0.0f) {
         return;
     }
 
-    u32 max_tile_y = std::ceil(MAX(player_entity.col.pos.y + requested_move.y, player_entity.col.pos.y));
-    u32 max_tile_x = std::ceil(MAX(player_entity.col.pos.x + requested_move.x, player_entity.col.pos.x));
-    u32 min_tile_y = MIN(player_entity.col.pos.y + requested_move.y, player_entity.col.pos.y);
-    u32 min_tile_x = MIN(player_entity.col.pos.x + requested_move.x, player_entity.col.pos.x);
+    // u32 max_tile_y = SCREEN_TILE_HEIGHT;
+    // u32 max_tile_x = SCREEN_TILE_WIDTH;
+    // u32 min_tile_y = 0;
+    // u32 min_tile_x = 0;
+    u32 max_tile_y = std::ceil(MAX(player_entity.col.pos.y + player_entity.velocity.y, player_entity.col.pos.y));
+    u32 max_tile_x = std::ceil(MAX(player_entity.col.pos.x + player_entity.velocity.x, player_entity.col.pos.x));
+    u32 min_tile_y = MIN(player_entity.col.pos.y + player_entity.velocity.y, player_entity.col.pos.y);
+    u32 min_tile_x = MIN(player_entity.col.pos.x + player_entity.velocity.x, player_entity.col.pos.x);
 
     RectangleCollider potential_next_col = player_entity.col;
-    potential_next_col.pos += requested_move;
+    potential_next_col.pos += player_entity.velocity;
 
     // ICHIGO_INFO("Nearby tiles this frame:");
-    f32 best_t = 1.0;
-    Vec2<f32> wall_normal = { 0, 0 };
+    f32 t_remaining = 1.0f;
+
+    for (u32 i = 0; i < 4 && t_remaining > 0.0f; ++i) {
+        ICHIGO_INFO("MOVE ATTEMPT %d player velocity: %f,%f", i + 1, player_entity.velocity.x, player_entity.velocity.y);
+        f32 best_t = 1.0f;
+        Vec2<f32> wall_normal = { 0, 0 };
+
+        for (u32 tile_y = min_tile_y; tile_y <= max_tile_y; ++tile_y) {
+            for (u32 tile_x = min_tile_x; tile_x <= max_tile_x; ++tile_x) {
+                // ICHIGO_INFO("%u,%u", tile_x, tile_y);
+
+                // BINARY SEARCH FOR BEST POSITION
+                // if (tile_at({tile_x, tile_y}) != 0) {
+                //     RectangleCollider tile_col = {{(f32) tile_x, (f32) tile_y}, 1.0f, 1.0f};
+                //     if (rectangles_intersect(potential_next_col, tile_col)) {
+                //         ICHIGO_INFO("Collision at tile %u,%u", tile_x, tile_y);
+                //         player_entity.velocity *= 0.5;
+                //         for (u32 i = 0; i < 32; ++i) {
+                //             potential_next_col.pos = player_entity.col.pos + player_entity.velocity;
+
+                //             if (rectangles_intersect(potential_next_col, tile_col)) {
+                //                 player_entity.velocity *= 0.5;
+                //             } else {
+                //                 player_entity.velocity *= 1.5;
+                //             }
+                //         }
+                //     }
+                // }
+
+                // SEARCH IN T (x - x_0)/(x_1 - x_0) = t
+                if (tile_at({tile_x, tile_y}) != 0) {
+                    Vec2<f32> centered_player_p = player_entity.col.pos + Vec2<f32>{0.5f, 0.5f};
+                    Vec2<f32> min_corner = {tile_x - player_entity.col.w / 2.0f, tile_y - player_entity.col.h / 2.0f};
+                    Vec2<f32> max_corner = {tile_x + 1 + player_entity.col.w / 2.0f, tile_y + 1 + player_entity.col.h / 2.0f};
+                    bool updated = false;
+                    if (test_wall(min_corner.x, centered_player_p.x, player_entity.velocity.x, centered_player_p.y, player_entity.velocity.y, min_corner.y, max_corner.y, &best_t)) {
+                        updated = true;
+                        wall_normal = { -1, 0 };
+                        ICHIGO_INFO("(-1,0) Tile collide %d,%d best_t=%f", tile_x, tile_y, best_t);
+                    }
+                    if (test_wall(max_corner.x, centered_player_p.x, player_entity.velocity.x, centered_player_p.y, player_entity.velocity.y, min_corner.y, max_corner.y, &best_t)) {
+                        updated = true;
+                        wall_normal = { 1, 0 };
+                        ICHIGO_INFO("(1,0) Tile collide %d,%d best_t=%f", tile_x, tile_y, best_t);
+                    }
+                    if (test_wall(min_corner.y, centered_player_p.y, player_entity.velocity.y, centered_player_p.x, player_entity.velocity.x, min_corner.x, max_corner.x, &best_t)) {
+                        updated = true;
+                        wall_normal = { 0, -1 };
+                        ICHIGO_INFO("(0,-1) Tile collide %d,%d best_t=%f", tile_x, tile_y, best_t);
+                    }
+                    if (test_wall(max_corner.y, centered_player_p.y, player_entity.velocity.y, centered_player_p.x, player_entity.velocity.x, min_corner.x, max_corner.x, &best_t)) {
+                        updated = true;
+                        wall_normal = { 0, 1 };
+                        ICHIGO_INFO("(0,1) Tile collide %d,%d best_t=%f", tile_x, tile_y, best_t);
+                    }
+
+                    if (updated)
+                        ICHIGO_INFO("Decided wall normal: %f,%f", wall_normal.x, wall_normal.y);
+
+                    // f32 remaining_time = 1.0f - best_t;
+                    // f32 dp = (player_entity.velocity.x * wall_normal.y + player_entity.velocity.y * wall_normal.x) * remaining_time;
+                    // player_entity.velocity.x = dp * wall_normal.y;
+                    // player_entity.velocity.y = dp * wall_normal.x;
+                }
+            }
+        }
+
+        // f32 shit = player_entity.velocity.x;
+        // player_entity.velocity *= (best_t);
+        // if (best_t < 1.0f) {
+        //     ICHIGO_INFO("best_t=%f requested x=%f before=%f", best_t, player_entity.velocity.x, shit);
+        // }
+
+        // if (best_t != 1.0f) {
+        //     f32 remaining_time = 1.0f - best_t;
+        //     f32 mag = player_entity.velocity.length() * remaining_time;
+        //     f32 dp = player_entity.velocity.x * wall_normal.y + player_entity.velocity.y * wall_normal.x;
+
+        //     if (dp > 0.0f) dp = 1.0f;
+        //     if (dp < 0.0f) dp = -1.0f;
+
+        //     player_entity.velocity.x = dp * wall_normal.y * mag;
+        //     player_entity.velocity.y = dp * wall_normal.x * mag;
+        // }
+
+        if (wall_normal.x != 0.0f || wall_normal.y != 0.0f)
+            ICHIGO_INFO("FINAL wall normal: %f,%f best_t=%f", wall_normal.x, wall_normal.y, best_t);
+
+        player_entity.col.pos += player_entity.velocity * best_t;
+        player_entity.velocity = player_entity.velocity - 1 * dot(player_entity.velocity, wall_normal) * wall_normal;
+        t_remaining -= best_t * t_remaining;
+    }
 
     for (u32 tile_y = min_tile_y; tile_y <= max_tile_y; ++tile_y) {
         for (u32 tile_x = min_tile_x; tile_x <= max_tile_x; ++tile_x) {
-            // ICHIGO_INFO("%u,%u", tile_x, tile_y);
-
-            // BINARY SEARCH FOR BEST POSITION
-            // if (tile_at({tile_x, tile_y}) != 0) {
-            //     RectangleCollider tile_col = {{(f32) tile_x, (f32) tile_y}, 1.0f, 1.0f};
-            //     if (rectangles_intersect(potential_next_col, tile_col)) {
-            //         ICHIGO_INFO("Collision at tile %u,%u", tile_x, tile_y);
-            //         requested_move *= 0.5;
-            //         for (u32 i = 0; i < 32; ++i) {
-            //             potential_next_col.pos = player_entity.col.pos + requested_move;
-
-            //             if (rectangles_intersect(potential_next_col, tile_col)) {
-            //                 requested_move *= 0.5;
-            //             } else {
-            //                 requested_move *= 1.5;
-            //             }
-            //         }
-            //     }
-            // }
-
-            // SEARCH IN T (x - x_0)/(x_1 - x_0) = t
-            if (tile_at({tile_x, tile_y}) != 0) {
-
-                if (test_wall(tile_x, (player_entity.col.pos.x + player_entity.col.w), requested_move.x, &best_t)) {
-                    wall_normal = { -1, 0 };
-                }
-                if (test_wall(tile_x + 1, player_entity.col.pos.x, requested_move.x, &best_t)) {
-                    wall_normal = { 1, 0 };
-                }
-                if (test_wall(tile_y, (player_entity.col.pos.y + player_entity.col.h), requested_move.y, &best_t)) {
-                    wall_normal = { 0, -1 };
-                }
-                if (test_wall(tile_y + 1, player_entity.col.pos.y, requested_move.y, &best_t)) {
-                    wall_normal = { 0, 1 };
-                }
-
-                // f32 remaining_time = 1.0f - best_t;
-                // f32 dp = (requested_move.x * wall_normal.y + requested_move.y * wall_normal.x) * remaining_time;
-                // requested_move.x = dp * wall_normal.y;
-                // requested_move.y = dp * wall_normal.x;
+            if (tile_at({tile_x, tile_y}) != 0 && rectangles_intersect({{(f32) tile_x, (f32) tile_y}, 1.0f, 1.0f}, player_entity.col)) {
+                ICHIGO_ERROR("Collision fail at tile %d,%d", tile_x, tile_y);
+                __builtin_debugtrap();
             }
         }
     }
-
-    // f32 shit = requested_move.x;
-    // requested_move *= (best_t);
-    // if (best_t < 1.0f) {
-    //     ICHIGO_INFO("best_t=%f requested x=%f before=%f", best_t, requested_move.x, shit);
-    // }
-
-    if (best_t != 1.0f) {
-        f32 remaining_time = 1.0f - best_t;
-        f32 mag = requested_move.length() * remaining_time;
-        f32 dp = requested_move.x * wall_normal.y + requested_move.y * wall_normal.x;
-
-        if (dp > 0.0f) dp = 1.0f;
-        if (dp < 0.0f) dp = -1.0f;
-
-        requested_move.x = dp * wall_normal.y * mag;
-        requested_move.y = dp * wall_normal.x * mag;
-    }
-    // requested_move = requested_move - 1 * dot(requested_move, wall_normal) * wall_normal;
-    player_entity.col.pos += requested_move;
 }
 
 static void render_tile(u32 tile, Vec2<f32> pos) {
@@ -329,7 +375,11 @@ void Ichigo::do_frame(f32 dpi_scale, f32 dt, Ichigo::KeyState *keyboard_state) {
 
     ImGui::Text("がんばりまー");
     ImGui::Text("FPS=%f", ImGui::GetIO().Framerate);
-    ImGui::Text("player_pos=%f,%f", player_entity.col.pos.x, player_entity.col.pos.y);
+    ImGui::Text("player pos=%f,%f", player_entity.col.pos.x, player_entity.col.pos.y);
+    ImGui::Text("player velocity=%f,%f", player_entity.velocity.x, player_entity.velocity.y);
+    if (ImGui::Button("Log")) {
+        ICHIGO_INFO("LOG");
+    }
 
     // ImGui::Checkbox("Wireframe", &do_wireframe);
 
