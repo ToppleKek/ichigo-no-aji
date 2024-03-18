@@ -12,20 +12,6 @@
 #include <cstdlib>
 
 namespace Util {
-
-/*
-    Clamp an unsigned 32-bit integer between a minimum and a maximum bound.
-    Parameter 'value': The input value.
-    Parameter 'min': The minimum value to return.
-    Parameter 'max': The maximum value to return.
-    Returns 'value' if it is within the specified bounds, or the min/max bound accordingly.
-*/
-inline u32 clamp(u32 value, u32 min, u32 max) {
-    if (value < min) return min;
-    if (value > max) return max;
-    return value;
-}
-
 /*
     A basic 'vector' implementation providing automatically expanding array storage.
 */

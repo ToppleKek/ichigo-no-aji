@@ -2,6 +2,9 @@
 #include "common.hpp"
 
 template<typename T>
+inline T clamp(T value, T min, T max);
+
+template<typename T>
 struct Vec2 {
     union {
         struct {
@@ -41,6 +44,11 @@ struct Vec2 {
 
     T length() {
         return sqrt(x * x + y * y);
+    }
+
+    void clamp(T min, T max) {
+        x = ::clamp(x, min, max);
+        y = ::clamp(y, min, max);
     }
 };
 
@@ -91,9 +99,14 @@ struct Vec3 {
         return { x - rhs.x, y - rhs.y, z - rhs.z };
     }
 
-
     T length() {
         return sqrt(x * x + y * y + z * z);
+    }
+
+    void clamp(T min, T max) {
+        x = ::clamp(x, min, max);
+        y = ::clamp(y, min, max);
+        z = ::clamp(z, min, max);
     }
 };
 
@@ -158,4 +171,11 @@ inline f32 safe_ratio_1(f32 dividend, f32 divisor) {
         return 1.0f;
 
     return dividend / divisor;
+}
+
+template<typename T>
+inline T clamp(T value, T min, T max) {
+    if (value < min) return min;
+    if (value > max) return max;
+    return value;
 }

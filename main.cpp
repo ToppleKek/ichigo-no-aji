@@ -75,6 +75,7 @@ struct DrawData {
 struct Entity {
     RectangleCollider col;
     Vec2<f32> velocity;
+    Vec2<f32> acceleration;
     Texture *texture;
 
     void render() {
@@ -107,7 +108,7 @@ static u32 aspect_fit_width  = 0;
 static u32 aspect_fit_height = 0;
 static Util::IchigoVector<Entity> entities{64};
 static Texture textures[Ichigo::IT_ENUM_COUNT];
-static Player player_entity{{{{3.0f, 5.0f}, 1.0f, 1.0f}, {0.0f, 0.0f}, &textures[Ichigo::IT_PLAYER]}, false};
+static Player player_entity{{{{3.0f, 5.0f}, 1.0f, 1.0f}, {0.0f, 0.0f}, {0.0f, 0.0f}, &textures[Ichigo::IT_PLAYER]}, true};
 
 static u32 tile_map[SCREEN_TILE_HEIGHT][SCREEN_TILE_WIDTH] = {
     {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
@@ -150,20 +151,43 @@ static bool test_wall(f32 x, f32 x0, f32 dx, f32 py, f32 dy, f32 ty0, f32 ty1, f
 }
 
 static void tick_player(Ichigo::KeyState *keyboard_state, f32 dt) {
-#define PLAYER_SPEED 6
-    player_entity.velocity = {0.0f, 0.0f};
+#define PLAYER_SPEED 1.0f
+#define PLAYER_FRICTION 0.4f
+    player_entity.acceleration = {0.0f, 0.0f};
+    // player_entity.velocity = {0.0f, 0.0f};
     // player_entity.velocity = {-PLAYER_SPEED * dt, PLAYER_SPEED * dt};
     if (keyboard_state[Ichigo::IK_RIGHT].down)
-        player_entity.velocity.x += PLAYER_SPEED * dt;
+        player_entity.acceleration.x += PLAYER_SPEED;
     if (keyboard_state[Ichigo::IK_LEFT].down)
-        player_entity.velocity.x -= PLAYER_SPEED * dt;
-    if (keyboard_state[Ichigo::IK_DOWN].down)
-        player_entity.velocity.y += PLAYER_SPEED * dt;
-    if (keyboard_state[Ichigo::IK_UP].down)
-        player_entity.velocity.y -= PLAYER_SPEED * dt;
+        player_entity.acceleration.x -= PLAYER_SPEED;
+    if (keyboard_state[Ichigo::IK_SPACE].down_this_frame && player_entity.on_ground) {
+        ICHIGO_INFO("JUMP");
+        player_entity.acceleration.y -= 128.0f;
+    }
+    // if (keyboard_state[Ichigo::IK_DOWN].down)
+    //     player_entity.acceleration.y += PLAYER_SPEED;
+    // if (keyboard_state[Ichigo::IK_UP].down)
+    //     player_entity.acceleration.y -= PLAYER_SPEED;
 
+    i32 direction = player_entity.velocity.x < 0 ? -1 : 1;
+
+    if (player_entity.velocity.x != 0.0f) {
+        f32 friction_amount = PLAYER_FRICTION * dt * -direction;
+        ICHIGO_INFO("Friction: %f", friction_amount);
+        player_entity.velocity += {PLAYER_FRICTION * dt * -direction, 0.0f};
+        i32 new_direction = player_entity.velocity.x < 0 ? -1 : 1;
+
+        if (new_direction != direction)
+            player_entity.velocity.x = 0.0f;
+    }
+
+    player_entity.velocity += player_entity.acceleration * dt;
+    player_entity.velocity.x = clamp(player_entity.velocity.x, -0.1f, 0.1f);
+    player_entity.velocity.y = clamp(player_entity.velocity.y, -0.1f, 0.1f);
+    // player_entity.velocity.clamp(-0.08f, 0.08f);
+    
     if (!player_entity.on_ground) {
-        // player_entity.velocity.y += 4 * dt;
+        player_entity.velocity.y += 1 * dt;
     }
 
     if (player_entity.velocity.x == 0.0f && player_entity.velocity.y == 0.0f) {
@@ -270,6 +294,8 @@ static void tick_player(Ichigo::KeyState *keyboard_state, f32 dt) {
 
         if (wall_normal.x != 0.0f || wall_normal.y != 0.0f)
             ICHIGO_INFO("FINAL wall normal: %f,%f best_t=%f", wall_normal.x, wall_normal.y, best_t);
+
+        player_entity.on_ground = wall_normal.y == -1.0f;
 
         player_entity.col.pos += player_entity.velocity * best_t;
         player_entity.velocity = player_entity.velocity - 1 * dot(player_entity.velocity, wall_normal) * wall_normal;
