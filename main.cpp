@@ -119,7 +119,7 @@ static u32 tile_map[SCREEN_TILE_HEIGHT][SCREEN_TILE_WIDTH] = {
     {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
     {1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1},
     {1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0},
-    {1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0},
+    {1, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0},
 };
 
 static u32 tile_at(Vec2<u32> tile_coord) {
@@ -140,7 +140,7 @@ static bool test_wall(f32 x, f32 x0, f32 dx, f32 py, f32 dy, f32 ty0, f32 ty1, f
             *best_t = t;
             return true;
         } else {
-            ICHIGO_INFO("y test failed");
+            ICHIGO_INFO("y test failed t=%f x=%f x0=%f dx=%f py=%f dy=%f ty0=%f ty1=%f", t, x, x0, dx, py, dy, ty0, ty1);
         }
         // *best_t = t;
         // return true;
@@ -153,6 +153,8 @@ static bool test_wall(f32 x, f32 x0, f32 dx, f32 py, f32 dy, f32 ty0, f32 ty1, f
 static void tick_player(Ichigo::KeyState *keyboard_state, f32 dt) {
 #define PLAYER_SPEED 1.0f
 #define PLAYER_FRICTION 0.4f
+#define PLAYER_GRAVITY 0.4f
+
     player_entity.acceleration = {0.0f, 0.0f};
     // player_entity.velocity = {0.0f, 0.0f};
     // player_entity.velocity = {-PLAYER_SPEED * dt, PLAYER_SPEED * dt};
@@ -161,19 +163,19 @@ static void tick_player(Ichigo::KeyState *keyboard_state, f32 dt) {
     if (keyboard_state[Ichigo::IK_LEFT].down)
         player_entity.acceleration.x -= PLAYER_SPEED;
     if (keyboard_state[Ichigo::IK_SPACE].down_this_frame && player_entity.on_ground) {
-        ICHIGO_INFO("JUMP");
-        player_entity.acceleration.y -= 128.0f;
+        player_entity.on_ground = false;
+        player_entity.velocity.y -= 0.2f;
     }
     // if (keyboard_state[Ichigo::IK_DOWN].down)
     //     player_entity.acceleration.y += PLAYER_SPEED;
     // if (keyboard_state[Ichigo::IK_UP].down)
     //     player_entity.acceleration.y -= PLAYER_SPEED;
 
+    player_entity.acceleration.clamp(-4.0f, 4.0f);
+
     i32 direction = player_entity.velocity.x < 0 ? -1 : 1;
 
     if (player_entity.velocity.x != 0.0f) {
-        f32 friction_amount = PLAYER_FRICTION * dt * -direction;
-        ICHIGO_INFO("Friction: %f", friction_amount);
         player_entity.velocity += {PLAYER_FRICTION * dt * -direction, 0.0f};
         i32 new_direction = player_entity.velocity.x < 0 ? -1 : 1;
 
@@ -183,12 +185,13 @@ static void tick_player(Ichigo::KeyState *keyboard_state, f32 dt) {
 
     player_entity.velocity += player_entity.acceleration * dt;
     player_entity.velocity.x = clamp(player_entity.velocity.x, -0.1f, 0.1f);
-    player_entity.velocity.y = clamp(player_entity.velocity.y, -0.1f, 0.1f);
+    player_entity.velocity.y = clamp(player_entity.velocity.y, -0.4f, 0.4f);
     // player_entity.velocity.clamp(-0.08f, 0.08f);
-    
-    if (!player_entity.on_ground) {
-        player_entity.velocity.y += 1 * dt;
-    }
+
+    // if (!player_entity.on_ground) {
+    //     player_entity.velocity.y += PLAYER_GRAVITY * dt;
+    // }
+    player_entity.velocity.y += PLAYER_GRAVITY * dt;
 
     if (player_entity.velocity.x == 0.0f && player_entity.velocity.y == 0.0f) {
         return;
@@ -198,10 +201,6 @@ static void tick_player(Ichigo::KeyState *keyboard_state, f32 dt) {
     // u32 max_tile_x = SCREEN_TILE_WIDTH;
     // u32 min_tile_y = 0;
     // u32 min_tile_x = 0;
-    u32 max_tile_y = std::ceil(MAX(player_entity.col.pos.y + player_entity.velocity.y, player_entity.col.pos.y));
-    u32 max_tile_x = std::ceil(MAX(player_entity.col.pos.x + player_entity.velocity.x, player_entity.col.pos.x));
-    u32 min_tile_y = MIN(player_entity.col.pos.y + player_entity.velocity.y, player_entity.col.pos.y);
-    u32 min_tile_x = MIN(player_entity.col.pos.x + player_entity.velocity.x, player_entity.col.pos.x);
 
     RectangleCollider potential_next_col = player_entity.col;
     potential_next_col.pos += player_entity.velocity;
@@ -210,7 +209,11 @@ static void tick_player(Ichigo::KeyState *keyboard_state, f32 dt) {
     f32 t_remaining = 1.0f;
 
     for (u32 i = 0; i < 4 && t_remaining > 0.0f; ++i) {
-        ICHIGO_INFO("MOVE ATTEMPT %d player velocity: %f,%f", i + 1, player_entity.velocity.x, player_entity.velocity.y);
+        u32 max_tile_y = std::ceil(MAX(player_entity.col.pos.y + player_entity.velocity.y, player_entity.col.pos.y));
+        u32 max_tile_x = std::ceil(MAX(player_entity.col.pos.x + player_entity.velocity.x, player_entity.col.pos.x));
+        u32 min_tile_y = MIN(player_entity.col.pos.y + player_entity.velocity.y, player_entity.col.pos.y);
+        u32 min_tile_x = MIN(player_entity.col.pos.x + player_entity.velocity.x, player_entity.col.pos.x);
+        // ICHIGO_INFO("MOVE ATTEMPT %d player velocity: %f,%f", i + 1, player_entity.velocity.x, player_entity.velocity.y);
         f32 best_t = 1.0f;
         Vec2<f32> wall_normal = { 0, 0 };
 
@@ -295,21 +298,23 @@ static void tick_player(Ichigo::KeyState *keyboard_state, f32 dt) {
         if (wall_normal.x != 0.0f || wall_normal.y != 0.0f)
             ICHIGO_INFO("FINAL wall normal: %f,%f best_t=%f", wall_normal.x, wall_normal.y, best_t);
 
-        player_entity.on_ground = wall_normal.y == -1.0f;
+        if (!player_entity.on_ground && wall_normal.y == -1.0f)
+            player_entity.on_ground = true;
 
         player_entity.col.pos += player_entity.velocity * best_t;
         player_entity.velocity = player_entity.velocity - 1 * dot(player_entity.velocity, wall_normal) * wall_normal;
         t_remaining -= best_t * t_remaining;
-    }
 
-    for (u32 tile_y = min_tile_y; tile_y <= max_tile_y; ++tile_y) {
-        for (u32 tile_x = min_tile_x; tile_x <= max_tile_x; ++tile_x) {
-            if (tile_at({tile_x, tile_y}) != 0 && rectangles_intersect({{(f32) tile_x, (f32) tile_y}, 1.0f, 1.0f}, player_entity.col)) {
-                ICHIGO_ERROR("Collision fail at tile %d,%d", tile_x, tile_y);
-                __builtin_debugtrap();
+        for (u32 tile_y = min_tile_y; tile_y <= max_tile_y; ++tile_y) {
+            for (u32 tile_x = min_tile_x; tile_x <= max_tile_x; ++tile_x) {
+                if (tile_at({tile_x, tile_y}) != 0 && rectangles_intersect({{(f32) tile_x, (f32) tile_y}, 1.0f, 1.0f}, player_entity.col)) {
+                    ICHIGO_ERROR("Collision fail at tile %d,%d", tile_x, tile_y);
+                    __builtin_debugtrap();
+                }
             }
         }
     }
+
 }
 
 static void render_tile(u32 tile, Vec2<f32> pos) {
