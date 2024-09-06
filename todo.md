@@ -16,9 +16,12 @@
 - ~~Textured rectangles~~
 - ~~World tile format, draw world~~
 - ~~Collision detection~~
-- Wall gliding
-- jumping
+- ~~Wall gliding~~
+- ~~jumping~~
 - Follow camera
+- Redo movement (!!) (Some things are not framerate independent, forgot a dt somewhere?)
+- - Fixed number of timesteps? (fixed ~200hz physics?)
+- Review collision, you can get stuck
 
 ## Art
 - I like this games pixel art: https://store.steampowered.com/app/2220360/Paper_Lily__Chapter_1/

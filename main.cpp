@@ -2,7 +2,7 @@
 
 #include "common.hpp"
 #include "math.hpp"
-#include <glm/glm.hpp>
+// #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include "ichigo.hpp"
@@ -38,6 +38,7 @@ EMBED("assets/grass.png", grass_tile_png)
 static f32 scale = 1;
 static ImGuiStyle initial_style;
 static ImFontConfig font_config;
+static f32 target_frame_time = 0.016f;
 
 static u32 vertex_shader_id;
 static u32 fragment_shader_id;
@@ -136,7 +137,7 @@ static bool test_wall(f32 x, f32 x0, f32 dx, f32 py, f32 dy, f32 ty0, f32 ty1, f
     f32 t = safe_ratio_1(x - x0, dx);
     f32 y = t * dy + py;
     if (t >= 0 && t < *best_t) {
-        if ((y > ty0 && y < ty1)) {
+        if ((y >= ty0 && y <= ty1)) {
             *best_t = t;
             return true;
         } else {
@@ -164,7 +165,7 @@ static void tick_player(Ichigo::KeyState *keyboard_state, f32 dt) {
         player_entity.acceleration.x -= PLAYER_SPEED;
     if (keyboard_state[Ichigo::IK_SPACE].down_this_frame && player_entity.on_ground) {
         player_entity.on_ground = false;
-        player_entity.velocity.y -= 0.2f;
+        player_entity.acceleration.y -= 4.0f;
     }
     // if (keyboard_state[Ichigo::IK_DOWN].down)
     //     player_entity.acceleration.y += PLAYER_SPEED;
@@ -183,6 +184,7 @@ static void tick_player(Ichigo::KeyState *keyboard_state, f32 dt) {
             player_entity.velocity.x = 0.0f;
     }
 
+    ICHIGO_INFO("dt: %f", dt);
     player_entity.velocity += player_entity.acceleration * dt;
     player_entity.velocity.x = clamp(player_entity.velocity.x, -0.1f, 0.1f);
     player_entity.velocity.y = clamp(player_entity.velocity.y, -0.4f, 0.4f);
@@ -191,6 +193,7 @@ static void tick_player(Ichigo::KeyState *keyboard_state, f32 dt) {
     // if (!player_entity.on_ground) {
     //     player_entity.velocity.y += PLAYER_GRAVITY * dt;
     // }
+
     player_entity.velocity.y += PLAYER_GRAVITY * dt;
 
     if (player_entity.velocity.x == 0.0f && player_entity.velocity.y == 0.0f) {
@@ -305,6 +308,9 @@ static void tick_player(Ichigo::KeyState *keyboard_state, f32 dt) {
         player_entity.velocity = player_entity.velocity - 1 * dot(player_entity.velocity, wall_normal) * wall_normal;
         t_remaining -= best_t * t_remaining;
 
+        if (player_entity.velocity.y != 0.0f)
+            player_entity.on_ground = false;
+
         for (u32 tile_y = min_tile_y; tile_y <= max_tile_y; ++tile_y) {
             for (u32 tile_x = min_tile_x; tile_x <= max_tile_x; ++tile_x) {
                 if (tile_at({tile_x, tile_y}) != 0 && rectangles_intersect({{(f32) tile_x, (f32) tile_y}, 1.0f, 1.0f}, player_entity.col)) {
@@ -370,6 +376,8 @@ static void frame_render() {
 }
 
 void Ichigo::do_frame(f32 dpi_scale, f32 dt, Ichigo::KeyState *keyboard_state) {
+    f32 frame_start_time = Ichigo::platform_get_current_time();
+
     if (dt > 0.1)
         dt = 0.1;
     // static bool do_wireframe = 0;
@@ -406,11 +414,17 @@ void Ichigo::do_frame(f32 dpi_scale, f32 dt, Ichigo::KeyState *keyboard_state) {
 
     ImGui::Text("がんばりまー");
     ImGui::Text("FPS=%f", ImGui::GetIO().Framerate);
+    ImGui::SliderFloat("Target frame time", &target_frame_time, 0.0f, 0.1f, "%fs");
+
+    if (ImGui::Button("120fps"))
+        target_frame_time = 0.008333f;
+    if (ImGui::Button("60fps"))
+        target_frame_time = 0.016f;
+    if (ImGui::Button("30fps"))
+        target_frame_time = 0.033f;
+
     ImGui::Text("player pos=%f,%f", player_entity.col.pos.x, player_entity.col.pos.y);
     ImGui::Text("player velocity=%f,%f", player_entity.velocity.x, player_entity.velocity.y);
-    if (ImGui::Button("Log")) {
-        ICHIGO_INFO("LOG");
-    }
 
     // ImGui::Checkbox("Wireframe", &do_wireframe);
 
@@ -425,6 +439,11 @@ void Ichigo::do_frame(f32 dpi_scale, f32 dt, Ichigo::KeyState *keyboard_state) {
     if (Ichigo::window_height != 0 && Ichigo::window_width != 0) {
         frame_render();
     }
+
+    f32 sleep_time = target_frame_time - (Ichigo::platform_get_current_time() - frame_start_time);
+    ICHIGO_INFO("frame start at: %f sleep time: %f", frame_start_time, sleep_time);
+    if (sleep_time > 0.0f)
+        Ichigo::platform_sleep(sleep_time);
 }
 
 static void load_texture(Ichigo::TextureType texture_type, const u8 *png_data, u64 png_data_length) {

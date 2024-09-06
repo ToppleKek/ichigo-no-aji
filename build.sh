@@ -5,9 +5,11 @@ CXX_FLAGS="-std=c++20 -Wall -Wextra -fno-exceptions -Wno-deprecated-declarations
 CXX_FLAGS_GAME="-g"
 CXX_FLAGS_IMGUI="-O3"
 CXX_FILES="main.cpp win32_ichigo.cpp util.cpp"
+CXX_FILES_LINUX="main.cpp linux_ichigo.cpp util.cpp"
 IMGUI_CXX_FILES=(./thirdparty/imgui/imgui.cpp ./thirdparty/imgui/imgui_draw.cpp ./thirdparty/imgui/imgui_tables.cpp ./thirdparty/imgui/imgui_widgets.cpp ./thirdparty/imgui/imgui_impl_win32.cpp ./thirdparty/imgui/imgui_impl_opengl3.cpp)
-
+IMGUI_LINUX_CXX_FILES=(./thirdparty/imgui/imgui.cpp ./thirdparty/imgui/imgui_draw.cpp ./thirdparty/imgui/imgui_tables.cpp ./thirdparty/imgui/imgui_widgets.cpp ./thirdparty/imgui/imgui_impl_sdl2.cpp ./thirdparty/imgui/imgui_impl_opengl3.cpp)
 LIBS="user32 -lopengl32"
+LIBS_LINUX="GL -lSDL2"
 EXE_NAME="game.exe"
 IMGUI_OBJECT_FILES_DIRECTORY="build/imgui"
 INCLUDE="thirdparty/include"
@@ -43,8 +45,4 @@ if [ "${1}" = "imgui" ]; then
     exit 0
 fi
 
-glslc shaders/main.frag -o build/frag.spv
-glslc shaders/main.vert -o build/vert.spv
-# clang ${CXX_FLAGS} -l ${LIBS} -I ${INCLUDE} ${CXX_FILES} -o ${EXE_NAME}
-clang++ ${CXX_FLAGS_GAME} -l ${LIBS} -I ${INCLUDE} ${CXX_FILES} ${IMGUI_OBJECT_FILES_DIRECTORY}/*.o -o build/${EXE_NAME}
-
+echo fuck you

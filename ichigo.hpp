@@ -116,4 +116,7 @@ bool platform_file_exists(const char *path);
     Parameter 'extension_filter_count': The size of the array.
 */
 Util::IchigoVector<std::string> platform_recurse_directory(const std::string &path, const char **extension_filter, const u16 extension_filter_count);
+
+void platform_sleep(f32 t);
+f32 platform_get_current_time();
 }

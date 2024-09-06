@@ -4,6 +4,7 @@
 #include <SDL2/SDL_timer.h>
 #include <SDL2/SDL_video.h>
 #include <cstdio>
+#include <unistd.h>
 
 #include "common.hpp"
 #include "ichigo.hpp"
@@ -11,8 +12,8 @@
 
 #include "thirdparty/imgui/imgui_impl_sdl2.h"
 
-u32 Ichigo::window_width = 1920;
-u32 Ichigo::window_height = 1080;
+u32 Ichigo::window_width = 1600;
+u32 Ichigo::window_height = 900;
 OpenGL Ichigo::gl{};
 
 static SDL_Window *window;
@@ -38,6 +39,14 @@ Util::IchigoVector<std::string> Ichigo::platform_recurse_directory(const std::st
     return {};
 }
 
+void Ichigo::platform_sleep(f32 t) {
+    usleep(static_cast<u64>(t * 1000 * 1000));
+}
+
+f32 Ichigo::platform_get_current_time() {
+    return SDL_GetTicks64() / 1000.0f;
+}
+
 // static void platform_do_frame() {
 //     ImGui_ImplSDL2_NewFrame();
 //     Ichigo::do_frame(1.0, 0.0, keyboard_state);
@@ -47,10 +56,11 @@ Util::IchigoVector<std::string> Ichigo::platform_recurse_directory(const std::st
 i32 main() {
     assert(SDL_Init(SDL_INIT_VIDEO) >= 0);
 
-    window = SDL_CreateWindow("Ichigo no Aji!", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 1600, 900, SDL_WINDOW_SHOWN | SDL_WINDOW_OPENGL | SDL_WINDOW_ALLOW_HIGHDPI | SDL_WINDOW_RESIZABLE);
+    window = SDL_CreateWindow("Ichigo no Aji!", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, Ichigo::window_width, Ichigo::window_height, SDL_WINDOW_SHOWN | SDL_WINDOW_OPENGL | SDL_WINDOW_ALLOW_HIGHDPI | SDL_WINDOW_RESIZABLE);
 
     gl_context = SDL_GL_CreateContext(window);
     SDL_GL_MakeCurrent(window, gl_context);
+    SDL_GL_SetSwapInterval(0);
 
     #define GET_ADDR_OF_OPENGL_FUNCTION(FUNC_NAME) Ichigo::gl.FUNC_NAME = (Type_##FUNC_NAME *) SDL_GL_GetProcAddress(#FUNC_NAME); assert(Ichigo::gl.FUNC_NAME != nullptr)
     GET_ADDR_OF_OPENGL_FUNCTION(glViewport);
@@ -131,6 +141,7 @@ i32 main() {
     GET_ADDR_OF_OPENGL_FUNCTION(glUniformMatrix3x4fv);
     GET_ADDR_OF_OPENGL_FUNCTION(glUniformMatrix4x3fv);
 
+
     Ichigo::init();
     ImGui_ImplSDL2_InitForOpenGL(window, gl_context);
     init_completed = true;
@@ -145,9 +156,10 @@ i32 main() {
                 return 0;
             }
 
-            // if (event.type == SDL_KEYDOWN || event.type == SDL_KEYUP) {
-                
-            // }
+            if (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_RESIZED) {
+                Ichigo::window_width  = event.window.data1;
+                Ichigo::window_height = event.window.data2;
+            }
         }
 
         ImGui_ImplSDL2_NewFrame();
@@ -165,27 +177,27 @@ i32 main() {
                     // case VK_MBUTTON:  SET_KEY_STATE(Ichigo::IK_MOUSE_3);       break;
                     // case VK_XBUTTON1: SET_KEY_STATE(Ichigo::IK_MOUSE_4);       break;
                     // case VK_XBUTTON2: SET_KEY_STATE(Ichigo::IK_MOUSE_5);       break;
-                    case SDL_SCANCODE_BACKSPACE:     SET_KEY_STATE(Ichigo::IK_BACKSPACE);     break;
-                    case SDL_SCANCODE_TAB:      SET_KEY_STATE(Ichigo::IK_TAB);           break;
-                    case SDL_SCANCODE_RETURN:   SET_KEY_STATE(Ichigo::IK_ENTER);         break;
-                    case SDL_SCANCODE_LSHIFT:   SET_KEY_STATE(Ichigo::IK_LEFT_SHIFT);    break;
-                    case SDL_SCANCODE_LCTRL: SET_KEY_STATE(Ichigo::IK_LEFT_CONTROL);  break;
-                    case SDL_SCANCODE_RSHIFT:   SET_KEY_STATE(Ichigo::IK_RIGHT_SHIFT);   break;
-                    case SDL_SCANCODE_RCTRL: SET_KEY_STATE(Ichigo::IK_RIGHT_CONTROL); break;
-                    case SDL_SCANCODE_LALT:     SET_KEY_STATE(Ichigo::IK_ALT);           break;
-                    case SDL_SCANCODE_ESCAPE:   SET_KEY_STATE(Ichigo::IK_ESCAPE);        break;
-                    case SDL_SCANCODE_SPACE:    SET_KEY_STATE(Ichigo::IK_SPACE);         break;
-                    case SDL_SCANCODE_PAGEUP:    SET_KEY_STATE(Ichigo::IK_PAGE_UP);       break;
-                    case SDL_SCANCODE_PAGEDOWN:     SET_KEY_STATE(Ichigo::IK_PAGE_DOWN);     break;
-                    case SDL_SCANCODE_END:      SET_KEY_STATE(Ichigo::IK_END);           break;
-                    case SDL_SCANCODE_HOME:     SET_KEY_STATE(Ichigo::IK_HOME);          break;
-                    case SDL_SCANCODE_LEFT:     SET_KEY_STATE(Ichigo::IK_LEFT);          break;
-                    case SDL_SCANCODE_UP:       SET_KEY_STATE(Ichigo::IK_UP);            break;
-                    case SDL_SCANCODE_RIGHT:    SET_KEY_STATE(Ichigo::IK_RIGHT);         break;
-                    case SDL_SCANCODE_DOWN:     SET_KEY_STATE(Ichigo::IK_DOWN);          break;
+                    case SDL_SCANCODE_BACKSPACE:   SET_KEY_STATE(Ichigo::IK_BACKSPACE);     break;
+                    case SDL_SCANCODE_TAB:         SET_KEY_STATE(Ichigo::IK_TAB);           break;
+                    case SDL_SCANCODE_RETURN:      SET_KEY_STATE(Ichigo::IK_ENTER);         break;
+                    case SDL_SCANCODE_LSHIFT:      SET_KEY_STATE(Ichigo::IK_LEFT_SHIFT);    break;
+                    case SDL_SCANCODE_LCTRL:       SET_KEY_STATE(Ichigo::IK_LEFT_CONTROL);  break;
+                    case SDL_SCANCODE_RSHIFT:      SET_KEY_STATE(Ichigo::IK_RIGHT_SHIFT);   break;
+                    case SDL_SCANCODE_RCTRL:       SET_KEY_STATE(Ichigo::IK_RIGHT_CONTROL); break;
+                    case SDL_SCANCODE_LALT:        SET_KEY_STATE(Ichigo::IK_ALT);           break;
+                    case SDL_SCANCODE_ESCAPE:      SET_KEY_STATE(Ichigo::IK_ESCAPE);        break;
+                    case SDL_SCANCODE_SPACE:       SET_KEY_STATE(Ichigo::IK_SPACE);         break;
+                    case SDL_SCANCODE_PAGEUP:      SET_KEY_STATE(Ichigo::IK_PAGE_UP);       break;
+                    case SDL_SCANCODE_PAGEDOWN:    SET_KEY_STATE(Ichigo::IK_PAGE_DOWN);     break;
+                    case SDL_SCANCODE_END:         SET_KEY_STATE(Ichigo::IK_END);           break;
+                    case SDL_SCANCODE_HOME:        SET_KEY_STATE(Ichigo::IK_HOME);          break;
+                    case SDL_SCANCODE_LEFT:        SET_KEY_STATE(Ichigo::IK_LEFT);          break;
+                    case SDL_SCANCODE_UP:          SET_KEY_STATE(Ichigo::IK_UP);            break;
+                    case SDL_SCANCODE_RIGHT:       SET_KEY_STATE(Ichigo::IK_RIGHT);         break;
+                    case SDL_SCANCODE_DOWN:        SET_KEY_STATE(Ichigo::IK_DOWN);          break;
                     case SDL_SCANCODE_PRINTSCREEN: SET_KEY_STATE(Ichigo::IK_PRINT_SCREEN);  break;
-                    case SDL_SCANCODE_INSERT:   SET_KEY_STATE(Ichigo::IK_INSERT);        break;
-                    case SDL_SCANCODE_DELETE:   SET_KEY_STATE(Ichigo::IK_DELETE);        break;
+                    case SDL_SCANCODE_INSERT:      SET_KEY_STATE(Ichigo::IK_INSERT);        break;
+                    case SDL_SCANCODE_DELETE:      SET_KEY_STATE(Ichigo::IK_DELETE);        break;
                 }
             // if ((vk_code >= '0' && vk_code <= '9') || (vk_code >= 'A' && vk_code <= 'Z'))
                 // SET_KEY_STATE(vk_code);
