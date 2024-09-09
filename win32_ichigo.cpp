@@ -4,7 +4,6 @@
 #include "ichigo.hpp"
 
 #define UNICODE
-#define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 
 #include <gl/GL.h>
@@ -154,6 +153,14 @@ static i64 platform_get_time() {
     return i.QuadPart;
 }
 
+void Ichigo::platform_sleep(f32 t) {
+    Sleep((u64) (t * 1000));
+}
+
+f32 Ichigo::platform_get_current_time() {
+    return platform_get_time() / (f32) performance_frequency;
+}
+
 static void platform_do_frame() {
     ImGui_ImplWin32_NewFrame();
 
@@ -272,10 +279,14 @@ static LRESULT window_proc(HWND window, u32 msg, WPARAM wparam, LPARAM lparam) {
     return DefWindowProc(window, msg, wparam, lparam);
 }
 
+using Type_wglSwapIntervalEXT = bool (i32);
+
 i32 main() {
     SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
     SetConsoleOutputCP(CP_UTF8);
     auto instance = GetModuleHandle(nullptr);
+
+    assert(timeBeginPeriod(1) == TIMERR_NOERROR);
 
     // Create win32 window
     WNDCLASS window_class      = {};
@@ -305,6 +316,10 @@ i32 main() {
 
     wgl_context = wglCreateContext(hdc);
     wglMakeCurrent(hdc, wgl_context);
+
+    Type_wglSwapIntervalEXT *wglSwapIntervalEXT = (Type_wglSwapIntervalEXT *) wglGetProcAddress("wglSwapIntervalEXT");
+    assert(wglSwapIntervalEXT);
+    wglSwapIntervalEXT(0);
 
 #define GET_ADDR_OF_OPENGL_FUNCTION(FUNC_NAME) Ichigo::gl.FUNC_NAME = (Type_##FUNC_NAME *) wglGetProcAddress(#FUNC_NAME); assert(Ichigo::gl.FUNC_NAME != nullptr)
     Ichigo::gl.glViewport       = glViewport;

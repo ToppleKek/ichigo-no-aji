@@ -25,3 +25,13 @@
 
 ## Art
 - I like this games pixel art: https://store.steampowered.com/app/2220360/Paper_Lily__Chapter_1/
+
+## Report
+- Report about a 2D sidescroller engine providing:
+- - P.I. (Platform independent) Rendering
+- - P.I. Audio
+- - P.I. Input
+- - 2D rigid-body physics, collisions
+- - Text & translation?
+- evolutionary prototyping?
+- Diagrams of the game loop, or whatever
