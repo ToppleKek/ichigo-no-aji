@@ -279,7 +279,6 @@ static LRESULT window_proc(HWND window, u32 msg, WPARAM wparam, LPARAM lparam) {
     return DefWindowProc(window, msg, wparam, lparam);
 }
 
-using Type_wglSwapIntervalEXT = bool (i32);
 
 i32 main() {
     SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
@@ -314,11 +313,26 @@ i32 main() {
     assert(pixel_format != 0);
     assert(SetPixelFormat(hdc, pixel_format, &pfd));
 
+
+    // i32 context_attribs[] = {
+    //     WGL_CONTEXT_MAJOR_VERSION
+    // };
+
     wgl_context = wglCreateContext(hdc);
     wglMakeCurrent(hdc, wgl_context);
 
+    using Type_wglCreateContextAttribsARB = HGLRC (HDC, HGLRC, const i32 *);
+
+    Type_wglCreateContextAttribsARB *wglCreateContextAttribsARB = (Type_wglCreateContextAttribsARB *) wglGetProcAddress("wglCreateContextAttribsARB");
+    assert(wglCreateContextAttribsARB);
+
+    using Type_wglSwapIntervalEXT = bool (i32);
     Type_wglSwapIntervalEXT *wglSwapIntervalEXT = (Type_wglSwapIntervalEXT *) wglGetProcAddress("wglSwapIntervalEXT");
     assert(wglSwapIntervalEXT);
+
+    wglDeleteContext(wgl_context);
+    wgl_context = wglCreateContextAttribsARB(hdc, 0, nullptr);
+    wglMakeCurrent(hdc, wgl_context);
     wglSwapIntervalEXT(0);
 
 #define GET_ADDR_OF_OPENGL_FUNCTION(FUNC_NAME) Ichigo::gl.FUNC_NAME = (Type_##FUNC_NAME *) wglGetProcAddress(#FUNC_NAME); assert(Ichigo::gl.FUNC_NAME != nullptr)

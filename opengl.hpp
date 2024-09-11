@@ -518,3 +518,9 @@ struct OpenGL {
     OPENGL_FUNC_PTR(glGetError);
 };
 #undef OPENGL_FUNC_PTR
+
+struct ShaderProgram {
+    u32 vertex_shader_id;
+    u32 fragment_shader_id;
+    u32 program_id;
+};
