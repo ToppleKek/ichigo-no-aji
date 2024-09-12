@@ -594,13 +594,6 @@ void Ichigo::init() {
     Ichigo::gl.glEnableVertexAttribArray(0);
     Ichigo::gl.glEnableVertexAttribArray(1);
 
-    static u32 indicies[] = {
-        0, 1, 2,
-        1, 2, 3
-    };
-
-    Ichigo::gl.glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indicies), indicies, GL_STATIC_DRAW);
-
     load_texture(Ichigo::IT_PLAYER, test_png_image, test_png_image_len);
     load_texture(Ichigo::IT_GRASS_TILE, grass_tile_png, grass_tile_png_len);
 
