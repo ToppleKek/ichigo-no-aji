@@ -36,7 +36,7 @@ EMBED("assets/test3.png", test_png_image)
 EMBED("assets/grass.png", grass_tile_png)
 }
 
-static f32 scale = 1;
+static f32 scale = 1.0f;
 static ImGuiStyle initial_style;
 static ImFontConfig font_config;
 static f32 target_frame_time = 0.016f;
@@ -57,20 +57,11 @@ static u32 last_window_width;
 
 static char string_buffer[1024];
 
-bool Ichigo::must_rebuild_swapchain = false;
+bool Ichigo::Internal::must_rebuild_swapchain = false;
 
 struct Vertex {
     Vec3<f32> pos;
     Vec2<f32> tex;
-};
-
-struct Texture {
-    u32 width;
-    u32 height;
-    u32 id;
-    u32 channel_count;
-    u64 png_data_size;
-    const u8 *png_data;
 };
 
 struct DrawData {
@@ -79,33 +70,26 @@ struct DrawData {
     u32 texture_id;
 };
 
-struct Entity {
-    RectangleCollider col;
-    Vec2<f32> velocity;
-    Vec2<f32> acceleration;
-    Texture *texture;
+void default_entity_render_proc(Ichigo::Entity *entity) {
+    Ichigo::Internal::gl.glUseProgram(texture_shader_program.program_id);
+    Ichigo::Internal::gl.glBindTexture(GL_TEXTURE_2D, entity->texture->id);
 
-    void render() {
-        Ichigo::gl.glUseProgram(texture_shader_program.program_id);
-        Ichigo::gl.glBindTexture(GL_TEXTURE_2D, texture->id);
+    // The vertices should probably be based on the texture dimensions so that animation frames can extend outside the collider
+    Vertex vertices[] = {
+        {{entity->col.pos.x, entity->col.pos.y, 0.0f}, {0.0f, 1.0f}},  // top left
+        {{entity->col.pos.x + entity->col.w, entity->col.pos.y, 0.0f}, {1.0f, 1.0f}}, // top right
+        {{entity->col.pos.x, entity->col.pos.y + entity->col.h, 0.0f}, {0.0f, 0.0f}}, // bottom left
+        {{entity->col.pos.x + entity->col.w, entity->col.pos.y + entity->col.h, 0.0f}, {1.0f, 0.0f}}, // bottom right
+    };
 
-        // The vertices should probably be based on the texture dimensions so that animation frames can extend outside the collider
-        Vertex vertices[] = {
-            {{col.pos.x, col.pos.y, 0.0f}, {0.0f, 1.0f}},  // top left
-            {{col.pos.x + col.w, col.pos.y, 0.0f}, {1.0f, 1.0f}}, // top right
-            {{col.pos.x, col.pos.y + col.h, 0.0f}, {0.0f, 0.0f}}, // bottom left
-            {{col.pos.x + col.w, col.pos.y + col.h, 0.0f}, {1.0f, 0.0f}}, // bottom right
-        };
+    Ichigo::Internal::gl.glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
-        Ichigo::gl.glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+    i32 texture_uniform = Ichigo::Internal::gl.glGetUniformLocation(texture_shader_program.program_id, "entity_texture");
+    Ichigo::Internal::gl.glUniform1i(texture_uniform, 0);
+    Ichigo::Internal::gl.glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+}
 
-        i32 texture_uniform = Ichigo::gl.glGetUniformLocation(texture_shader_program.program_id, "entity_texture");
-        Ichigo::gl.glUniform1i(texture_uniform, 0);
-        Ichigo::gl.glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-    }
-};
-
-struct Player : public Entity {
+struct Player : public Ichigo::Entity {
     bool on_ground;
     f32 jump_t;
 };
@@ -115,8 +99,8 @@ struct Player : public Entity {
 
 static u32 aspect_fit_width  = 0;
 static u32 aspect_fit_height = 0;
-static Util::IchigoVector<Entity> entities{64};
-static Texture textures[Ichigo::IT_ENUM_COUNT];
+static Util::IchigoVector<Ichigo::Entity> entities{64};
+static Ichigo::Texture textures[Ichigo::IT_ENUM_COUNT];
 static Player player_entity{{{{3.0f, 5.0f}, 1.0f, 1.0f}, {0.0f, 0.0f}, {0.0f, 0.0f}, &textures[Ichigo::IT_PLAYER]}, true, 0.0f};
 
 static u32 tile_map[SCREEN_TILE_HEIGHT][SCREEN_TILE_WIDTH] = {
@@ -166,8 +150,6 @@ static void tick_player(Ichigo::KeyState *keyboard_state, f32 dt) {
 #define PLAYER_JUMP_ACCELERATION 128.0f
 
     player_entity.acceleration = {0.0f, 0.0f};
-    // player_entity.velocity = {0.0f, 0.0f};
-    // player_entity.velocity = {-PLAYER_SPEED * dt, PLAYER_SPEED * dt};
     if (keyboard_state[Ichigo::IK_RIGHT].down)
         player_entity.acceleration.x = PLAYER_SPEED;
     if (keyboard_state[Ichigo::IK_LEFT].down)
@@ -181,13 +163,6 @@ static void tick_player(Ichigo::KeyState *keyboard_state, f32 dt) {
         player_entity.acceleration.y = -PLAYER_JUMP_ACCELERATION * (effective_dt / dt);
         player_entity.jump_t -= effective_dt;
     }
-
-    // if (keyboard_state[Ichigo::IK_DOWN].down)
-    //     player_entity.acceleration.y += PLAYER_SPEED;
-    // if (keyboard_state[Ichigo::IK_UP].down)
-    //     player_entity.acceleration.y -= PLAYER_SPEED;
-
-    // player_entity.acceleration.clamp(-4.0f, 4.0f);
 
     i32 direction = player_entity.velocity.x < 0 ? -1 : 1;
 
@@ -243,27 +218,6 @@ static void tick_player(Ichigo::KeyState *keyboard_state, f32 dt) {
 
         for (u32 tile_y = min_tile_y; tile_y <= max_tile_y; ++tile_y) {
             for (u32 tile_x = min_tile_x; tile_x <= max_tile_x; ++tile_x) {
-                // ICHIGO_INFO("%u,%u", tile_x, tile_y);
-
-                // BINARY SEARCH FOR BEST POSITION
-                // if (tile_at({tile_x, tile_y}) != 0) {
-                //     RectangleCollider tile_col = {{(f32) tile_x, (f32) tile_y}, 1.0f, 1.0f};
-                //     if (rectangles_intersect(potential_next_col, tile_col)) {
-                //         ICHIGO_INFO("Collision at tile %u,%u", tile_x, tile_y);
-                //         player_entity.velocity *= 0.5;
-                //         for (u32 i = 0; i < 32; ++i) {
-                //             potential_next_col.pos = player_entity.col.pos + player_entity.velocity;
-
-                //             if (rectangles_intersect(potential_next_col, tile_col)) {
-                //                 player_entity.velocity *= 0.5;
-                //             } else {
-                //                 player_entity.velocity *= 1.5;
-                //             }
-                //         }
-                //     }
-                // }
-
-                // SEARCH IN T (x - x_0)/(x_1 - x_0) = t
                 if (tile_at({tile_x, tile_y}) != 0) {
                     Vec2<f32> centered_player_p = player_entity.col.pos + Vec2<f32>{0.5f, 0.5f};
                     Vec2<f32> min_corner = {tile_x - player_entity.col.w / 2.0f, tile_y - player_entity.col.h / 2.0f};
@@ -292,32 +246,9 @@ static void tick_player(Ichigo::KeyState *keyboard_state, f32 dt) {
 
                     // if (updated)
                     //     ICHIGO_INFO("Decided wall normal: %f,%f", wall_normal.x, wall_normal.y);
-
-                    // f32 remaining_time = 1.0f - best_t;
-                    // f32 dp = (player_entity.velocity.x * wall_normal.y + player_entity.velocity.y * wall_normal.x) * remaining_time;
-                    // player_entity.velocity.x = dp * wall_normal.y;
-                    // player_entity.velocity.y = dp * wall_normal.x;
                 }
             }
         }
-
-        // f32 shit = player_entity.velocity.x;
-        // player_entity.velocity *= (best_t);
-        // if (best_t < 1.0f) {
-        //     ICHIGO_INFO("best_t=%f requested x=%f before=%f", best_t, player_entity.velocity.x, shit);
-        // }
-
-        // if (best_t != 1.0f) {
-        //     f32 remaining_time = 1.0f - best_t;
-        //     f32 mag = player_entity.velocity.length() * remaining_time;
-        //     f32 dp = player_entity.velocity.x * wall_normal.y + player_entity.velocity.y * wall_normal.x;
-
-        //     if (dp > 0.0f) dp = 1.0f;
-        //     if (dp < 0.0f) dp = -1.0f;
-
-        //     player_entity.velocity.x = dp * wall_normal.y * mag;
-        //     player_entity.velocity.y = dp * wall_normal.x * mag;
-        // }
 
         if (wall_normal.x != 0.0f || wall_normal.y != 0.0f)
             ICHIGO_INFO("FINAL wall normal: %f,%f best_t=%f", wall_normal.x, wall_normal.y, best_t);
@@ -356,8 +287,8 @@ static void tick_player(Ichigo::KeyState *keyboard_state, f32 dt) {
 
 static void render_tile(u32 tile, Vec2<f32> pos) {
     if (tile == 1) {
-        Ichigo::gl.glUseProgram(texture_shader_program.program_id);
-        Ichigo::gl.glBindTexture(GL_TEXTURE_2D, textures[Ichigo::IT_GRASS_TILE].id);
+        Ichigo::Internal::gl.glUseProgram(texture_shader_program.program_id);
+        Ichigo::Internal::gl.glBindTexture(GL_TEXTURE_2D, textures[Ichigo::IT_GRASS_TILE].id);
 
         Vertex vertices[] = {
             {{pos.x, pos.y, 0.0f}, {0.0f, 1.0f}},  // top left
@@ -366,17 +297,17 @@ static void render_tile(u32 tile, Vec2<f32> pos) {
             {{pos.x + 1, pos.y + 1, 0.0f}, {1.0f, 0.0f}}, // bottom right
         };
 
-        Ichigo::gl.glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+        Ichigo::Internal::gl.glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
-        i32 texture_uniform = Ichigo::gl.glGetUniformLocation(texture_shader_program.program_id, "entity_texture");
-        Ichigo::gl.glUniform1i(texture_uniform, 0);
-        Ichigo::gl.glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+        i32 texture_uniform = Ichigo::Internal::gl.glGetUniformLocation(texture_shader_program.program_id, "entity_texture");
+        Ichigo::Internal::gl.glUniform1i(texture_uniform, 0);
+        Ichigo::Internal::gl.glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
         if (((pos.x == standing_tile1.x && pos.y == standing_tile1.y) || (pos.x == standing_tile2.x && pos.y == standing_tile2.y)) && player_entity.on_ground) {
-            Ichigo::gl.glUseProgram(solid_colour_shader_program.program_id);
-            i32 colour_uniform = Ichigo::gl.glGetUniformLocation(solid_colour_shader_program.program_id, "colour");
-            Ichigo::gl.glUniform4f(colour_uniform, 1.0f, 0.4f, pos.x == standing_tile2.x ? 0.4f : 0.8f, 1.0f);
-            Ichigo::gl.glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+            Ichigo::Internal::gl.glUseProgram(solid_colour_shader_program.program_id);
+            i32 colour_uniform = Ichigo::Internal::gl.glGetUniformLocation(solid_colour_shader_program.program_id, "colour");
+            Ichigo::Internal::gl.glUniform4f(colour_uniform, 1.0f, 0.4f, pos.x == standing_tile2.x ? 0.4f : 0.8f, 1.0f);
+            Ichigo::Internal::gl.glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
         }
     }
 }
@@ -388,12 +319,12 @@ static void frame_render() {
         return;
 
     // auto proj = glm::ortho(0.0f, 16.0f, 0.0f, 9.0f, -1.0f, 1.0f);
-    // i32 proj_uniform = Ichigo::gl.glGetUniformLocation(shader_program_id, "proj");
-    // Ichigo::gl.glUniformMatrix4fv(proj_uniform, 1, GL_FALSE, glm::value_ptr(proj));
+    // i32 proj_uniform = Ichigo::Internal::gl.glGetUniformLocation(shader_program_id, "proj");
+    // Ichigo::Internal::gl.glUniformMatrix4fv(proj_uniform, 1, GL_FALSE, glm::value_ptr(proj));
 
-    Ichigo::gl.glViewport(0, 0, aspect_fit_width, aspect_fit_height);
-    Ichigo::gl.glClearColor(0.4f, 0.2f, 0.4f, 1.0f);
-    Ichigo::gl.glClear(GL_COLOR_BUFFER_BIT);
+    Ichigo::Internal::gl.glViewport(0, 0, aspect_fit_width, aspect_fit_height);
+    Ichigo::Internal::gl.glClearColor(0.4f, 0.2f, 0.4f, 1.0f);
+    Ichigo::Internal::gl.glClear(GL_COLOR_BUFFER_BIT);
 
     for (u32 row = 0; row < SCREEN_TILE_HEIGHT; ++row) {
         for (u32 col = 0; col < SCREEN_TILE_WIDTH; ++col) {
@@ -402,32 +333,37 @@ static void frame_render() {
     }
 
     for (u32 i = 0; i < entities.size; ++i) {
-        entities.at(i).render();
-        // ICHIGO_INFO("ENTITY: pos=%f,%f", entities.at(i).pos.x, entities.at(i).pos.y);
+        Ichigo::Entity &entity = entities.at(i);
+        if (entity.render_proc)
+            entity.render_proc(&entity);
+        else
+            default_entity_render_proc(&entity);
     }
 
     // Always render the player last (on top)
-    player_entity.render();
+    default_entity_render_proc(&player_entity);
 
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 }
 
-void Ichigo::do_frame(f32 dpi_scale, f32 dt, Ichigo::KeyState *keyboard_state) {
-    f32 frame_start_time = Ichigo::platform_get_current_time();
+void Ichigo::Internal::do_frame(f32 dpi_scale, f32 dt, Ichigo::KeyState *keyboard_state) {
+    f32 frame_start_time = Ichigo::Internal::platform_get_current_time();
 
     if (dt > 0.1)
         dt = 0.1;
     // static bool do_wireframe = 0;
 
-    if (Ichigo::window_height != last_window_height || Ichigo::window_width != last_window_width) {
-        last_window_height = Ichigo::window_height;
-        last_window_width  = Ichigo::window_width;
-        u32 height_factor  = Ichigo::window_height / 9;
-        u32 width_factor   = Ichigo::window_width  / 16;
+    Ichigo::Game::frame_begin();
+
+    if (Ichigo::Internal::window_height != last_window_height || Ichigo::Internal::window_width != last_window_width) {
+        last_window_height = Ichigo::Internal::window_height;
+        last_window_width  = Ichigo::Internal::window_width;
+        u32 height_factor  = Ichigo::Internal::window_height / 9;
+        u32 width_factor   = Ichigo::Internal::window_width  / 16;
         aspect_fit_height  = MIN(height_factor, width_factor) * 9;
         aspect_fit_width   = MIN(height_factor, width_factor) * 16;
 
-        ICHIGO_INFO("Window resize to: %ux%u Aspect fix to: %ux%u", Ichigo::window_width, Ichigo::window_height, aspect_fit_width, aspect_fit_height);
+        ICHIGO_INFO("Window resize to: %ux%u Aspect fix to: %ux%u", Ichigo::Internal::window_width, Ichigo::Internal::window_height, aspect_fit_width, aspect_fit_height);
     }
 
     if (dpi_scale != scale) {
@@ -473,50 +409,54 @@ void Ichigo::do_frame(f32 dpi_scale, f32 dt, Ichigo::KeyState *keyboard_state) {
 
     ImGui::EndFrame();
 
-    // Ichigo::gl.glPolygonMode(GL_FRONT_AND_BACK, do_wireframe ? GL_LINE : GL_FILL);
+    // Ichigo::Internal::gl.glPolygonMode(GL_FRONT_AND_BACK, do_wireframe ? GL_LINE : GL_FILL);
 
     tick_player(keyboard_state, dt);
+    Ichigo::Game::update_and_render();
 
-    if (Ichigo::window_height != 0 && Ichigo::window_width != 0) {
+    if (Ichigo::Internal::window_height != 0 && Ichigo::Internal::window_width != 0) {
         frame_render();
     }
 
-    f32 sleep_time = target_frame_time - (Ichigo::platform_get_current_time() - frame_start_time);
+
+    f32 sleep_time = target_frame_time - (Ichigo::Internal::platform_get_current_time() - frame_start_time);
     // ICHIGO_INFO("frame start at: %f sleep time: %f", frame_start_time, sleep_time);
     if (sleep_time > 0.0f)
-        Ichigo::platform_sleep(sleep_time);
+        Ichigo::Internal::platform_sleep(sleep_time);
+
+    Ichigo::Game::frame_end();
 }
 
 static void load_texture(Ichigo::TextureType texture_type, const u8 *png_data, u64 png_data_length) {
-    Ichigo::gl.glGenTextures(1, &textures[texture_type].id);
+    Ichigo::Internal::gl.glGenTextures(1, &textures[texture_type].id);
 
     u8 *image_data = stbi_load_from_memory(png_data, png_data_length, (i32 *) &textures[texture_type].width, (i32 *) &textures[texture_type].height, (i32 *) &textures[texture_type].channel_count, 4);
     assert(image_data);
-    Ichigo::gl.glBindTexture(GL_TEXTURE_2D, textures[texture_type].id);
-    Ichigo::gl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    Ichigo::gl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    Ichigo::gl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_NEAREST);
-    Ichigo::gl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    Ichigo::gl.glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, textures[texture_type].width, textures[texture_type].height, 0, GL_RGBA, GL_UNSIGNED_BYTE, image_data);
-    Ichigo::gl.glGenerateMipmap(GL_TEXTURE_2D);
+    Ichigo::Internal::gl.glBindTexture(GL_TEXTURE_2D, textures[texture_type].id);
+    Ichigo::Internal::gl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    Ichigo::Internal::gl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    Ichigo::Internal::gl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_NEAREST);
+    Ichigo::Internal::gl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    Ichigo::Internal::gl.glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, textures[texture_type].width, textures[texture_type].height, 0, GL_RGBA, GL_UNSIGNED_BYTE, image_data);
+    Ichigo::Internal::gl.glGenerateMipmap(GL_TEXTURE_2D);
     stbi_image_free(image_data);
 }
 
 static void compile_shader(u32 shader_id, const GLchar *shader_source, i32 shader_source_len) {
-    Ichigo::gl.glShaderSource(shader_id, 1, &shader_source, &shader_source_len);
-    Ichigo::gl.glCompileShader(shader_id);
+    Ichigo::Internal::gl.glShaderSource(shader_id, 1, &shader_source, &shader_source_len);
+    Ichigo::Internal::gl.glCompileShader(shader_id);
 
     i32 success;
-    Ichigo::gl.glGetShaderiv(shader_id, GL_COMPILE_STATUS, &success);
+    Ichigo::Internal::gl.glGetShaderiv(shader_id, GL_COMPILE_STATUS, &success);
 
     if (!success) {
-        Ichigo::gl.glGetShaderInfoLog(shader_id, sizeof(string_buffer), nullptr, string_buffer);
+        Ichigo::Internal::gl.glGetShaderInfoLog(shader_id, sizeof(string_buffer), nullptr, string_buffer);
         ICHIGO_ERROR("Fragment shader compilation failed:\n%s", string_buffer);
         std::exit(1);
     }
 }
 
-void Ichigo::init() {
+void Ichigo::Internal::init() {
     stbi_set_flip_vertically_on_load(true);
     // Util::IchigoVector<Entity> fuck;
     // fuck.append({ {100.0f, 100.0f}, {0.5f, 0.2f, 0.8f}, 25, 35 });
@@ -538,67 +478,73 @@ void Ichigo::init() {
     auto io = ImGui::GetIO();
     io.Fonts->AddFontFromMemoryTTF((void *) noto_font, noto_font_len, 18, &font_config, io.Fonts->GetGlyphRangesJapanese());
 
-    ICHIGO_INFO("GL_VERSION=%s", Ichigo::gl.glGetString(GL_VERSION));
+    ICHIGO_INFO("GL_VERSION=%s", Ichigo::Internal::gl.glGetString(GL_VERSION));
 
-    texture_shader_program.vertex_shader_id = Ichigo::gl.glCreateShader(GL_VERTEX_SHADER);
+    texture_shader_program.vertex_shader_id = Ichigo::Internal::gl.glCreateShader(GL_VERTEX_SHADER);
     solid_colour_shader_program.vertex_shader_id = texture_shader_program.vertex_shader_id;
 
     compile_shader(texture_shader_program.vertex_shader_id, (const GLchar *) vertex_shader_source, vertex_shader_source_len);
 
-    texture_shader_program.fragment_shader_id = Ichigo::gl.glCreateShader(GL_FRAGMENT_SHADER);
-    solid_colour_shader_program.fragment_shader_id = Ichigo::gl.glCreateShader(GL_FRAGMENT_SHADER);
+    texture_shader_program.fragment_shader_id = Ichigo::Internal::gl.glCreateShader(GL_FRAGMENT_SHADER);
+    solid_colour_shader_program.fragment_shader_id = Ichigo::Internal::gl.glCreateShader(GL_FRAGMENT_SHADER);
 
     compile_shader(texture_shader_program.fragment_shader_id, (const GLchar *) fragment_shader_source, fragment_shader_source_len);
     compile_shader(solid_colour_shader_program.fragment_shader_id, (const GLchar *) solid_colour_fragment_shader_source, solid_colour_fragment_shader_source_len);
 
-    texture_shader_program.program_id = Ichigo::gl.glCreateProgram();
-    Ichigo::gl.glAttachShader(texture_shader_program.program_id, texture_shader_program.vertex_shader_id);
-    Ichigo::gl.glAttachShader(texture_shader_program.program_id, texture_shader_program.fragment_shader_id);
-    Ichigo::gl.glLinkProgram(texture_shader_program.program_id);
+    texture_shader_program.program_id = Ichigo::Internal::gl.glCreateProgram();
+    Ichigo::Internal::gl.glAttachShader(texture_shader_program.program_id, texture_shader_program.vertex_shader_id);
+    Ichigo::Internal::gl.glAttachShader(texture_shader_program.program_id, texture_shader_program.fragment_shader_id);
+    Ichigo::Internal::gl.glLinkProgram(texture_shader_program.program_id);
 
     i32 success;
-    Ichigo::gl.glGetProgramiv(texture_shader_program.program_id, GL_LINK_STATUS, &success);
+    Ichigo::Internal::gl.glGetProgramiv(texture_shader_program.program_id, GL_LINK_STATUS, &success);
 
     if (!success) {
-        Ichigo::gl.glGetProgramInfoLog(texture_shader_program.program_id, sizeof(string_buffer), nullptr, string_buffer);
+        Ichigo::Internal::gl.glGetProgramInfoLog(texture_shader_program.program_id, sizeof(string_buffer), nullptr, string_buffer);
         ICHIGO_ERROR("Shader program link failed:\n%s", string_buffer);
         std::exit(1);
     }
 
-    solid_colour_shader_program.program_id = Ichigo::gl.glCreateProgram();
-    Ichigo::gl.glAttachShader(solid_colour_shader_program.program_id, solid_colour_shader_program.vertex_shader_id);
-    Ichigo::gl.glAttachShader(solid_colour_shader_program.program_id, solid_colour_shader_program.fragment_shader_id);
-    Ichigo::gl.glLinkProgram(solid_colour_shader_program.program_id);
+    solid_colour_shader_program.program_id = Ichigo::Internal::gl.glCreateProgram();
+    Ichigo::Internal::gl.glAttachShader(solid_colour_shader_program.program_id, solid_colour_shader_program.vertex_shader_id);
+    Ichigo::Internal::gl.glAttachShader(solid_colour_shader_program.program_id, solid_colour_shader_program.fragment_shader_id);
+    Ichigo::Internal::gl.glLinkProgram(solid_colour_shader_program.program_id);
 
-    Ichigo::gl.glGetProgramiv(solid_colour_shader_program.program_id, GL_LINK_STATUS, &success);
+    Ichigo::Internal::gl.glGetProgramiv(solid_colour_shader_program.program_id, GL_LINK_STATUS, &success);
 
     if (!success) {
-        Ichigo::gl.glGetProgramInfoLog(solid_colour_shader_program.program_id, sizeof(string_buffer), nullptr, string_buffer);
+        Ichigo::Internal::gl.glGetProgramInfoLog(solid_colour_shader_program.program_id, sizeof(string_buffer), nullptr, string_buffer);
         ICHIGO_ERROR("Shader program link failed:\n%s", string_buffer);
         std::exit(1);
     }
 
-    Ichigo::gl.glDeleteShader(texture_shader_program.vertex_shader_id);
-    Ichigo::gl.glDeleteShader(texture_shader_program.fragment_shader_id);
+    Ichigo::Internal::gl.glDeleteShader(texture_shader_program.vertex_shader_id);
+    Ichigo::Internal::gl.glDeleteShader(texture_shader_program.fragment_shader_id);
 
-    Ichigo::gl.glGenVertexArrays(1, &vertex_array_id);
-    Ichigo::gl.glGenBuffers(1, &vertex_buffer_id);
-    Ichigo::gl.glGenBuffers(1, &vertex_index_buffer_id);
+    Ichigo::Internal::gl.glGenVertexArrays(1, &vertex_array_id);
+    Ichigo::Internal::gl.glGenBuffers(1, &vertex_buffer_id);
+    Ichigo::Internal::gl.glGenBuffers(1, &vertex_index_buffer_id);
 
-    Ichigo::gl.glBindVertexArray(vertex_array_id);
+    Ichigo::Internal::gl.glBindVertexArray(vertex_array_id);
 
-    Ichigo::gl.glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer_id);
-    Ichigo::gl.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vertex_index_buffer_id);
-    Ichigo::gl.glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), 0);
-    Ichigo::gl.glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void *) offsetof(Vertex, tex));
-    Ichigo::gl.glEnableVertexAttribArray(0);
-    Ichigo::gl.glEnableVertexAttribArray(1);
+    Ichigo::Internal::gl.glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer_id);
+    Ichigo::Internal::gl.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vertex_index_buffer_id);
+    Ichigo::Internal::gl.glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), 0);
+    Ichigo::Internal::gl.glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void *) offsetof(Vertex, tex));
+    Ichigo::Internal::gl.glEnableVertexAttribArray(0);
+    Ichigo::Internal::gl.glEnableVertexAttribArray(1);
+
+    static u32 indicies[] = {
+        0, 1, 2,
+        1, 2, 3
+    };
+
+    Ichigo::Internal::gl.glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indicies), indicies, GL_STATIC_DRAW);
 
     load_texture(Ichigo::IT_PLAYER, test_png_image, test_png_image_len);
     load_texture(Ichigo::IT_GRASS_TILE, grass_tile_png, grass_tile_png_len);
 
-    // entities.append();
-    // entities.append({ {10.3f, 20.57f}, {0.0f, 0.0f, 1.0f, 0.5f}, 25.0f, 35.0f });
+    Ichigo::Game::init();
 }
 
-void Ichigo::deinit() {}
+void Ichigo::Internal::deinit() {}

@@ -9,9 +9,9 @@
 #include <gl/GL.h>
 #include "thirdparty/imgui/imgui_impl_win32.h"
 
-u32 Ichigo::window_width = 1920;
-u32 Ichigo::window_height = 1080;
-OpenGL Ichigo::gl{};
+u32 Ichigo::Internal::window_width = 1920;
+u32 Ichigo::Internal::window_height = 1080;
+OpenGL Ichigo::Internal::gl{};
 
 static Ichigo::KeyState keyboard_state[Ichigo::Keycode::IK_ENUM_COUNT] = {};
 static i64 performance_frequency;
@@ -47,7 +47,7 @@ static char *from_wide_char(const wchar_t *str) {
     return u8_bytes;
 }
 
-std::FILE *Ichigo::platform_open_file(const std::string &path, const std::string &mode) {
+std::FILE *Ichigo::Internal::platform_open_file(const std::string &path, const std::string &mode) {
     i32 buf_size = MultiByteToWideChar(CP_UTF8, 0, path.c_str(), -1, nullptr, 0);
     i32 mode_buf_size = MultiByteToWideChar(CP_UTF8, 0, mode.c_str(), -1, nullptr, 0);
     assert(buf_size > 0 && mode_buf_size > 0);
@@ -65,7 +65,7 @@ std::FILE *Ichigo::platform_open_file(const std::string &path, const std::string
     return ret;
 }
 
-bool Ichigo::platform_file_exists(const char *path) {
+bool Ichigo::Internal::platform_file_exists(const char *path) {
     wchar_t *wide_path = to_wide_char(path);
     DWORD attributes = GetFileAttributesW(wide_path);
     bool ret = attributes != INVALID_FILE_ATTRIBUTES && !(attributes & FILE_ATTRIBUTE_DIRECTORY);
@@ -133,7 +133,7 @@ void visit_directory(const wchar_t *path, Util::IchigoVector<std::string> *files
     }
 }
 
-Util::IchigoVector<std::string> Ichigo::platform_recurse_directory(const std::string &path, const char **extension_filter, const u16 extension_filter_count) {
+Util::IchigoVector<std::string> Ichigo::Internal::platform_recurse_directory(const std::string &path, const char **extension_filter, const u16 extension_filter_count) {
     Util::IchigoVector<std::string> ret;
 
     i32 buf_size = MultiByteToWideChar(CP_UTF8, 0, path.c_str(), -1, nullptr, 0);
@@ -153,11 +153,11 @@ static i64 platform_get_time() {
     return i.QuadPart;
 }
 
-void Ichigo::platform_sleep(f32 t) {
+void Ichigo::Internal::platform_sleep(f32 t) {
     Sleep((u64) (t * 1000));
 }
 
-f32 Ichigo::platform_get_current_time() {
+f32 Ichigo::Internal::platform_get_current_time() {
     return platform_get_time() / (f32) performance_frequency;
 }
 
@@ -165,7 +165,7 @@ static void platform_do_frame() {
     ImGui_ImplWin32_NewFrame();
 
     i64 now = platform_get_time();
-    Ichigo::do_frame(ImGui_ImplWin32_GetDpiScaleForHwnd(window_handle), (now - last_frame_time) / (f32) performance_frequency, keyboard_state);
+    Ichigo::Internal::do_frame(ImGui_ImplWin32_GetDpiScaleForHwnd(window_handle), (now - last_frame_time) / (f32) performance_frequency, keyboard_state);
     last_frame_time = now;
 
     SwapBuffers(hdc);
@@ -258,9 +258,9 @@ static LRESULT window_proc(HWND window, u32 msg, WPARAM wparam, LPARAM lparam) {
             if (height <= 0 || width <= 0)
                 break;
 
-            if (height != Ichigo::window_height || width != Ichigo::window_width) {
-                Ichigo::window_width = width;
-                Ichigo::window_height = height;
+            if (height != Ichigo::Internal::window_height || width != Ichigo::Internal::window_width) {
+                Ichigo::Internal::window_width = width;
+                Ichigo::Internal::window_height = height;
             }
 
             platform_do_frame();
@@ -294,7 +294,7 @@ i32 main() {
     window_class.hInstance     = instance;
     window_class.lpszClassName = L"ichigo";
     RegisterClass(&window_class);
-    window_handle = CreateWindowEx(0, window_class.lpszClassName, L"Ichigo no Aji!", WS_OVERLAPPEDWINDOW | WS_VISIBLE, CW_USEDEFAULT, CW_USEDEFAULT, Ichigo::window_width, Ichigo::window_height, nullptr,
+    window_handle = CreateWindowEx(0, window_class.lpszClassName, L"Ichigo no Aji!", WS_OVERLAPPEDWINDOW | WS_VISIBLE, CW_USEDEFAULT, CW_USEDEFAULT, Ichigo::Internal::window_width, Ichigo::Internal::window_height, nullptr,
                                    nullptr, instance, nullptr);
 
     assert(window_handle);
@@ -335,18 +335,18 @@ i32 main() {
     wglMakeCurrent(hdc, wgl_context);
     wglSwapIntervalEXT(0);
 
-#define GET_ADDR_OF_OPENGL_FUNCTION(FUNC_NAME) Ichigo::gl.FUNC_NAME = (Type_##FUNC_NAME *) wglGetProcAddress(#FUNC_NAME); assert(Ichigo::gl.FUNC_NAME != nullptr)
-    Ichigo::gl.glViewport       = glViewport;
-    Ichigo::gl.glClearColor     = glClearColor;
-    Ichigo::gl.glClear          = glClear;
-    Ichigo::gl.glGetString      = glGetString;
-    Ichigo::gl.glPolygonMode    = glPolygonMode;
-    Ichigo::gl.glGetError       = glGetError;
-    Ichigo::gl.glTexParameterf  = glTexParameterf;
-    Ichigo::gl.glTexParameterfv = glTexParameterfv;
-    Ichigo::gl.glTexParameteri  = glTexParameteri;
-    Ichigo::gl.glTexParameteriv = glTexParameteriv;
-    Ichigo::gl.glTexImage2D     = glTexImage2D;
+#define GET_ADDR_OF_OPENGL_FUNCTION(FUNC_NAME) Ichigo::Internal::gl.FUNC_NAME = (Type_##FUNC_NAME *) wglGetProcAddress(#FUNC_NAME); assert(Ichigo::Internal::gl.FUNC_NAME != nullptr)
+    Ichigo::Internal::gl.glViewport       = glViewport;
+    Ichigo::Internal::gl.glClearColor     = glClearColor;
+    Ichigo::Internal::gl.glClear          = glClear;
+    Ichigo::Internal::gl.glGetString      = glGetString;
+    Ichigo::Internal::gl.glPolygonMode    = glPolygonMode;
+    Ichigo::Internal::gl.glGetError       = glGetError;
+    Ichigo::Internal::gl.glTexParameterf  = glTexParameterf;
+    Ichigo::Internal::gl.glTexParameterfv = glTexParameterfv;
+    Ichigo::Internal::gl.glTexParameteri  = glTexParameteri;
+    Ichigo::Internal::gl.glTexParameteriv = glTexParameteriv;
+    Ichigo::Internal::gl.glTexImage2D     = glTexImage2D;
 
     GET_ADDR_OF_OPENGL_FUNCTION(glGenBuffers);
     GET_ADDR_OF_OPENGL_FUNCTION(glGenVertexArrays);
@@ -414,7 +414,7 @@ i32 main() {
     GET_ADDR_OF_OPENGL_FUNCTION(glUniformMatrix3x4fv);
     GET_ADDR_OF_OPENGL_FUNCTION(glUniformMatrix4x3fv);
 
-    Ichigo::init();
+    Ichigo::Internal::init();
 
     // Platform init
     ImGui_ImplWin32_InitForOpenGL(window_handle);
@@ -445,6 +445,6 @@ i32 main() {
     }
 
 exit:
-    Ichigo::deinit();
+    Ichigo::Internal::deinit();
     return 0;
 }

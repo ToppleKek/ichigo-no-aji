@@ -6,6 +6,7 @@ CXX_FLAGS_GAME="-g"
 CXX_FLAGS_IMGUI="-O3"
 CXX_FILES="main.cpp win32_ichigo.cpp util.cpp"
 CXX_FILES_LINUX="main.cpp linux_ichigo.cpp util.cpp"
+CXX_FILES_GAME="game/ichiaji_main.cpp"
 IMGUI_CXX_FILES=(./thirdparty/imgui/imgui.cpp ./thirdparty/imgui/imgui_draw.cpp ./thirdparty/imgui/imgui_tables.cpp ./thirdparty/imgui/imgui_widgets.cpp ./thirdparty/imgui/imgui_impl_win32.cpp ./thirdparty/imgui/imgui_impl_opengl3.cpp)
 IMGUI_LINUX_CXX_FILES=(./thirdparty/imgui/imgui.cpp ./thirdparty/imgui/imgui_draw.cpp ./thirdparty/imgui/imgui_tables.cpp ./thirdparty/imgui/imgui_widgets.cpp ./thirdparty/imgui/imgui_impl_sdl2.cpp ./thirdparty/imgui/imgui_impl_opengl3.cpp)
 LIBS="user32 -lwinmm -lopengl32"

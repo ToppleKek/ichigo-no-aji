@@ -1,9 +1,31 @@
 #pragma once
 #include "util.hpp"
-#include <string>
+#include <string> // TODO: Remove this shit
 #include "opengl.hpp"
+#include "math.hpp"
 
 namespace Ichigo {
+struct Entity;
+using EntityRenderProc = void (Entity *);
+using EntityID         = u64;
+
+struct Texture {
+    u32 width;
+    u32 height;
+    u32 id;
+    u32 channel_count;
+    u64 png_data_size;
+    const u8 *png_data;
+};
+
+struct Entity {
+    RectangleCollider col;
+    Vec2<f32> velocity;
+    Vec2<f32> acceleration;
+    Texture *texture;
+    Ichigo::EntityRenderProc *render_proc;
+};
+
 struct KeyState {
     bool down_this_frame;
     bool up_this_frame;
@@ -86,6 +108,16 @@ enum TextureType {
     IT_ENUM_COUNT
 };
 
+Entity *get_entity(EntityID id);
+
+namespace Game {
+void init();
+void frame_begin();
+void update_and_render();
+void frame_end();
+}
+
+namespace Internal {
 extern OpenGL gl;
 extern bool must_rebuild_swapchain;
 extern u32 window_width;
@@ -119,4 +151,5 @@ Util::IchigoVector<std::string> platform_recurse_directory(const std::string &pa
 
 void platform_sleep(f32 t);
 f32 platform_get_current_time();
+}
 }

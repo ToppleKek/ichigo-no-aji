@@ -18,10 +18,17 @@
 - ~~Collision detection~~
 - ~~Wall gliding~~
 - ~~jumping~~
+- ~~Redo movement (!!) (Some things are not framerate independent, forgot a dt somewhere?)~~
+- ~~Review collision, you can get stuck~~
+- Separate game code and engine code
+- Change world scale- maybe 32x18 tiles in a screen?
+- Change player size
+- - This will include updating the collision code to work for non-square sizes
 - Follow camera
-- Redo movement (!!) (Some things are not framerate independent, forgot a dt somewhere?)
-- - Fixed number of timesteps? (fixed ~200hz physics?)
-- Review collision, you can get stuck
+-
+
+## Wishlist
+- Fixed number of timesteps? (fixed ~200hz physics?)
 
 ## Art
 - I like this games pixel art: https://store.steampowered.com/app/2220360/Paper_Lily__Chapter_1/
@@ -31,7 +38,8 @@
 - - P.I. (Platform independent) Rendering
 - - P.I. Audio
 - - P.I. Input
-- - 2D rigid-body physics, collisions
+- - Player controller and collisions
+- - 2D Rigid body physics?
 - - Text & translation?
 - evolutionary prototyping?
 - Diagrams of the game loop, or whatever
