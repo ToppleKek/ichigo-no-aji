@@ -7,7 +7,23 @@
 namespace Ichigo {
 struct Entity;
 using EntityRenderProc = void (Entity *);
-using EntityID         = u64;
+using EntityUpdateProc = void (Entity *);
+using EntityFlags      = u64;
+struct EntityID {
+    u32 generation;
+    u32 index;
+};
+
+enum EntityFlag {
+    EF_ON_GROUND = 1 << 0
+};
+
+enum TextureID {
+    IT_NULL = 0,
+    IT_PLAYER,
+    IT_GRASS_TILE,
+    IT_ENUM_COUNT
+};
 
 struct Texture {
     u32 width;
@@ -22,8 +38,10 @@ struct Entity {
     RectangleCollider col;
     Vec2<f32> velocity;
     Vec2<f32> acceleration;
-    Texture *texture;
-    Ichigo::EntityRenderProc *render_proc;
+    TextureID texture_id;
+    EntityFlags flags;
+    EntityRenderProc *render_proc;
+    EntityUpdateProc *update_proc;
 };
 
 struct KeyState {
@@ -102,13 +120,14 @@ enum Keycode {
     IK_ENUM_COUNT
 };
 
-enum TextureType {
-    IT_PLAYER,
-    IT_GRASS_TILE,
-    IT_ENUM_COUNT
-};
-
+extern Entity player_entity;
+void spawn_player_entity(Entity entity);
+EntityID spawn_entity(Entity entity);
 Entity *get_entity(EntityID id);
+
+namespace EntityControllers {
+void player_controller(Entity *entity);
+}
 
 namespace Game {
 void init();
@@ -122,8 +141,12 @@ extern OpenGL gl;
 extern bool must_rebuild_swapchain;
 extern u32 window_width;
 extern u32 window_height;
+extern f32 dpi_scale;
+extern f32 dt;
+extern Ichigo::KeyState keyboard_state[Ichigo::Keycode::IK_ENUM_COUNT];
+
 void init();
-void do_frame(f32 dpi_scale, f32 dt, KeyState *keyboard_state);
+void do_frame();
 void deinit();
 
 /*

@@ -12,8 +12,10 @@
 u32 Ichigo::Internal::window_width = 1920;
 u32 Ichigo::Internal::window_height = 1080;
 OpenGL Ichigo::Internal::gl{};
+Ichigo::KeyState Ichigo::Internal::keyboard_state[Ichigo::Keycode::IK_ENUM_COUNT] = {};
+f32 Ichigo::Internal::dt = 0.0f;
+f32 Ichigo::Internal::dpi_scale = 0.0f;
 
-static Ichigo::KeyState keyboard_state[Ichigo::Keycode::IK_ENUM_COUNT] = {};
 static i64 performance_frequency;
 static i64 last_frame_time;
 static HWND window_handle;
@@ -165,7 +167,9 @@ static void platform_do_frame() {
     ImGui_ImplWin32_NewFrame();
 
     i64 now = platform_get_time();
-    Ichigo::Internal::do_frame(ImGui_ImplWin32_GetDpiScaleForHwnd(window_handle), (now - last_frame_time) / (f32) performance_frequency, keyboard_state);
+    Ichigo::Internal::dpi_scale = ImGui_ImplWin32_GetDpiScaleForHwnd(window_handle);
+    Ichigo::Internal::dt        = (now - last_frame_time) / (f32) performance_frequency;
+    Ichigo::Internal::do_frame();
     last_frame_time = now;
 
     SwapBuffers(hdc);
@@ -210,7 +214,7 @@ static LRESULT window_proc(HWND window, u32 msg, WPARAM wparam, LPARAM lparam) {
         bool is_down  = ((lparam & (1 << 31)) == 0);
         // ICHIGO_INFO("VK input: %u was_down: %u is_down %u", vk_code, was_down, is_down);
 
-#define SET_KEY_STATE(IK_KEY) keyboard_state[IK_KEY].down = is_down; keyboard_state[IK_KEY].up = !is_down; keyboard_state[IK_KEY].down_this_frame = is_down && !was_down; keyboard_state[IK_KEY].up_this_frame = !is_down && was_down
+#define SET_KEY_STATE(IK_KEY) Ichigo::Internal::keyboard_state[IK_KEY].down = is_down; Ichigo::Internal::keyboard_state[IK_KEY].up = !is_down; Ichigo::Internal::keyboard_state[IK_KEY].down_this_frame = is_down && !was_down; Ichigo::Internal::keyboard_state[IK_KEY].up_this_frame = !is_down && was_down
         switch (vk_code) {
             case VK_LBUTTON:  SET_KEY_STATE(Ichigo::IK_MOUSE_1);       break;
             case VK_RBUTTON:  SET_KEY_STATE(Ichigo::IK_MOUSE_2);       break;
@@ -428,8 +432,8 @@ i32 main() {
 
     for (;;) {
         for (u32 i = 0; i < Ichigo::IK_ENUM_COUNT; ++i) {
-            keyboard_state[i].down_this_frame = false;
-            keyboard_state[i].up_this_frame   = false;
+            Ichigo::Internal::keyboard_state[i].down_this_frame = false;
+            Ichigo::Internal::keyboard_state[i].up_this_frame   = false;
         }
 
         MSG message;
