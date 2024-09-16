@@ -12,38 +12,37 @@
 
 #include "thirdparty/imgui/imgui_impl_sdl2.h"
 
-u32 Ichigo::window_width = 1600;
-u32 Ichigo::window_height = 900;
-OpenGL Ichigo::gl{};
+u32 Ichigo::Internal::window_width = 1600;
+u32 Ichigo::Internal::window_height = 900;
+OpenGL Ichigo::Internal::gl{};
+Ichigo::KeyState Ichigo::Internal::keyboard_state[Ichigo::Keycode::IK_ENUM_COUNT] = {};
+f32 Ichigo::Internal::dt = 0.0f;
+f32 Ichigo::Internal::dpi_scale = 0.0f;
 
 static SDL_Window *window;
 static SDL_GLContext gl_context;
 static u64 last_tick_time = 0;
-static Ichigo::KeyState keyboard_state[Ichigo::Keycode::IK_ENUM_COUNT] = {};
-static u32 previous_height = 1920;
-static u32 previous_width = 1080;
-static bool in_sizing_loop = false;
 static bool init_completed = false;
 
-std::FILE *Ichigo::platform_open_file(const std::string &path, const std::string &mode) {
+std::FILE *Ichigo::Internal::platform_open_file(const std::string &path, const std::string &mode) {
     return fopen(path.c_str(), mode.c_str());
 }
 
 // TODO: Implement
-bool Ichigo::platform_file_exists(const char *path) {
+bool Ichigo::Internal::platform_file_exists(const char *path) {
     return true;
 }
 
 // TODO: Implement
-Util::IchigoVector<std::string> Ichigo::platform_recurse_directory(const std::string &path, const char **extension_filter, const u16 extension_filter_count) {
+Util::IchigoVector<std::string> Ichigo::Internal::platform_recurse_directory(const std::string &path, const char **extension_filter, const u16 extension_filter_count) {
     return {};
 }
 
-void Ichigo::platform_sleep(f32 t) {
+void Ichigo::Internal::platform_sleep(f32 t) {
     usleep(static_cast<u64>(t * 1000 * 1000));
 }
 
-f32 Ichigo::platform_get_current_time() {
+f32 Ichigo::Internal::platform_get_current_time() {
     return SDL_GetTicks64() / 1000.0f;
 }
 
@@ -56,13 +55,13 @@ f32 Ichigo::platform_get_current_time() {
 i32 main() {
     assert(SDL_Init(SDL_INIT_VIDEO) >= 0);
 
-    window = SDL_CreateWindow("Ichigo no Aji!", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, Ichigo::window_width, Ichigo::window_height, SDL_WINDOW_SHOWN | SDL_WINDOW_OPENGL | SDL_WINDOW_ALLOW_HIGHDPI | SDL_WINDOW_RESIZABLE);
+    window = SDL_CreateWindow("Ichigo no Aji!", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, Ichigo::Internal::window_width, Ichigo::Internal::window_height, SDL_WINDOW_SHOWN | SDL_WINDOW_OPENGL | SDL_WINDOW_ALLOW_HIGHDPI | SDL_WINDOW_RESIZABLE);
 
     gl_context = SDL_GL_CreateContext(window);
     SDL_GL_MakeCurrent(window, gl_context);
     SDL_GL_SetSwapInterval(0);
 
-    #define GET_ADDR_OF_OPENGL_FUNCTION(FUNC_NAME) Ichigo::gl.FUNC_NAME = (Type_##FUNC_NAME *) SDL_GL_GetProcAddress(#FUNC_NAME); assert(Ichigo::gl.FUNC_NAME != nullptr)
+    #define GET_ADDR_OF_OPENGL_FUNCTION(FUNC_NAME) Ichigo::Internal::gl.FUNC_NAME = (Type_##FUNC_NAME *) SDL_GL_GetProcAddress(#FUNC_NAME); assert(Ichigo::Internal::gl.FUNC_NAME != nullptr)
     GET_ADDR_OF_OPENGL_FUNCTION(glViewport);
     GET_ADDR_OF_OPENGL_FUNCTION(glClearColor);
     GET_ADDR_OF_OPENGL_FUNCTION(glClear);
@@ -142,7 +141,7 @@ i32 main() {
     GET_ADDR_OF_OPENGL_FUNCTION(glUniformMatrix4x3fv);
 
 
-    Ichigo::init();
+    Ichigo::Internal::init();
     ImGui_ImplSDL2_InitForOpenGL(window, gl_context);
     init_completed = true;
 
@@ -152,13 +151,13 @@ i32 main() {
             ImGui_ImplSDL2_ProcessEvent(&event);
             if (event.type == SDL_QUIT) {
                 std::printf("deinit() now\n");
-                Ichigo::deinit();
+                Ichigo::Internal::deinit();
                 return 0;
             }
 
             if (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_RESIZED) {
-                Ichigo::window_width  = event.window.data1;
-                Ichigo::window_height = event.window.data2;
+                Ichigo::Internal::window_width  = event.window.data1;
+                Ichigo::Internal::window_height = event.window.data2;
             }
         }
 
@@ -169,7 +168,7 @@ i32 main() {
         const u8 *keystate = SDL_GetKeyboardState(&sdl_keycount);
 
 
-#define SET_KEY_STATE(IK_KEY) keyboard_state[IK_KEY].down_this_frame = keyboard_state[IK_KEY].up && keystate[i] ? 1 : 0; keyboard_state[IK_KEY].down = keystate[i] == 1; keyboard_state[IK_KEY].up = keystate[i] == 0
+#define SET_KEY_STATE(IK_KEY) Ichigo::Internal::keyboard_state[IK_KEY].down_this_frame = Ichigo::Internal::keyboard_state[IK_KEY].up && keystate[i] ? 1 : 0; Ichigo::Internal::keyboard_state[IK_KEY].down = keystate[i] == 1; Ichigo::Internal::keyboard_state[IK_KEY].up = keystate[i] == 0
         for (i32 i = 0; i < sdl_keycount; ++i) {
                 switch (i) {
                     // case VK_LBUTTON:  SET_KEY_STATE(Ichigo::IK_MOUSE_1);       break;
@@ -208,7 +207,10 @@ i32 main() {
         u64 delta = new_tick_time - last_tick_time;
         last_tick_time = new_tick_time;
 
-        Ichigo::do_frame(1.0, delta / 1000.0f, keyboard_state);
+        Ichigo::Internal::dt = delta / 1000.0f;
+        Ichigo::Internal::dpi_scale = 1.0f; // TODO: ?
+
+        Ichigo::Internal::do_frame();
         SDL_GL_SwapWindow(window);
     }
 

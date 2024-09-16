@@ -1,21 +1,38 @@
 set -e
 
+OS="linux"
+
 #-Wall -Wextra -Wpedantic -Wconversion
 CXX_FLAGS="-std=c++20 -Wall -Wextra -fno-exceptions -Wno-deprecated-declarations -Wno-missing-braces"
 CXX_FLAGS_GAME="-g"
 CXX_FLAGS_IMGUI="-O3"
-CXX_FILES="main.cpp win32_ichigo.cpp util.cpp"
+CXX_FILES_WIN32="main.cpp win32_ichigo.cpp util.cpp"
 CXX_FILES_LINUX="main.cpp linux_ichigo.cpp util.cpp"
 CXX_FILES_GAME="game/ichiaji_main.cpp"
 IMGUI_CXX_FILES=(./thirdparty/imgui/imgui.cpp ./thirdparty/imgui/imgui_draw.cpp ./thirdparty/imgui/imgui_tables.cpp ./thirdparty/imgui/imgui_widgets.cpp ./thirdparty/imgui/imgui_impl_win32.cpp ./thirdparty/imgui/imgui_impl_opengl3.cpp)
 IMGUI_LINUX_CXX_FILES=(./thirdparty/imgui/imgui.cpp ./thirdparty/imgui/imgui_draw.cpp ./thirdparty/imgui/imgui_tables.cpp ./thirdparty/imgui/imgui_widgets.cpp ./thirdparty/imgui/imgui_impl_sdl2.cpp ./thirdparty/imgui/imgui_impl_opengl3.cpp)
-LIBS="user32 -lwinmm -lopengl32"
+LIBS_WIN32="user32 -lwinmm -lopengl32"
 LIBS_LINUX="GL -lSDL2"
 EXE_NAME="game.exe"
 IMGUI_OBJECT_FILES_DIRECTORY="build/imgui"
 INCLUDE="thirdparty/include"
 
 mkdir -p build
+
+LIBS=""
+CXX_FILES=""
+
+if [ "$OS" = "linux" ]; then
+    LIBS=$LIBS_LINUX
+    CXX_FILES=$CXX_FILES_LINUX
+elif [ "$OS" = "win32" ]; then
+    LIBS=$LIBS_WIN32
+    CXX_FILES=$CXX_FILES_WIN32
+else
+    echo Invalid platform
+    exit 1
+fi
+
 
 if [ "${1}" = "run" ]; then
     cd build
@@ -24,7 +41,7 @@ if [ "${1}" = "run" ]; then
 fi
 
 if [ "${1}" = "br" ]; then
-    clang++ ${CXX_FLAGS} ${CXX_FLAGS_GAME} -l ${LIBS} -I ${INCLUDE} ${CXX_FILES} ${IMGUI_OBJECT_FILES_DIRECTORY}/*.o -o build/${EXE_NAME}
+    clang++ ${CXX_FLAGS} ${CXX_FLAGS_GAME} -l ${LIBS} -I ${INCLUDE} ${CXX_FILES} ${CXX_FILES_GAME} ${IMGUI_OBJECT_FILES_DIRECTORY}/*.o -o build/${EXE_NAME}
     cd build
     ./$EXE_NAME
     exit 0
