@@ -25,6 +25,9 @@ using f64 = double;
 #define ICHIGO_INFO(fmt, ...) std::printf("(info) %s:%d: " fmt "\n", __FILE__, __LINE__ __VA_OPT__(, ) __VA_ARGS__)
 #define ICHIGO_ERROR(fmt, ...) std::printf("(error) %s:%d: " fmt "\n", __FILE__, __LINE__ __VA_OPT__(, ) __VA_ARGS__)
 #define VK_ASSERT_OK(err) assert(err == VK_SUCCESS)
+#define SET_FLAG(FLAGS, FLAG)    (FLAGS |= FLAG)
+#define CLEAR_FLAG(FLAGS, FLAG)  (FLAGS &= ~FLAG)
+#define FLAG_IS_SET(FLAGS, FLAG) ((bool) FLAGS & FLAG)
 
 #define EMBED(FNAME, VNAME)                                                               \
     __asm__(                                                                              \

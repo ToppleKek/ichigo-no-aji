@@ -5,10 +5,25 @@ EMBED("assets/grass.png", grass_tile_png)
 static Ichigo::TextureID player_texture_id = 0;
 static Ichigo::TextureID grass_texture_id  = 0;
 
+#define SCREEN_TILE_WIDTH 16
+#define SCREEN_TILE_HEIGHT 9
+
+static u16 tilemap[SCREEN_TILE_HEIGHT][SCREEN_TILE_WIDTH] = {
+    {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
+    {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+    {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+    {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0},
+    {1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0},
+    {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+    {1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 0, 1, 1, 1},
+    {1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 1, 1, 0, 0},
+    {1, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0},
+};
+
 void Ichigo::Game::init() {
     player_texture_id = Ichigo::load_texture(test_png_image, test_png_image_len);
     grass_texture_id  = Ichigo::load_texture(grass_tile_png, grass_tile_png_len);
-    // Ichigo::load_tilemap(tilemap);
+    Ichigo::set_tilemap(SCREEN_TILE_WIDTH, SCREEN_TILE_HEIGHT, (u16 *) tilemap);
     Ichigo::player_entity = {
         {{3.0f, 5.0f}, 1.0f, 1.0f},
         {0.0f, 0.0f},

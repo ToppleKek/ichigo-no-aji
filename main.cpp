@@ -36,6 +36,10 @@ static u32 last_window_height;
 static u32 last_window_width;
 static u32 aspect_fit_width  = 0;
 static u32 aspect_fit_height = 0;
+static u32 current_tilemap_width  = 0;
+static u32 current_tilemap_height = 0;
+static u16 *current_tilemap = nullptr;
+
 static Util::IchigoVector<Ichigo::Entity> entities{64};
 static Util::IchigoVector<Ichigo::Texture> textures{64};
 
@@ -74,26 +78,11 @@ void default_entity_render_proc(Ichigo::Entity *entity) {
     Ichigo::Internal::gl.glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 }
 
-#define SCREEN_TILE_WIDTH 16
-#define SCREEN_TILE_HEIGHT 9
-
-static u32 tile_map[SCREEN_TILE_HEIGHT][SCREEN_TILE_WIDTH] = {
-    {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
-    {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-    {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-    {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0},
-    {1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0},
-    {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-    {1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 0, 1, 1, 1},
-    {1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 1, 1, 0, 0},
-    {1, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0},
-};
-
-static u32 tile_at(Vec2<u32> tile_coord) {
-    if (tile_coord.x >= SCREEN_TILE_WIDTH || tile_coord.x < 0 || tile_coord.y >= SCREEN_TILE_HEIGHT || tile_coord.y < 0)
+static u16 tile_at(Vec2<u32> tile_coord) {
+    if (!current_tilemap || tile_coord.x >= current_tilemap_width || tile_coord.x < 0 || tile_coord.y >= current_tilemap_height || tile_coord.y < 0)
         return 0;
 
-    return tile_map[tile_coord.y][tile_coord.x];
+    return current_tilemap[tile_coord.y * current_tilemap_width + tile_coord.x];
 }
 
 
@@ -129,11 +118,11 @@ void Ichigo::EntityControllers::player_controller(Ichigo::Entity *player_entity)
         player_entity->acceleration.x = PLAYER_SPEED;
     if (Ichigo::Internal::keyboard_state[Ichigo::IK_LEFT].down)
         player_entity->acceleration.x = -PLAYER_SPEED;
-    if (Ichigo::Internal::keyboard_state[Ichigo::IK_SPACE].down_this_frame && player_entity->flags & Ichigo::EntityFlag::EF_ON_GROUND)
+    if (Ichigo::Internal::keyboard_state[Ichigo::IK_SPACE].down_this_frame && FLAG_IS_SET(player_entity->flags, Ichigo::EntityFlag::EF_ON_GROUND))
         jump_t = 0.06f;
 
     if (jump_t != 0.0f) {
-        player_entity->flags &= ~Ichigo::EntityFlag::EF_ON_GROUND;
+        CLEAR_FLAG(player_entity->flags, Ichigo::EntityFlag::EF_ON_GROUND);
         f32 effective_dt = jump_t < Ichigo::Internal::dt ? jump_t : Ichigo::Internal::dt;
         player_entity->acceleration.y = -PLAYER_JUMP_ACCELERATION * (effective_dt / Ichigo::Internal::dt);
         jump_t -= effective_dt;
@@ -171,7 +160,7 @@ void Ichigo::EntityControllers::player_controller(Ichigo::Entity *player_entity)
 
     // player_entity.velocity.clamp(-0.08f, 0.08f);
 
-    if (!(player_entity->flags & Ichigo::EntityFlag::EF_ON_GROUND)) {
+    if (!(FLAG_IS_SET(player_entity->flags, Ichigo::EntityFlag::EF_ON_GROUND))) {
         player_entity->velocity.y += PLAYER_GRAVITY * Ichigo::Internal::dt;
     }
 
@@ -228,9 +217,9 @@ void Ichigo::EntityControllers::player_controller(Ichigo::Entity *player_entity)
         if (wall_normal.x != 0.0f || wall_normal.y != 0.0f)
             ICHIGO_INFO("FINAL wall normal: %f,%f best_t=%f", wall_normal.x, wall_normal.y, best_t);
 
-        if (!(player_entity->flags & Ichigo::EntityFlag::EF_ON_GROUND) && wall_normal.y == -1.0f) {
+        if (!FLAG_IS_SET(player_entity->flags, Ichigo::EntityFlag::EF_ON_GROUND) && wall_normal.y == -1.0f) {
             ICHIGO_INFO("PLAYER HIT GROUND");
-            player_entity->flags |= Ichigo::EntityFlag::EF_ON_GROUND;
+            SET_FLAG(player_entity->flags, Ichigo::EntityFlag::EF_ON_GROUND);
         }
 
         player_entity->col.pos += player_delta * best_t;
@@ -239,7 +228,7 @@ void Ichigo::EntityControllers::player_controller(Ichigo::Entity *player_entity)
         t_remaining -= best_t * t_remaining;
 
         if (player_entity->velocity.y != 0.0f)
-            player_entity->flags &= ~Ichigo::EntityFlag::EF_ON_GROUND;
+            CLEAR_FLAG(player_entity->flags, Ichigo::EntityFlag::EF_ON_GROUND);
 
         for (u32 tile_y = min_tile_y; tile_y <= max_tile_y; ++tile_y) {
             for (u32 tile_x = min_tile_x; tile_x <= max_tile_x; ++tile_x) {
@@ -251,11 +240,11 @@ void Ichigo::EntityControllers::player_controller(Ichigo::Entity *player_entity)
         }
     }
 
-    if (player_entity->flags & Ichigo::EntityFlag::EF_ON_GROUND) {
+    if (FLAG_IS_SET(player_entity->flags, Ichigo::EntityFlag::EF_ON_GROUND)) {
         standing_tile1 = {(u32) player_entity->col.pos.x, (u32) player_entity->col.pos.y + 1 };
         standing_tile2 = {(u32) player_entity->col.pos.x + 1, (u32) player_entity->col.pos.y + 1 };
         if (tile_at(standing_tile1) == 0 && tile_at(standing_tile2) == 0) {
-            player_entity->flags &= ~Ichigo::EntityFlag::EF_ON_GROUND;
+            CLEAR_FLAG(player_entity->flags, Ichigo::EntityFlag::EF_ON_GROUND);
         }
     }
 }
@@ -301,8 +290,8 @@ static void frame_render() {
     Ichigo::Internal::gl.glClearColor(0.4f, 0.2f, 0.4f, 1.0f);
     Ichigo::Internal::gl.glClear(GL_COLOR_BUFFER_BIT);
 
-    for (u32 row = 0; row < SCREEN_TILE_HEIGHT; ++row) {
-        for (u32 col = 0; col < SCREEN_TILE_WIDTH; ++col) {
+    for (u32 row = 0; row < current_tilemap_width; ++row) {
+        for (u32 col = 0; col < current_tilemap_width; ++col) {
             render_tile(tile_at({col, row}), {(f32) col, (f32) row});
         }
     }
@@ -376,7 +365,7 @@ void Ichigo::Internal::do_frame() {
 
     ImGui::Text("player pos=%f,%f", player_entity.col.pos.x, player_entity.col.pos.y);
     ImGui::Text("player velocity=%f,%f", player_entity.velocity.x, player_entity.velocity.y);
-    ImGui::Text("player flags=%64llu", player_entity.flags);
+    ImGui::Text("player on ground?=%d", FLAG_IS_SET(player_entity.flags, Ichigo::EntityFlag::EF_ON_GROUND));
     ImGui::Text("standing_tile1=%d,%d", standing_tile1.x, standing_tile1.y);
     ImGui::Text("standing_tile1=%d,%d", standing_tile2.x, standing_tile2.y);
 
@@ -429,6 +418,16 @@ Ichigo::TextureID Ichigo::load_texture(const u8 *png_data, u64 png_data_length) 
     stbi_image_free(image_data);
 
     return new_texture_id;
+}
+
+void Ichigo::set_tilemap(u32 tilemap_width, u32 tilemap_height, u16 *tilemap) {
+    assert(tilemap_width > 0);
+    assert(tilemap_height > 0);
+    assert(tilemap);
+
+    current_tilemap_width  = tilemap_width;
+    current_tilemap_height = tilemap_height;
+    current_tilemap        = tilemap;
 }
 
 static void compile_shader(u32 shader_id, const GLchar *shader_source, i32 shader_source_len) {
