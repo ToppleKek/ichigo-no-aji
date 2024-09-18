@@ -13,28 +13,11 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 
-#define EMBED(FNAME, VNAME)                                                               \
-    __asm__(                                                                              \
-        ".section .rodata    \n"                                                          \
-        ".global " #VNAME "    \n.align 16\n" #VNAME ":    \n.incbin \"" FNAME            \
-        "\"       \n"                                                                     \
-        ".global " #VNAME "_end\n.align 1 \n" #VNAME                                      \
-        "_end:\n.byte 1                   \n"                                             \
-        ".global " #VNAME "_len\n.align 16\n" #VNAME "_len:\n.int " #VNAME "_end-" #VNAME \
-        "\n"                                                                              \
-        ".align 16           \n.text    \n");                                             \
-    alignas(16) extern const unsigned char VNAME[];                                       \
-    alignas(16) extern const unsigned char *const VNAME##_end;                            \
-    extern const unsigned int VNAME##_len;
-
-extern "C" {
 EMBED("noto.ttf", noto_font)
 EMBED("shaders/opengl/frag.glsl", fragment_shader_source)
 EMBED("shaders/opengl/solid_colour.glsl", solid_colour_fragment_shader_source)
 EMBED("shaders/opengl/vert.glsl", vertex_shader_source)
-EMBED("assets/test3.png", test_png_image)
-EMBED("assets/grass.png", grass_tile_png)
-}
+
 
 static f32 scale = 1.0f;
 static ImGuiStyle initial_style;
@@ -46,9 +29,6 @@ static Vec2<u32> standing_tile2;
 
 static ShaderProgram texture_shader_program;
 static ShaderProgram solid_colour_shader_program;
-// static u32 vertex_shader_id;
-// static u32 fragment_shader_id;
-// static u32 shader_program_id;
 static u32 vertex_array_id;
 static u32 vertex_buffer_id;
 static u32 vertex_index_buffer_id;
@@ -57,7 +37,7 @@ static u32 last_window_width;
 static u32 aspect_fit_width  = 0;
 static u32 aspect_fit_height = 0;
 static Util::IchigoVector<Ichigo::Entity> entities{64};
-static Ichigo::Texture textures[Ichigo::IT_ENUM_COUNT];
+static Util::IchigoVector<Ichigo::Texture> textures{64};
 
 static char string_buffer[1024];
 
@@ -77,7 +57,7 @@ struct DrawData {
 
 void default_entity_render_proc(Ichigo::Entity *entity) {
     Ichigo::Internal::gl.glUseProgram(texture_shader_program.program_id);
-    Ichigo::Internal::gl.glBindTexture(GL_TEXTURE_2D, textures[entity->texture_id].id);
+    Ichigo::Internal::gl.glBindTexture(GL_TEXTURE_2D, textures.at(entity->texture_id).id);
 
     // The vertices should probably be based on the texture dimensions so that animation frames can extend outside the collider
     Vertex vertices[] = {
@@ -283,7 +263,7 @@ void Ichigo::EntityControllers::player_controller(Ichigo::Entity *player_entity)
 static void render_tile(u32 tile, Vec2<f32> pos) {
     if (tile == 1) {
         Ichigo::Internal::gl.glUseProgram(texture_shader_program.program_id);
-        Ichigo::Internal::gl.glBindTexture(GL_TEXTURE_2D, textures[Ichigo::IT_GRASS_TILE].id);
+        Ichigo::Internal::gl.glBindTexture(GL_TEXTURE_2D, textures.at(2).id); // TODO: Map tile value to texture?
 
         Vertex vertices[] = {
             {{pos.x, pos.y, 0.0f}, {0.0f, 1.0f}},  // top left
@@ -432,19 +412,23 @@ void Ichigo::Internal::do_frame() {
     Ichigo::Game::frame_end();
 }
 
-static void load_texture(Ichigo::TextureID texture_type, const u8 *png_data, u64 png_data_length) {
-    Ichigo::Internal::gl.glGenTextures(1, &textures[texture_type].id);
+Ichigo::TextureID Ichigo::load_texture(const u8 *png_data, u64 png_data_length) {
+    TextureID new_texture_id = textures.size;
+    textures.append({});
+    Ichigo::Internal::gl.glGenTextures(1, &textures.at(new_texture_id).id);
 
-    u8 *image_data = stbi_load_from_memory(png_data, png_data_length, (i32 *) &textures[texture_type].width, (i32 *) &textures[texture_type].height, (i32 *) &textures[texture_type].channel_count, 4);
+    u8 *image_data = stbi_load_from_memory(png_data, png_data_length, (i32 *) &textures.at(new_texture_id).width, (i32 *) &textures.at(new_texture_id).height, (i32 *) &textures.at(new_texture_id).channel_count, 4);
     assert(image_data);
-    Ichigo::Internal::gl.glBindTexture(GL_TEXTURE_2D, textures[texture_type].id);
+    Ichigo::Internal::gl.glBindTexture(GL_TEXTURE_2D, textures.at(new_texture_id).id);
     Ichigo::Internal::gl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     Ichigo::Internal::gl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
     Ichigo::Internal::gl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_NEAREST);
     Ichigo::Internal::gl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    Ichigo::Internal::gl.glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, textures[texture_type].width, textures[texture_type].height, 0, GL_RGBA, GL_UNSIGNED_BYTE, image_data);
+    Ichigo::Internal::gl.glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, textures.at(new_texture_id).width, textures.at(new_texture_id).height, 0, GL_RGBA, GL_UNSIGNED_BYTE, image_data);
     Ichigo::Internal::gl.glGenerateMipmap(GL_TEXTURE_2D);
     stbi_image_free(image_data);
+
+    return new_texture_id;
 }
 
 static void compile_shader(u32 shader_id, const GLchar *shader_source, i32 shader_source_len) {
@@ -546,11 +530,10 @@ void Ichigo::Internal::init() {
 
     Ichigo::Internal::gl.glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indicies), indicies, GL_STATIC_DRAW);
 
-    load_texture(Ichigo::IT_PLAYER, test_png_image, test_png_image_len);
-    load_texture(Ichigo::IT_GRASS_TILE, grass_tile_png, grass_tile_png_len);
-
     // The null entity
     entities.append({});
+    // The null texture
+    textures.append({});
     Ichigo::Game::init();
 }
 

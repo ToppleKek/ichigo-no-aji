@@ -9,6 +9,7 @@ struct Entity;
 using EntityRenderProc = void (Entity *);
 using EntityUpdateProc = void (Entity *);
 using EntityFlags      = u64;
+using TextureID        = u32;
 struct EntityID {
     u32 generation;
     u32 index;
@@ -18,12 +19,12 @@ enum EntityFlag {
     EF_ON_GROUND = 1 << 0
 };
 
-enum TextureID {
-    IT_NULL = 0,
-    IT_PLAYER,
-    IT_GRASS_TILE,
-    IT_ENUM_COUNT
-};
+// enum TextureID {
+//     IT_NULL = 0,
+//     IT_PLAYER,
+//     IT_GRASS_TILE,
+//     IT_ENUM_COUNT
+// };
 
 struct Texture {
     u32 width;
@@ -124,6 +125,8 @@ extern Entity player_entity;
 void spawn_player_entity(Entity entity);
 EntityID spawn_entity(Entity entity);
 Entity *get_entity(EntityID id);
+
+TextureID load_texture(const u8 *png_data, usize png_data_size);
 
 namespace EntityControllers {
 void player_controller(Entity *entity);

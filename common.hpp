@@ -26,6 +26,22 @@ using f64 = double;
 #define ICHIGO_ERROR(fmt, ...) std::printf("(error) %s:%d: " fmt "\n", __FILE__, __LINE__ __VA_OPT__(, ) __VA_ARGS__)
 #define VK_ASSERT_OK(err) assert(err == VK_SUCCESS)
 
+#define EMBED(FNAME, VNAME)                                                               \
+    __asm__(                                                                              \
+        ".section .rodata    \n"                                                          \
+        ".global " #VNAME "    \n.align 16\n" #VNAME ":    \n.incbin \"" FNAME            \
+        "\"       \n"                                                                     \
+        ".global " #VNAME "_end\n.align 1 \n" #VNAME                                      \
+        "_end:\n.byte 1                   \n"                                             \
+        ".global " #VNAME "_len\n.align 16\n" #VNAME "_len:\n.int " #VNAME "_end-" #VNAME \
+        "\n"                                                                              \
+        ".align 16           \n.text    \n");                                             \
+    extern "C" {                                                                          \
+    alignas(16) extern const unsigned char VNAME[];                                       \
+    alignas(16) extern const unsigned char *const VNAME##_end;                            \
+    extern const unsigned int VNAME##_len;                                                \
+    }
+
 #ifdef _WIN32
 #define platform_alloca _alloca
 #endif
