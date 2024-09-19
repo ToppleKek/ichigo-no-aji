@@ -128,7 +128,7 @@ Entity *get_entity(EntityID id);
 
 TextureID load_texture(const u8 *png_data, usize png_data_size);
 
-void set_tilemap(u32 tilemap_width, u32 tilemap_height, u16 *tilemap);
+void set_tilemap(u32 tilemap_width, u32 tilemap_height, u16 *tilemap, TextureID *tile_texture_map);
 
 namespace EntityControllers {
 void player_controller(Entity *entity);

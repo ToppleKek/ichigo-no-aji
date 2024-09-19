@@ -39,6 +39,7 @@ static u32 aspect_fit_height = 0;
 static u32 current_tilemap_width  = 0;
 static u32 current_tilemap_height = 0;
 static u16 *current_tilemap = nullptr;
+static Ichigo::TextureID *current_tile_texture_map = nullptr;
 
 static Util::IchigoVector<Ichigo::Entity> entities{64};
 static Util::IchigoVector<Ichigo::Texture> textures{64};
@@ -160,7 +161,7 @@ void Ichigo::EntityControllers::player_controller(Ichigo::Entity *player_entity)
 
     // player_entity.velocity.clamp(-0.08f, 0.08f);
 
-    if (!(FLAG_IS_SET(player_entity->flags, Ichigo::EntityFlag::EF_ON_GROUND))) {
+    if (!FLAG_IS_SET(player_entity->flags, Ichigo::EntityFlag::EF_ON_GROUND)) {
         player_entity->velocity.y += PLAYER_GRAVITY * Ichigo::Internal::dt;
     }
 
@@ -250,9 +251,9 @@ void Ichigo::EntityControllers::player_controller(Ichigo::Entity *player_entity)
 }
 
 static void render_tile(u32 tile, Vec2<f32> pos) {
-    if (tile == 1) {
+    if (tile != 0) {
         Ichigo::Internal::gl.glUseProgram(texture_shader_program.program_id);
-        Ichigo::Internal::gl.glBindTexture(GL_TEXTURE_2D, textures.at(2).id); // TODO: Map tile value to texture?
+        Ichigo::Internal::gl.glBindTexture(GL_TEXTURE_2D, textures.at(current_tile_texture_map[tile]).id);
 
         Vertex vertices[] = {
             {{pos.x, pos.y, 0.0f}, {0.0f, 1.0f}},  // top left
@@ -420,14 +421,16 @@ Ichigo::TextureID Ichigo::load_texture(const u8 *png_data, u64 png_data_length) 
     return new_texture_id;
 }
 
-void Ichigo::set_tilemap(u32 tilemap_width, u32 tilemap_height, u16 *tilemap) {
+void Ichigo::set_tilemap(u32 tilemap_width, u32 tilemap_height, u16 *tilemap, Ichigo::TextureID *tile_texture_map) {
     assert(tilemap_width > 0);
     assert(tilemap_height > 0);
     assert(tilemap);
+    assert(tile_texture_map);
 
-    current_tilemap_width  = tilemap_width;
-    current_tilemap_height = tilemap_height;
-    current_tilemap        = tilemap;
+    current_tilemap_width    = tilemap_width;
+    current_tilemap_height   = tilemap_height;
+    current_tilemap          = tilemap;
+    current_tile_texture_map = tile_texture_map;
 }
 
 static void compile_shader(u32 shader_id, const GLchar *shader_source, i32 shader_source_len) {

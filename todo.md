@@ -25,7 +25,11 @@
 - Change player size
 - - This will include updating the collision code to work for non-square sizes
 - Follow camera
--
+- Tilemap editor
+- - It will allow you to "create a new tile" where you assign a texture that you load into the editor
+- - The tilemap editor will export (compressed?) tilemap files
+- - It will also export a hpp file that you can include in the game code
+- - - The hpp file will have the embed directives for embedding the tilemap files, a struct containing all of the names of the textures you imported (all are fields of type Ichigo::TextureID), and a function to load all the textures.
 
 ## Wishlist
 - Fixed number of timesteps? (fixed ~200hz physics?)
