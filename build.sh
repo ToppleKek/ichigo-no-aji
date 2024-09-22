@@ -1,13 +1,14 @@
 set -e
 
-OS="linux"
+OS="win32"
 
 #-Wall -Wextra -Wpedantic -Wconversion
 CXX_FLAGS="-std=c++20 -Wall -Wextra -fno-exceptions -Wno-deprecated-declarations -Wno-missing-braces"
 CXX_FLAGS_GAME="-g"
 CXX_FLAGS_IMGUI="-O3"
-CXX_FILES_WIN32="main.cpp win32_ichigo.cpp util.cpp"
-CXX_FILES_LINUX="main.cpp linux_ichigo.cpp util.cpp"
+CXX_FILES_WIN32="win32_ichigo.cpp"
+CXX_FILES_LINUX="linux_ichigo.cpp"
+CXX_FILES_ENGINE="main.cpp util.cpp entity.cpp"
 CXX_FILES_GAME="game/ichiaji_main.cpp"
 IMGUI_CXX_FILES=(./thirdparty/imgui/imgui.cpp ./thirdparty/imgui/imgui_draw.cpp ./thirdparty/imgui/imgui_tables.cpp ./thirdparty/imgui/imgui_widgets.cpp ./thirdparty/imgui/imgui_impl_win32.cpp ./thirdparty/imgui/imgui_impl_opengl3.cpp)
 IMGUI_LINUX_CXX_FILES=(./thirdparty/imgui/imgui.cpp ./thirdparty/imgui/imgui_draw.cpp ./thirdparty/imgui/imgui_tables.cpp ./thirdparty/imgui/imgui_widgets.cpp ./thirdparty/imgui/imgui_impl_sdl2.cpp ./thirdparty/imgui/imgui_impl_opengl3.cpp)
@@ -24,10 +25,10 @@ CXX_FILES=""
 
 if [ "$OS" = "linux" ]; then
     LIBS=$LIBS_LINUX
-    CXX_FILES=$CXX_FILES_LINUX
+    CXX_FILES="$CXX_FILES_LINUX $CXX_FILES_ENGINE"
 elif [ "$OS" = "win32" ]; then
     LIBS=$LIBS_WIN32
-    CXX_FILES=$CXX_FILES_WIN32
+    CXX_FILES="$CXX_FILES_WIN32 $CXX_FILES_ENGINE"
 else
     echo Invalid platform
     exit 1

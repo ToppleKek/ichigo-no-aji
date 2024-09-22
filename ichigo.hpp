@@ -1,50 +1,14 @@
 #pragma once
+
+#include "texture.hpp"
+#include "camera.hpp"
+#include "entity.hpp"
 #include "util.hpp"
 #include <string> // TODO: Remove this shit
 #include "opengl.hpp"
 #include "math.hpp"
 
 namespace Ichigo {
-struct Entity;
-using EntityRenderProc = void (Entity *);
-using EntityUpdateProc = void (Entity *);
-using EntityFlags      = u64;
-using TextureID        = u32;
-struct EntityID {
-    u32 generation;
-    u32 index;
-};
-
-enum EntityFlag {
-    EF_ON_GROUND = 1 << 0
-};
-
-// enum TextureID {
-//     IT_NULL = 0,
-//     IT_PLAYER,
-//     IT_GRASS_TILE,
-//     IT_ENUM_COUNT
-// };
-
-struct Texture {
-    u32 width;
-    u32 height;
-    u32 id;
-    u32 channel_count;
-    u64 png_data_size;
-    const u8 *png_data;
-};
-
-struct Entity {
-    RectangleCollider col;
-    Vec2<f32> velocity;
-    Vec2<f32> acceleration;
-    TextureID texture_id;
-    EntityFlags flags;
-    EntityRenderProc *render_proc;
-    EntityUpdateProc *update_proc;
-};
-
 struct KeyState {
     bool down_this_frame;
     bool up_this_frame;
@@ -121,12 +85,11 @@ enum Keycode {
     IK_ENUM_COUNT
 };
 
-extern Entity player_entity;
-void spawn_player_entity(Entity entity);
-EntityID spawn_entity(Entity entity);
-Entity *get_entity(EntityID id);
+struct GameState {
+    Ichigo::EntityID player_entity_id;
+};
 
-TextureID load_texture(const u8 *png_data, usize png_data_size);
+extern GameState game_state;
 
 void set_tilemap(u32 tilemap_width, u32 tilemap_height, u16 *tilemap, TextureID *tile_texture_map);
 

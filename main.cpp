@@ -1,6 +1,7 @@
 #include <cassert>
 
 #include "common.hpp"
+#include "entity.hpp"
 #include "math.hpp"
 // #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -41,13 +42,12 @@ static u32 current_tilemap_height = 0;
 static u16 *current_tilemap = nullptr;
 static Ichigo::TextureID *current_tile_texture_map = nullptr;
 
-static Util::IchigoVector<Ichigo::Entity> entities{64};
 static Util::IchigoVector<Ichigo::Texture> textures{64};
 
 static char string_buffer[1024];
 
 bool Ichigo::Internal::must_rebuild_swapchain = false;
-Ichigo::Entity Ichigo::player_entity = {};
+Ichigo::GameState Ichigo::game_state = {};
 
 struct Vertex {
     Vec3<f32> pos;
@@ -268,12 +268,12 @@ static void render_tile(u32 tile, Vec2<f32> pos) {
         Ichigo::Internal::gl.glUniform1i(texture_uniform, 0);
         Ichigo::Internal::gl.glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
-        if (((pos.x == standing_tile1.x && pos.y == standing_tile1.y) || (pos.x == standing_tile2.x && pos.y == standing_tile2.y)) && Ichigo::player_entity.flags & Ichigo::EntityFlag::EF_ON_GROUND) {
-            Ichigo::Internal::gl.glUseProgram(solid_colour_shader_program.program_id);
-            i32 colour_uniform = Ichigo::Internal::gl.glGetUniformLocation(solid_colour_shader_program.program_id, "colour");
-            Ichigo::Internal::gl.glUniform4f(colour_uniform, 1.0f, 0.4f, pos.x == standing_tile2.x ? 0.4f : 0.8f, 1.0f);
-            Ichigo::Internal::gl.glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-        }
+        // if (((pos.x == standing_tile1.x && pos.y == standing_tile1.y) || (pos.x == standing_tile2.x && pos.y == standing_tile2.y)) && FLAG_IS_SET(Ichigo::game_state.player_entity.flags, Ichigo::EntityFlag::EF_ON_GROUND)) {
+        //     Ichigo::Internal::gl.glUseProgram(solid_colour_shader_program.program_id);
+        //     i32 colour_uniform = Ichigo::Internal::gl.glGetUniformLocation(solid_colour_shader_program.program_id, "colour");
+        //     Ichigo::Internal::gl.glUniform4f(colour_uniform, 1.0f, 0.4f, pos.x == standing_tile2.x ? 0.4f : 0.8f, 1.0f);
+        //     Ichigo::Internal::gl.glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+        // }
     }
 }
 
@@ -297,19 +297,22 @@ static void frame_render() {
         }
     }
 
-    for (u32 i = 1; i < entities.size; ++i) {
-        Ichigo::Entity &entity = entities.at(i);
+    for (u32 i = 1; i < Ichigo::Internal::entities.size; ++i) {
+        Ichigo::Entity &entity = Ichigo::Internal::entities.at(i);
         if (entity.render_proc)
             entity.render_proc(&entity);
         else
             default_entity_render_proc(&entity);
     }
 
+    // TODO: Render order? The player is now a part of the entity list. We could also skip rendering the player in the loop and render afterwards
+    //       but maybe we want a more robust layering system?
+
     // Always render the player last (on top)
-    if (Ichigo::player_entity.render_proc)
-        Ichigo::player_entity.render_proc(&Ichigo::player_entity);
-    else
-        default_entity_render_proc(&Ichigo::player_entity);
+    // if (Ichigo::game_state.player_entity.render_proc)
+    //     Ichigo::game_state.player_entity.render_proc(&Ichigo::game_state.player_entity);
+    // else
+    //     default_entity_render_proc(&Ichigo::game_state.player_entity);
 
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 }
@@ -364,9 +367,11 @@ void Ichigo::Internal::do_frame() {
     if (ImGui::Button("30fps"))
         target_frame_time = 0.033f;
 
-    ImGui::Text("player pos=%f,%f", player_entity.col.pos.x, player_entity.col.pos.y);
-    ImGui::Text("player velocity=%f,%f", player_entity.velocity.x, player_entity.velocity.y);
-    ImGui::Text("player on ground?=%d", FLAG_IS_SET(player_entity.flags, Ichigo::EntityFlag::EF_ON_GROUND));
+    Ichigo::Entity *player_entity = Ichigo::get_entity(Ichigo::game_state.player_entity_id);
+    assert(player_entity);
+    ImGui::Text("player pos=%f,%f", player_entity->col.pos.x, player_entity->col.pos.y);
+    ImGui::Text("player velocity=%f,%f", player_entity->velocity.x, player_entity->velocity.y);
+    ImGui::Text("player on ground?=%d", FLAG_IS_SET(player_entity->flags, Ichigo::EntityFlag::EF_ON_GROUND));
     ImGui::Text("standing_tile1=%d,%d", standing_tile1.x, standing_tile1.y);
     ImGui::Text("standing_tile1=%d,%d", standing_tile2.x, standing_tile2.y);
 
@@ -379,10 +384,9 @@ void Ichigo::Internal::do_frame() {
     // Ichigo::Internal::gl.glPolygonMode(GL_FRONT_AND_BACK, do_wireframe ? GL_LINE : GL_FILL);
 
     // tick_player(keyboard_state, dt);
-    Ichigo::player_entity.update_proc(&Ichigo::player_entity);
 
-    for (u32 i = 1; i < entities.size; ++i) {
-        Ichigo::Entity &entity = entities.at(i);
+    for (u32 i = 1; i < Ichigo::Internal::entities.size; ++i) {
+        Ichigo::Entity &entity = Ichigo::Internal::entities.at(i);
         if (entity.update_proc)
             entity.update_proc(&entity);
     }
