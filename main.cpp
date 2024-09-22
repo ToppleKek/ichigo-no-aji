@@ -1,5 +1,6 @@
 #include <cassert>
 
+#include "camera.hpp"
 #include "common.hpp"
 #include "entity.hpp"
 #include "math.hpp"
@@ -37,8 +38,6 @@ static u32 last_window_height;
 static u32 last_window_width;
 static u32 aspect_fit_width  = 0;
 static u32 aspect_fit_height = 0;
-static u32 current_tilemap_width  = 0;
-static u32 current_tilemap_height = 0;
 static u16 *current_tilemap = nullptr;
 static Ichigo::TextureID *current_tile_texture_map = nullptr;
 
@@ -48,6 +47,8 @@ static char string_buffer[1024];
 
 bool Ichigo::Internal::must_rebuild_swapchain = false;
 Ichigo::GameState Ichigo::game_state = {};
+u32 Ichigo::Internal::current_tilemap_width  = 0;
+u32 Ichigo::Internal::current_tilemap_height = 0;
 
 struct Vertex {
     Vec3<f32> pos;
@@ -64,12 +65,13 @@ void default_entity_render_proc(Ichigo::Entity *entity) {
     Ichigo::Internal::gl.glUseProgram(texture_shader_program.program_id);
     Ichigo::Internal::gl.glBindTexture(GL_TEXTURE_2D, textures.at(entity->texture_id).id);
 
-    // The vertices should probably be based on the texture dimensions so that animation frames can extend outside the collider
+#define FRACTIONAL_PART(X) (X - (u32) X)
+    Vec2<f32> draw_pos = { entity->col.pos.x - Ichigo::Camera::offset.x, entity->col.pos.y - Ichigo::Camera::offset.y };
     Vertex vertices[] = {
-        {{entity->col.pos.x, entity->col.pos.y, 0.0f}, {0.0f, 1.0f}},  // top left
-        {{entity->col.pos.x + entity->col.w, entity->col.pos.y, 0.0f}, {1.0f, 1.0f}}, // top right
-        {{entity->col.pos.x, entity->col.pos.y + entity->col.h, 0.0f}, {0.0f, 0.0f}}, // bottom left
-        {{entity->col.pos.x + entity->col.w, entity->col.pos.y + entity->col.h, 0.0f}, {1.0f, 0.0f}}, // bottom right
+        {{draw_pos.x, draw_pos.y, 0.0f}, {0.0f, 1.0f}},  // top left
+        {{draw_pos.x + entity->col.w, draw_pos.y, 0.0f}, {1.0f, 1.0f}}, // top right
+        {{draw_pos.x, draw_pos.y + entity->col.h, 0.0f}, {0.0f, 0.0f}}, // bottom left
+        {{draw_pos.x + entity->col.w, draw_pos.y + entity->col.h, 0.0f}, {1.0f, 0.0f}}, // bottom right
     };
 
     Ichigo::Internal::gl.glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
@@ -80,10 +82,10 @@ void default_entity_render_proc(Ichigo::Entity *entity) {
 }
 
 static u16 tile_at(Vec2<u32> tile_coord) {
-    if (!current_tilemap || tile_coord.x >= current_tilemap_width || tile_coord.x < 0 || tile_coord.y >= current_tilemap_height || tile_coord.y < 0)
+    if (!current_tilemap || tile_coord.x >= Ichigo::Internal::current_tilemap_width || tile_coord.x < 0 || tile_coord.y >= Ichigo::Internal::current_tilemap_height || tile_coord.y < 0)
         return 0;
 
-    return current_tilemap[tile_coord.y * current_tilemap_width + tile_coord.x];
+    return current_tilemap[tile_coord.y * Ichigo::Internal::current_tilemap_width + tile_coord.x];
 }
 
 
@@ -291,9 +293,12 @@ static void frame_render() {
     Ichigo::Internal::gl.glClearColor(0.4f, 0.2f, 0.4f, 1.0f);
     Ichigo::Internal::gl.glClear(GL_COLOR_BUFFER_BIT);
 
-    for (u32 row = 0; row < current_tilemap_width; ++row) {
-        for (u32 col = 0; col < current_tilemap_width; ++col) {
-            render_tile(tile_at({col, row}), {(f32) col, (f32) row});
+    f32 draw_x = 0.0f;
+    f32 draw_y = 0.0f;
+    for (u32 row = (u32) Ichigo::Camera::offset.y; row < (u32) Ichigo::Camera::offset.y + SCREEN_TILE_HEIGHT + 1; ++row, ++draw_y) {
+        draw_x = 0.0f;
+        for (u32 col = (u32) Ichigo::Camera::offset.x; col < Ichigo::Camera::offset.x + SCREEN_TILE_WIDTH + 1; ++col, ++draw_x) {
+            render_tile(tile_at({col, row}), {draw_x - (Ichigo::Camera::offset.x - (u32) Ichigo::Camera::offset.x), draw_y - (Ichigo::Camera::offset.y - (u32) Ichigo::Camera::offset.y)});
         }
     }
 
@@ -392,6 +397,7 @@ void Ichigo::Internal::do_frame() {
     }
 
     Ichigo::Game::update_and_render();
+    Ichigo::Camera::update();
 
     if (Ichigo::Internal::window_height != 0 && Ichigo::Internal::window_width != 0) {
         frame_render();
@@ -431,8 +437,8 @@ void Ichigo::set_tilemap(u32 tilemap_width, u32 tilemap_height, u16 *tilemap, Ic
     assert(tilemap);
     assert(tile_texture_map);
 
-    current_tilemap_width    = tilemap_width;
-    current_tilemap_height   = tilemap_height;
+    Ichigo::Internal::current_tilemap_width  = tilemap_width;
+    Ichigo::Internal::current_tilemap_height = tilemap_height;
     current_tilemap          = tilemap;
     current_tile_texture_map = tile_texture_map;
 }

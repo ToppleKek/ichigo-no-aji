@@ -113,6 +113,9 @@ extern f32 dpi_scale;
 extern f32 dt;
 extern Ichigo::KeyState keyboard_state[Ichigo::Keycode::IK_ENUM_COUNT];
 
+extern u32 current_tilemap_width;
+extern u32 current_tilemap_height;
+
 void init();
 void do_frame();
 void deinit();

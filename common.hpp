@@ -45,6 +45,10 @@ using f64 = double;
     extern const unsigned int VNAME##_len;                                                \
     }
 
+// TODO: Make these configurable?
+#define SCREEN_TILE_WIDTH 16
+#define SCREEN_TILE_HEIGHT 9
+
 #ifdef _WIN32
 #define platform_alloca _alloca
 #endif
