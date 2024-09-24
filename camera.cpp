@@ -16,7 +16,7 @@ void Ichigo::Camera::follow(Ichigo::EntityID entity) {
 void Ichigo::Camera::update() {
     Entity *following = get_entity(follow_target);
     if (!following) {
-        ICHIGO_ERROR("Camera's follow target was killed!");
+        ICHIGO_ERROR("Camera's follow target was killed or was never set!");
         offset = {0.0f, 0.0f};
     } else {
         offset = {clamp(following->col.pos.x - (SCREEN_TILE_WIDTH / 2.0f), 0.0f, (f32) Ichigo::Internal::current_tilemap_width - SCREEN_TILE_WIDTH), clamp(following->col.pos.y - (SCREEN_TILE_HEIGHT / 2.0f), 0.0f, (f32) Ichigo::Internal::current_tilemap_height - SCREEN_TILE_HEIGHT)};

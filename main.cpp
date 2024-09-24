@@ -24,6 +24,7 @@ EMBED("shaders/opengl/vert.glsl", vertex_shader_source)
 static f32 scale = 1.0f;
 static ImGuiStyle initial_style;
 static ImFontConfig font_config;
+static bool show_debug_menu = true;
 static f32 target_frame_time = 0.016f;
 
 static Vec2<u32> standing_tile1;
@@ -166,6 +167,7 @@ void Ichigo::EntityControllers::player_controller(Ichigo::Entity *player_entity)
     if (!FLAG_IS_SET(player_entity->flags, Ichigo::EntityFlag::EF_ON_GROUND)) {
         player_entity->velocity.y += PLAYER_GRAVITY * Ichigo::Internal::dt;
     }
+    // player_entity->velocity.y += PLAYER_GRAVITY * Ichigo::Internal::dt;
 
     if (player_entity->velocity.x == 0.0f && player_entity->velocity.y == 0.0f) {
         return;
@@ -181,7 +183,8 @@ void Ichigo::EntityControllers::player_controller(Ichigo::Entity *player_entity)
         u32 min_tile_x = MIN(potential_next_col.pos.x, player_entity->col.pos.x);
         // ICHIGO_INFO("MOVE ATTEMPT %d player velocity: %f,%f", i + 1, player_entity.velocity.x, player_entity.velocity.y);
         f32 best_t = 1.0f;
-        Vec2<f32> wall_normal = { 0, 0 };
+        Vec2<f32> wall_normal{};
+        Vec2<f32> wall_position{};
 
         for (u32 tile_y = min_tile_y; tile_y <= max_tile_y; ++tile_y) {
             for (u32 tile_x = min_tile_x; tile_x <= max_tile_x; ++tile_x) {
@@ -211,6 +214,9 @@ void Ichigo::EntityControllers::player_controller(Ichigo::Entity *player_entity)
                         // ICHIGO_INFO("(0,1) Tile collide %d,%d best_t=%f", tile_x, tile_y, best_t);
                     }
 
+                    if (wall_normal.x != 0.0f || wall_normal.y != 0.0f) {
+                        wall_position = { (f32) tile_x, (f32) tile_y };
+                    }
                     // if (updated)
                     //     ICHIGO_INFO("Decided wall normal: %f,%f", wall_normal.x, wall_normal.y);
                 }
@@ -221,61 +227,93 @@ void Ichigo::EntityControllers::player_controller(Ichigo::Entity *player_entity)
             ICHIGO_INFO("FINAL wall normal: %f,%f best_t=%f", wall_normal.x, wall_normal.y, best_t);
 
         if (!FLAG_IS_SET(player_entity->flags, Ichigo::EntityFlag::EF_ON_GROUND) && wall_normal.y == -1.0f) {
-            ICHIGO_INFO("PLAYER HIT GROUND");
+            ICHIGO_INFO("PLAYER HIT GROUND at tile: %f,%f", wall_position.x, wall_position.y);
             SET_FLAG(player_entity->flags, Ichigo::EntityFlag::EF_ON_GROUND);
+            // TODO: Bug where you stop at 0.0000001 units away from the ground
+            //       Floating point precision error? Maybe we will just snap to the floor when we touch it?
+            //       This has implications based on what kind of floor it is. What if we want a bouncy floor?
+            // The bug is that due to floating point imprecision, we end up slightly above the floor, but here since we hit the floor (wall normal y is -1),
+            // we are counted as hitting the floor. Next frame, we are standing on air, so we apply gravity. Then, the best_t gets so small
+            // that it ends up not moving the player at all (because we are so close to the floor).
+
+            // Solutions:
+            // 1: Snap to the floor
+            //    This would probably be the best? We could save the position of the floor that the player hit, and then
+            //    determine what to do with the player with that information. If the tile is a bouncy tile, we would bounce the player.
+            //    If the tile is a regular floor, snap the player to the floors position.
+            // 2: Round the player's y position if they hit a floor
+            //    Can't really do half tiles very well (is that a real problem?)
+            // 3: Epsilon error correction?
+            // 4: Fix gravity velocity problem?
         }
 
+        if (FLAG_IS_SET(player_entity->flags, Ichigo::EntityFlag::EF_ON_GROUND)) {
+            standing_tile1 = { (u32) wall_position.x, (u32) wall_position.y };
+            standing_tile2 = { (u32) wall_position.x + 1, (u32) wall_position.y };
+            if (tile_at(standing_tile1) == 0 && tile_at(standing_tile2) == 0) {
+                ICHIGO_INFO("PLAYER BECAME AIRBORNE!");
+                CLEAR_FLAG(player_entity->flags, Ichigo::EntityFlag::EF_ON_GROUND);
+        }
+    }
+
+        ICHIGO_INFO("player position before: %f,%f best_t=%f player_velocity=%f,%f", player_entity->col.pos.x, player_entity->col.pos.y, best_t, player_entity->velocity.x, player_entity->velocity.y);
         player_entity->col.pos += player_delta * best_t;
+        ICHIGO_INFO("player position after: %f,%f player_delta: %f,%f best_t=%f player_velocity=%f,%f", player_entity->col.pos.x, player_entity->col.pos.y, player_delta.x, player_delta.y, best_t, player_entity->velocity.x, player_entity->velocity.y);
         player_entity->velocity = player_entity->velocity - 1 * dot(player_entity->velocity, wall_normal) * wall_normal;
         player_delta = player_delta - 1 * dot(player_delta, wall_normal) * wall_normal;
+        ICHIGO_INFO("after calculations: velocity=%f,%f delta=%f,%f, wall normal=%f,%f", player_entity->velocity.x, player_entity->velocity.y, player_delta.x, player_delta.y, wall_normal.x, wall_normal.y);
         t_remaining -= best_t * t_remaining;
-
-        if (player_entity->velocity.y != 0.0f)
-            CLEAR_FLAG(player_entity->flags, Ichigo::EntityFlag::EF_ON_GROUND);
 
         for (u32 tile_y = min_tile_y; tile_y <= max_tile_y; ++tile_y) {
             for (u32 tile_x = min_tile_x; tile_x <= max_tile_x; ++tile_x) {
                 if (tile_at({tile_x, tile_y}) != 0 && rectangles_intersect({{(f32) tile_x, (f32) tile_y}, 1.0f, 1.0f}, player_entity->col)) {
-                    ICHIGO_ERROR("Collision fail at tile %d,%d", tile_x, tile_y);
+                    ICHIGO_ERROR(
+                        "Collision fail at tile %d,%d! potential_next_col=%f,%f wall_normal=%f,%f player position now=%f,%f",
+                        tile_x, tile_y, potential_next_col.pos.x, potential_next_col.pos.y, wall_normal.x, wall_normal.y, player_entity->col.pos.x, player_entity->col.pos.y
+                    );
                     __builtin_debugtrap();
                 }
             }
         }
-    }
 
-    if (FLAG_IS_SET(player_entity->flags, Ichigo::EntityFlag::EF_ON_GROUND)) {
-        standing_tile1 = {(u32) player_entity->col.pos.x, (u32) player_entity->col.pos.y + 1 };
-        standing_tile2 = {(u32) player_entity->col.pos.x + 1, (u32) player_entity->col.pos.y + 1 };
-        if (tile_at(standing_tile1) == 0 && tile_at(standing_tile2) == 0) {
-            CLEAR_FLAG(player_entity->flags, Ichigo::EntityFlag::EF_ON_GROUND);
+        if (player_entity->velocity.x == 0.0f && player_entity->velocity.y == 0.0f) {
+            ICHIGO_INFO("EARLY OUT");
+            break;
         }
     }
+
+    // if (player_entity->velocity.y != 0.0f)
+    //     CLEAR_FLAG(player_entity->flags, Ichigo::EntityFlag::EF_ON_GROUND);
 }
 
-static void render_tile(u32 tile, Vec2<f32> pos) {
+static void render_tile(Vec2<u32> tile_pos) {
+    u16 tile = tile_at(tile_pos);
+    Vec2<f32> draw_pos = { tile_pos.x - Ichigo::Camera::offset.x, tile_pos.y - Ichigo::Camera::offset.y };
+    Vertex vertices[] = {
+        {{draw_pos.x, draw_pos.y, 0.0f}, {0.0f, 1.0f}},  // top left
+        {{draw_pos.x + 1, draw_pos.y, 0.0f}, {1.0f, 1.0f}}, // top right
+        {{draw_pos.x, draw_pos.y + 1, 0.0f}, {0.0f, 0.0f}}, // bottom left
+        {{draw_pos.x + 1, draw_pos.y + 1, 0.0f}, {1.0f, 0.0f}}, // bottom right
+    };
+
+    Ichigo::Internal::gl.glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+
     if (tile != 0) {
         Ichigo::Internal::gl.glUseProgram(texture_shader_program.program_id);
         Ichigo::Internal::gl.glBindTexture(GL_TEXTURE_2D, textures.at(current_tile_texture_map[tile]).id);
 
-        Vertex vertices[] = {
-            {{pos.x, pos.y, 0.0f}, {0.0f, 1.0f}},  // top left
-            {{pos.x + 1, pos.y, 0.0f}, {1.0f, 1.0f}}, // top right
-            {{pos.x, pos.y + 1, 0.0f}, {0.0f, 0.0f}}, // bottom left
-            {{pos.x + 1, pos.y + 1, 0.0f}, {1.0f, 0.0f}}, // bottom right
-        };
-
-        Ichigo::Internal::gl.glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-
         i32 texture_uniform = Ichigo::Internal::gl.glGetUniformLocation(texture_shader_program.program_id, "entity_texture");
         Ichigo::Internal::gl.glUniform1i(texture_uniform, 0);
         Ichigo::Internal::gl.glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+    }
 
-        // if (((pos.x == standing_tile1.x && pos.y == standing_tile1.y) || (pos.x == standing_tile2.x && pos.y == standing_tile2.y)) && FLAG_IS_SET(Ichigo::game_state.player_entity.flags, Ichigo::EntityFlag::EF_ON_GROUND)) {
-        //     Ichigo::Internal::gl.glUseProgram(solid_colour_shader_program.program_id);
-        //     i32 colour_uniform = Ichigo::Internal::gl.glGetUniformLocation(solid_colour_shader_program.program_id, "colour");
-        //     Ichigo::Internal::gl.glUniform4f(colour_uniform, 1.0f, 0.4f, pos.x == standing_tile2.x ? 0.4f : 0.8f, 1.0f);
-        //     Ichigo::Internal::gl.glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-        // }
+    Ichigo::Entity *player_entity = Ichigo::get_entity(Ichigo::game_state.player_entity_id);
+    assert(player_entity);
+    if (((tile_pos.x == standing_tile1.x && tile_pos.y == standing_tile1.y) || (tile_pos.x == standing_tile2.x && tile_pos.y == standing_tile2.y)) && FLAG_IS_SET(player_entity->flags, Ichigo::EntityFlag::EF_ON_GROUND)) {
+        Ichigo::Internal::gl.glUseProgram(solid_colour_shader_program.program_id);
+        i32 colour_uniform = Ichigo::Internal::gl.glGetUniformLocation(solid_colour_shader_program.program_id, "colour");
+        Ichigo::Internal::gl.glUniform4f(colour_uniform, 1.0f, 0.4f, tile_pos.x == standing_tile2.x ? 0.4f : 0.8f, 1.0f);
+        Ichigo::Internal::gl.glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
     }
 }
 
@@ -298,7 +336,8 @@ static void frame_render() {
     for (u32 row = (u32) Ichigo::Camera::offset.y; row < (u32) Ichigo::Camera::offset.y + SCREEN_TILE_HEIGHT + 1; ++row, ++draw_y) {
         draw_x = 0.0f;
         for (u32 col = (u32) Ichigo::Camera::offset.x; col < Ichigo::Camera::offset.x + SCREEN_TILE_WIDTH + 1; ++col, ++draw_x) {
-            render_tile(tile_at({col, row}), {draw_x - (Ichigo::Camera::offset.x - (u32) Ichigo::Camera::offset.x), draw_y - (Ichigo::Camera::offset.y - (u32) Ichigo::Camera::offset.y)});
+            render_tile({col, row});
+            // render_tile(tile_at({col, row}), {draw_x - (Ichigo::Camera::offset.x - (u32) Ichigo::Camera::offset.x), draw_y - (Ichigo::Camera::offset.y - (u32) Ichigo::Camera::offset.y)});
         }
     }
 
@@ -356,33 +395,55 @@ void Ichigo::Internal::do_frame() {
         scale = dpi_scale;
     }
 
+    if (Ichigo::Internal::keyboard_state[Ichigo::IK_ESCAPE].down_this_frame)
+        show_debug_menu = !show_debug_menu;
+
     ImGui_ImplOpenGL3_NewFrame();
     ImGui::NewFrame();
 
-    ImGui::Begin("main_window", nullptr);
+    if (show_debug_menu) {
+        ImGui::SetNextWindowPos({0.0f, 0.0f});
+        ImGui::SetNextWindowSize({Ichigo::Internal::window_width * 0.2f, (f32) Ichigo::Internal::window_height});
+        ImGui::Begin("いちご！", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse);
 
-    ImGui::Text("がんばりまー");
-    ImGui::Text("FPS=%f", ImGui::GetIO().Framerate);
-    ImGui::SliderFloat("Target frame time", &target_frame_time, 0.0f, 0.1f, "%fs");
+        ImGui::Text("苺の力で...! がんばりまー");
+        if (ImGui::CollapsingHeader("Performance", ImGuiTreeNodeFlags_DefaultOpen)) {
+            // ImGui::SeparatorText("Performance");
+            ImGui::Text("FPS: %f", ImGui::GetIO().Framerate);
+            ImGui::SliderFloat("Target SPF", &target_frame_time, 0.0f, 0.1f, "%fs");
 
-    if (ImGui::Button("120fps"))
-        target_frame_time = 0.008333f;
-    if (ImGui::Button("60fps"))
-        target_frame_time = 0.016f;
-    if (ImGui::Button("30fps"))
-        target_frame_time = 0.033f;
+            if (ImGui::Button("120fps"))
+                target_frame_time = 0.008333f;
+            if (ImGui::Button("60fps"))
+                target_frame_time = 0.016f;
+            if (ImGui::Button("30fps"))
+                target_frame_time = 0.033f;
+        }
 
-    Ichigo::Entity *player_entity = Ichigo::get_entity(Ichigo::game_state.player_entity_id);
-    assert(player_entity);
-    ImGui::Text("player pos=%f,%f", player_entity->col.pos.x, player_entity->col.pos.y);
-    ImGui::Text("player velocity=%f,%f", player_entity->velocity.x, player_entity->velocity.y);
-    ImGui::Text("player on ground?=%d", FLAG_IS_SET(player_entity->flags, Ichigo::EntityFlag::EF_ON_GROUND));
-    ImGui::Text("standing_tile1=%d,%d", standing_tile1.x, standing_tile1.y);
-    ImGui::Text("standing_tile1=%d,%d", standing_tile2.x, standing_tile2.y);
+        if (ImGui::CollapsingHeader("Entities", ImGuiTreeNodeFlags_DefaultOpen)) {
+            ImGui::SeparatorText("Player");
+            Ichigo::Entity *player_entity = Ichigo::get_entity(Ichigo::game_state.player_entity_id);
+            assert(player_entity);
+            ImGui::Text("player pos=%f,%f", player_entity->col.pos.x, player_entity->col.pos.y);
+            ImGui::Text("player velocity=%f,%f", player_entity->velocity.x, player_entity->velocity.y);
+            ImGui::Text("player on ground?=%d", FLAG_IS_SET(player_entity->flags, Ichigo::EntityFlag::EF_ON_GROUND));
+            ImGui::Text("standing_tile1=%d,%d", standing_tile1.x, standing_tile1.y);
+            ImGui::Text("standing_tile1=%d,%d", standing_tile2.x, standing_tile2.y);
+            ImGui::SeparatorText("Entity List");
+            for (u32 i = 0; i < Ichigo::Internal::entities.size; ++i) {
+                Ichigo::Entity &entity = Ichigo::Internal::entities.at(i);
+                if (entity.id.index == 0) {
+                    ImGui::Text("Entity slot %u: (empty)", i);
+                } else {
+                    ImGui::Text("Entity slot %u: (occupied)", i);
+                }
+            }
+        }
 
-    // ImGui::Checkbox("Wireframe", &do_wireframe);
+        // ImGui::Checkbox("Wireframe", &do_wireframe);
 
-    ImGui::End();
+        ImGui::End();
+    }
 
     ImGui::EndFrame();
 
@@ -396,6 +457,9 @@ void Ichigo::Internal::do_frame() {
             entity.update_proc(&entity);
     }
 
+    // TODO: Let the game update first? Not sure? Maybe they want to change something about an entity before it gets updated.
+    //       Also we might just consider making the game call an Ichigo::update() function so that the game can control when everything updates.
+    //       But also we have frame begin and frame end...?
     Ichigo::Game::update_and_render();
     Ichigo::Camera::update();
 
