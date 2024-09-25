@@ -49,15 +49,15 @@ void Ichigo::Game::init() {
 }
 
 void Ichigo::Game::frame_begin() {
-    // Ichigo::dt;
+    // Runs at the beginning of a new frame
 }
 
 void Ichigo::Game::update_and_render() {
-
+    // Runs right before the engine begins to render
 
     // Ichigo::push_draw_command(...);
 }
 
 void Ichigo::Game::frame_end() {
-
+    // Runs at the end of the fame (Thinking about this interface still, maybe we don't need these?)
 }

@@ -95,9 +95,13 @@ static bool test_wall(f32 x, f32 x0, f32 dx, f32 py, f32 dy, f32 ty0, f32 ty1, f
     // SEARCH IN T (x - x_0)/(x_1 - x_0) = t
     f32 t = safe_ratio_1(x - x0, dx);
     f32 y = t * dy + py;
+
+// TODO: Error value?
+#define T_EPSILON 0.00000f
     if (t >= 0 && t < *best_t) {
         if ((y > ty0 && y < ty1)) {
-            *best_t = t;
+            *best_t = MAX(0.0f, t - T_EPSILON);
+#undef T_EPSILON
             return true;
         } else {
             ICHIGO_INFO("y test failed t=%f x=%f x0=%f dx=%f py=%f dy=%f ty0=%f ty1=%f", t, x, x0, dx, py, dy, ty0, ty1);
@@ -242,26 +246,20 @@ void Ichigo::EntityControllers::player_controller(Ichigo::Entity *player_entity)
             //    determine what to do with the player with that information. If the tile is a bouncy tile, we would bounce the player.
             //    If the tile is a regular floor, snap the player to the floors position.
             // 2: Round the player's y position if they hit a floor
-            //    Can't really do half tiles very well (is that a real problem?)
+            //    Can't really do half tiles very well (is that a real problem? -NO!)
             // 3: Epsilon error correction?
             // 4: Fix gravity velocity problem?
+
+            // We went with solution 2
+            // TODO: This is also a problem where you can get 0.0000002 units into a wall. We can probably lose the last 2 digits of the float and still be happy.
         }
 
-        if (FLAG_IS_SET(player_entity->flags, Ichigo::EntityFlag::EF_ON_GROUND)) {
-            standing_tile1 = { (u32) wall_position.x, (u32) wall_position.y };
-            standing_tile2 = { (u32) wall_position.x + 1, (u32) wall_position.y };
-            if (tile_at(standing_tile1) == 0 && tile_at(standing_tile2) == 0) {
-                ICHIGO_INFO("PLAYER BECAME AIRBORNE!");
-                CLEAR_FLAG(player_entity->flags, Ichigo::EntityFlag::EF_ON_GROUND);
-        }
-    }
-
-        ICHIGO_INFO("player position before: %f,%f best_t=%f player_velocity=%f,%f", player_entity->col.pos.x, player_entity->col.pos.y, best_t, player_entity->velocity.x, player_entity->velocity.y);
+        // ICHIGO_INFO("player position before: %f,%f best_t=%f player_velocity=%f,%f", player_entity->col.pos.x, player_entity->col.pos.y, best_t, player_entity->velocity.x, player_entity->velocity.y);
         player_entity->col.pos += player_delta * best_t;
-        ICHIGO_INFO("player position after: %f,%f player_delta: %f,%f best_t=%f player_velocity=%f,%f", player_entity->col.pos.x, player_entity->col.pos.y, player_delta.x, player_delta.y, best_t, player_entity->velocity.x, player_entity->velocity.y);
+        // ICHIGO_INFO("player position after: %f,%f player_delta: %f,%f best_t=%f player_velocity=%f,%f", player_entity->col.pos.x, player_entity->col.pos.y, player_delta.x, player_delta.y, best_t, player_entity->velocity.x, player_entity->velocity.y);
         player_entity->velocity = player_entity->velocity - 1 * dot(player_entity->velocity, wall_normal) * wall_normal;
         player_delta = player_delta - 1 * dot(player_delta, wall_normal) * wall_normal;
-        ICHIGO_INFO("after calculations: velocity=%f,%f delta=%f,%f, wall normal=%f,%f", player_entity->velocity.x, player_entity->velocity.y, player_delta.x, player_delta.y, wall_normal.x, wall_normal.y);
+        // ICHIGO_INFO("after calculations: velocity=%f,%f delta=%f,%f, wall normal=%f,%f", player_entity->velocity.x, player_entity->velocity.y, player_delta.x, player_delta.y, wall_normal.x, wall_normal.y);
         t_remaining -= best_t * t_remaining;
 
         for (u32 tile_y = min_tile_y; tile_y <= max_tile_y; ++tile_y) {
@@ -271,19 +269,28 @@ void Ichigo::EntityControllers::player_controller(Ichigo::Entity *player_entity)
                         "Collision fail at tile %d,%d! potential_next_col=%f,%f wall_normal=%f,%f player position now=%f,%f",
                         tile_x, tile_y, potential_next_col.pos.x, potential_next_col.pos.y, wall_normal.x, wall_normal.y, player_entity->col.pos.x, player_entity->col.pos.y
                     );
-                    __builtin_debugtrap();
+                    // __builtin_debugtrap();
                 }
             }
         }
 
-        if (player_entity->velocity.x == 0.0f && player_entity->velocity.y == 0.0f) {
-            ICHIGO_INFO("EARLY OUT");
-            break;
-        }
+        // if (player_entity->velocity.x == 0.0f && player_entity->velocity.y == 0.0f) {
+        //     ICHIGO_INFO("EARLY OUT");
+        //     break;
+        // }
     }
 
     // if (player_entity->velocity.y != 0.0f)
     //     CLEAR_FLAG(player_entity->flags, Ichigo::EntityFlag::EF_ON_GROUND);
+
+    if (FLAG_IS_SET(player_entity->flags, Ichigo::EntityFlag::EF_ON_GROUND)) {
+        standing_tile1 = { (u32) player_entity->col.pos.x, (u32) std::roundf(player_entity->col.pos.y) + 1 };
+        standing_tile2 = { (u32) player_entity->col.pos.x + 1, (u32) std::roundf(player_entity->col.pos.y) + 1 };
+        if (tile_at(standing_tile1) == 0 && tile_at(standing_tile2) == 0) {
+            ICHIGO_INFO("PLAYER BECAME AIRBORNE!");
+            CLEAR_FLAG(player_entity->flags, Ichigo::EntityFlag::EF_ON_GROUND);
+        }
+    }
 }
 
 static void render_tile(Vec2<u32> tile_pos) {
