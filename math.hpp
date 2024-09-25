@@ -158,7 +158,7 @@ inline Mat4x4<f32> orthogonal_projection_matrix(f32 l, f32 r, f32 b, f32 t, f32 
 
 inline bool rectangles_intersect(RectangleCollider rect1, RectangleCollider rect2) {
     return ((rect1.pos.x > rect2.pos.x && rect1.pos.x < rect2.pos.x + rect2.w) || (rect2.pos.x > rect1.pos.x && rect2.pos.x < rect1.pos.x + rect1.w)) &&
-           ((rect1.pos.y > rect2.pos.y - rect2.h && rect1.pos.y < rect2.pos.y) || (rect2.pos.y > rect1.pos.y - rect1.h && rect2.pos.y < rect1.pos.y));
+           ((rect1.pos.y > rect2.pos.y && rect1.pos.y < rect2.pos.y + rect2.h) || (rect2.pos.y > rect1.pos.y && rect2.pos.y < rect1.pos.y + rect1.h));
 }
 
 template<typename T>
