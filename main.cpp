@@ -66,7 +66,6 @@ void default_entity_render_proc(Ichigo::Entity *entity) {
     Ichigo::Internal::gl.glUseProgram(texture_shader_program.program_id);
     Ichigo::Internal::gl.glBindTexture(GL_TEXTURE_2D, textures.at(entity->texture_id).id);
 
-#define FRACTIONAL_PART(X) (X - (u32) X)
     Vec2<f32> draw_pos = { entity->col.pos.x - Ichigo::Camera::offset.x, entity->col.pos.y - Ichigo::Camera::offset.y };
     Vertex vertices[] = {
         {{draw_pos.x, draw_pos.y, 0.0f}, {0.0f, 1.0f}},  // top left
@@ -97,7 +96,7 @@ static bool test_wall(f32 x, f32 x0, f32 dx, f32 py, f32 dy, f32 ty0, f32 ty1, f
     f32 y = t * dy + py;
 
 // TODO: Error value?
-#define T_EPSILON 0.00000f
+#define T_EPSILON 0.00001f
     if (t >= 0 && t < *best_t) {
         if ((y > ty0 && y < ty1)) {
             *best_t = MAX(0.0f, t - T_EPSILON);
@@ -106,9 +105,6 @@ static bool test_wall(f32 x, f32 x0, f32 dx, f32 py, f32 dy, f32 ty0, f32 ty1, f
         } else {
             ICHIGO_INFO("y test failed t=%f x=%f x0=%f dx=%f py=%f dy=%f ty0=%f ty1=%f", t, x, x0, dx, py, dy, ty0, ty1);
         }
-        // *best_t = t;
-        // return true;
-    // if (t >= 0 && t < *best_t) {
     }
 
     return false;
@@ -193,9 +189,10 @@ void Ichigo::EntityControllers::player_controller(Ichigo::Entity *player_entity)
         for (u32 tile_y = min_tile_y; tile_y <= max_tile_y; ++tile_y) {
             for (u32 tile_x = min_tile_x; tile_x <= max_tile_x; ++tile_x) {
                 if (tile_at({tile_x, tile_y}) != 0) {
-                    Vec2<f32> centered_player_p = player_entity->col.pos + Vec2<f32>{0.5f, 0.5f};
+                    Vec2<f32> centered_player_p = player_entity->col.pos + Vec2<f32>{player_entity->col.w / 2.0f, player_entity->col.h / 2.0f};
                     Vec2<f32> min_corner = {tile_x - player_entity->col.w / 2.0f, tile_y - player_entity->col.h / 2.0f};
                     Vec2<f32> max_corner = {tile_x + 1 + player_entity->col.w / 2.0f, tile_y + 1 + player_entity->col.h / 2.0f};
+                    ICHIGO_INFO("min_corner=%f,%f max_corner=%f,%f tile=%u,%u", min_corner.x, min_corner.y, max_corner.x, max_corner.y, tile_x, tile_y);
                     bool updated = false;
                     if (test_wall(min_corner.x, centered_player_p.x, player_delta.x, centered_player_p.y, player_delta.y, min_corner.y, max_corner.y, &best_t)) {
                         updated = true;

@@ -40,7 +40,7 @@ void Ichigo::Game::init() {
     Ichigo::set_tilemap(TILEMAP_WIDTH, TILEMAP_HEIGHT, (u16 *) tilemap, tile_texture_map);
     Ichigo::Entity *player = Ichigo::spawn_entity();
 
-    player->col         = {{3.0f, 5.0f}, 1.0f, 1.0f},
+    player->col         = {{3.0f, 5.0f}, 0.9f, 0.9f},
     player->texture_id  = player_texture_id,
     player->update_proc = Ichigo::EntityControllers::player_controller;
 
