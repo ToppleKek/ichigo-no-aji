@@ -96,7 +96,7 @@ static bool test_wall(f32 x, f32 x0, f32 dx, f32 py, f32 dy, f32 ty0, f32 ty1, f
     f32 y = t * dy + py;
 
 // TODO: Error value?
-#define T_EPSILON 0.00001f
+#define T_EPSILON 0.00500f
     if (t >= 0 && t < *best_t) {
         if ((y > ty0 && y < ty1)) {
             *best_t = MAX(0.0f, t - T_EPSILON);
