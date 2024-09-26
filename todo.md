@@ -47,6 +47,7 @@
 - Basic pathfinding/AI
 - - Uses the "Ichigo::EntityControllers" setup
 - 2D Rigid body physics?
+- Black bar/windowing of aspect ratios out of range
 
 ## Wishlist
 - Fixed number of timesteps? (fixed ~200hz physics?)
