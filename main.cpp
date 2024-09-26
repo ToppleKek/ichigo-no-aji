@@ -112,30 +112,26 @@ static bool test_wall(f32 x, f32 x0, f32 dx, f32 py, f32 dy, f32 ty0, f32 ty1, f
 
 void Ichigo::EntityControllers::player_controller(Ichigo::Entity *player_entity) {
     static f32 jump_t = 0.0f;
-#define PLAYER_SPEED 18.0f
-#define PLAYER_FRICTION 8.0f
-#define PLAYER_GRAVITY 12.0f
-#define PLAYER_JUMP_ACCELERATION 128.0f
 
     player_entity->acceleration = {0.0f, 0.0f};
     if (Ichigo::Internal::keyboard_state[Ichigo::IK_RIGHT].down)
-        player_entity->acceleration.x = PLAYER_SPEED;
+        player_entity->acceleration.x = player_entity->movement_speed;
     if (Ichigo::Internal::keyboard_state[Ichigo::IK_LEFT].down)
-        player_entity->acceleration.x = -PLAYER_SPEED;
+        player_entity->acceleration.x = -player_entity->movement_speed;
     if (Ichigo::Internal::keyboard_state[Ichigo::IK_SPACE].down_this_frame && FLAG_IS_SET(player_entity->flags, Ichigo::EntityFlag::EF_ON_GROUND))
         jump_t = 0.06f;
 
     if (jump_t != 0.0f) {
         CLEAR_FLAG(player_entity->flags, Ichigo::EntityFlag::EF_ON_GROUND);
         f32 effective_dt = jump_t < Ichigo::Internal::dt ? jump_t : Ichigo::Internal::dt;
-        player_entity->acceleration.y = -PLAYER_JUMP_ACCELERATION * (effective_dt / Ichigo::Internal::dt);
+        player_entity->acceleration.y = -player_entity->jump_acceleration * (effective_dt / Ichigo::Internal::dt);
         jump_t -= effective_dt;
     }
 
     i32 direction = player_entity->velocity.x < 0 ? -1 : 1;
 
     if (player_entity->velocity.x != 0.0f) {
-        player_entity->velocity += {PLAYER_FRICTION * Ichigo::Internal::dt * -direction, 0.0f};
+        player_entity->velocity += {player_entity->friction * Ichigo::Internal::dt * -direction, 0.0f};
         i32 new_direction = player_entity->velocity.x < 0 ? -1 : 1;
 
         if (new_direction != direction)
@@ -149,25 +145,17 @@ void Ichigo::EntityControllers::player_controller(Ichigo::Entity *player_entity)
     // ICHIGO_INFO("dt: %f", dt);
 
 
-    // u32 max_tile_y = SCREEN_TILE_HEIGHT;
-    // u32 max_tile_x = SCREEN_TILE_WIDTH;
-    // u32 min_tile_y = 0;
-    // u32 min_tile_x = 0;
-
     Vec2<f32> player_delta = 0.5f * player_entity->acceleration * (Ichigo::Internal::dt * Ichigo::Internal::dt) + player_entity->velocity * Ichigo::Internal::dt;
     RectangleCollider potential_next_col = player_entity->col;
     potential_next_col.pos = player_delta + player_entity->col.pos;
 
     player_entity->velocity += player_entity->acceleration * Ichigo::Internal::dt;
-    player_entity->velocity.x = clamp(player_entity->velocity.x, -8.0f, 8.0f);
-    player_entity->velocity.y = clamp(player_entity->velocity.y, -12.0f, 12.0f);
-
-    // player_entity.velocity.clamp(-0.08f, 0.08f);
+    player_entity->velocity.x = clamp(player_entity->velocity.x, -player_entity->max_velocity.x, player_entity->max_velocity.x);
+    player_entity->velocity.y = clamp(player_entity->velocity.y, -player_entity->max_velocity.y, player_entity->max_velocity.y);
 
     if (!FLAG_IS_SET(player_entity->flags, Ichigo::EntityFlag::EF_ON_GROUND)) {
-        player_entity->velocity.y += PLAYER_GRAVITY * Ichigo::Internal::dt;
+        player_entity->velocity.y += player_entity->gravity * Ichigo::Internal::dt;
     }
-    // player_entity->velocity.y += PLAYER_GRAVITY * Ichigo::Internal::dt;
 
     if (player_entity->velocity.x == 0.0f && player_entity->velocity.y == 0.0f) {
         return;

@@ -24,6 +24,11 @@ struct Entity {
     RectangleCollider col;
     Vec2<f32> velocity;
     Vec2<f32> acceleration;
+    Vec2<f32> max_velocity;
+    f32 movement_speed;
+    f32 jump_acceleration;
+    f32 gravity;
+    f32 friction;
     TextureID texture_id;
     EntityFlags flags;
     EntityRenderProc *render_proc;
