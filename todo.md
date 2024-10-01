@@ -66,18 +66,39 @@
 - evolutionary prototyping?
 - Diagrams of the game loop, or whatever
 
-## External Dependencies
+## Third-party Dependencies
 - Dear ImGui (Development only)
 - SDL2 (Linux only, development only as it will be replaced if I decide to actually ship on Linux)
-- stb_image
-- stb_truetype
+- stb_image (Public domain)
+- stb_truetype (Public domain)
+- dr_mp3 (Public domain)
 
 ## Software used
+- git (source control)
 - clang (compiler)
 - RemedyBG (debugger)
 - VSCode (editor)
 - RenderDoc (Graphics debugger)
 - NVIDIA Nsight graphics (Graphics debugger)
+
+## Project Objective
+### The problem
+Current game engines are, in all honesty, not that appealing. For a single programmer wanting to get started making a game, none of the game engines currently available offer enough benefits to outweigh the negatives of using them. Writing everything from scratch is more appealing. There are certain features that game engines offer that would be nice, but often it is just not enough to sway my opinion on them (Insert Unity rant here).
+### Why not...
+Unreal? Powerful engine, but I am a single developer and I do not want to use such a huge clunky thing for a simple indie game.
+
+Unity? I would love to program my game in a real programming language.
+
+Godot? Same problem as Unity.
+### What?
+A simple, minimal dependency game engine for 2D side scrolling games. Built for indie programmers who don't want to deal with garbage.
+### Why?
+"If no one does it civilization will collapse."
+- Interesting
+- Has much less complexity over existing engines.
+- - No scripting languages, no BS. Just write the game code.
+- Written from scratch; no licensing.
+
 
 ## Timetable
 ### Week 1
