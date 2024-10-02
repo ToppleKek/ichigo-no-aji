@@ -48,6 +48,8 @@
 - - Uses the "Ichigo::EntityControllers" setup
 - 2D Rigid body physics?
 - Black bar/windowing of aspect ratios out of range
+- Linux platform layer: fill out remaining key input
+- All platforms: support mouse input
 
 ## Wishlist
 - Fixed number of timesteps? (fixed ~200hz physics?)

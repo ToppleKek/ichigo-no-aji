@@ -1,5 +1,6 @@
 #pragma once
 #include "common.hpp"
+#include <cmath>
 
 template<typename T>
 inline T clamp(T value, T min, T max);

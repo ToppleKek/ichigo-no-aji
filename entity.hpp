@@ -20,8 +20,11 @@ enum EntityFlag {
 };
 
 struct Entity {
+    char name[8];
     EntityID id;
     Rectangle col;
+    Vec2<u32> left_standing_tile;
+    Vec2<u32> right_standing_tile;
     Vec2<f32> velocity;
     Vec2<f32> acceleration;
     Vec2<f32> max_velocity;
@@ -41,7 +44,9 @@ struct Entity {
 Entity *spawn_entity();
 Entity *get_entity(EntityID id);
 void kill_entity(EntityID id);
+void move_entity_in_world(Entity *entity);
 namespace Internal {
 extern Util::IchigoVector<Ichigo::Entity> entities;
+char *entity_id_as_string(EntityID entity_id); // TODO: NOT THREAD SAFE!!
 }
 }

@@ -92,6 +92,7 @@ struct GameState {
 extern GameState game_state;
 
 void set_tilemap(u32 tilemap_width, u32 tilemap_height, u16 *tilemap, TextureID *tile_texture_map);
+u16 tile_at(Vec2<u32> tile_coord);
 
 namespace EntityControllers {
 void player_controller(Entity *entity);
