@@ -23,10 +23,6 @@ static ImFontConfig font_config;
 static bool show_debug_menu = true;
 static f32 target_frame_time = 0.016f;
 
-// TODO: This should not be global
-static Vec2<u32> standing_tile1;
-static Vec2<u32> standing_tile2;
-
 static ShaderProgram texture_shader_program;
 static ShaderProgram solid_colour_shader_program;
 static u32 vertex_array_id;
@@ -144,10 +140,10 @@ static void render_tile(Vec2<u32> tile_pos) {
 
     Ichigo::Entity *player_entity = Ichigo::get_entity(Ichigo::game_state.player_entity_id);
     assert(player_entity);
-    if (((tile_pos.x == standing_tile1.x && tile_pos.y == standing_tile1.y) || (tile_pos.x == standing_tile2.x && tile_pos.y == standing_tile2.y)) && FLAG_IS_SET(player_entity->flags, Ichigo::EntityFlag::EF_ON_GROUND)) {
+    if (((tile_pos.x == player_entity->left_standing_tile.x && tile_pos.y == player_entity->left_standing_tile.y) || (tile_pos.x == player_entity->right_standing_tile.x && tile_pos.y == player_entity->right_standing_tile.y)) && FLAG_IS_SET(player_entity->flags, Ichigo::EntityFlag::EF_ON_GROUND)) {
         Ichigo::Internal::gl.glUseProgram(solid_colour_shader_program.program_id);
         i32 colour_uniform = Ichigo::Internal::gl.glGetUniformLocation(solid_colour_shader_program.program_id, "colour");
-        Ichigo::Internal::gl.glUniform4f(colour_uniform, 1.0f, 0.4f, tile_pos.x == standing_tile2.x ? 0.4f : 0.8f, 1.0f);
+        Ichigo::Internal::gl.glUniform4f(colour_uniform, 1.0f, 0.4f, tile_pos.x == player_entity->right_standing_tile.x ? 0.4f : 0.8f, 1.0f);
         Ichigo::Internal::gl.glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
     }
 }
@@ -262,15 +258,15 @@ void Ichigo::Internal::do_frame() {
             ImGui::Text("player pos=%f,%f", player_entity->col.pos.x, player_entity->col.pos.y);
             ImGui::Text("player velocity=%f,%f", player_entity->velocity.x, player_entity->velocity.y);
             ImGui::Text("player on ground?=%d", FLAG_IS_SET(player_entity->flags, Ichigo::EntityFlag::EF_ON_GROUND));
-            ImGui::Text("standing_tile1=%d,%d", standing_tile1.x, standing_tile1.y);
-            ImGui::Text("standing_tile1=%d,%d", standing_tile2.x, standing_tile2.y);
+            ImGui::Text("left_standing_tile=%d,%d", player_entity->left_standing_tile.x, player_entity->left_standing_tile.y);
+            ImGui::Text("right_standing_tile=%d,%d", player_entity->right_standing_tile.x, player_entity->right_standing_tile.y);
             ImGui::SeparatorText("Entity List");
             for (u32 i = 0; i < Ichigo::Internal::entities.size; ++i) {
                 Ichigo::Entity &entity = Ichigo::Internal::entities.at(i);
                 if (entity.id.index == 0) {
                     ImGui::Text("Entity slot %u: (empty)", i);
                 } else {
-                    ImGui::Text("Entity slot %u: (occupied)", i);
+                    ImGui::Text("Entity slot %u: %s (%s)", i, entity.name, Internal::entity_id_as_string(entity.id));
                 }
             }
         }

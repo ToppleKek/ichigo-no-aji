@@ -40,6 +40,7 @@ void Ichigo::Game::init() {
     Ichigo::set_tilemap(TILEMAP_WIDTH, TILEMAP_HEIGHT, (u16 *) tilemap, tile_texture_map);
     Ichigo::Entity *player = Ichigo::spawn_entity();
 
+    std::strcpy(player->name, "player");
     player->col               = {{3.0f, 2.0f}, 0.5f, 1.5f};
     player->sprite_pos_offset = {-0.25f, -0.5f};
     player->sprite_w          = 1.0f;
