@@ -42,7 +42,7 @@ void Ichigo::Game::init() {
 
 #define PLAYER_FRICTION 8.0f
 #define PLAYER_GRAVITY 12.0f
-    player->col               = {{3.0f, 5.0f}, 0.8f, 0.8f};
+    player->col               = {{3.0f, 2.0f}, 0.8f, 1.5f};
     player->max_velocity      = {8.0f, 12.0f};
     player->movement_speed    = 18.0f;
     player->jump_acceleration = 128.0f;

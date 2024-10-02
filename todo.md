@@ -98,26 +98,28 @@ A simple, minimal dependency game engine for 2D side scrolling games. Built for 
 - Has much less complexity over existing engines.
 - - No scripting languages, no BS. Just write the game code.
 - Written from scratch; no licensing.
-
+- Ultimate control over everything in the project
 
 ## Timetable
 ### Week 1
-- Proof of concept
+- ~~Proof of concept~~
 ### Week 2
-- Framerate limiter
-- Splitting of engine/game code
+- ~~Framerate limiter~~
+- ~~Splitting of engine/game code~~
 ### Week 3
-- More splitting of engine/game code
-- General code refactoring, planning of game to engine interface
+- ~~More splitting of engine/game code~~
+- ~~General code refactoring, planning of game to engine interface~~
 ### Week 4
-- Camera system and a follow camera that keeps any specified entity on screen
-- Better in-engine debug information (game data and engine controls in panel on left of screen- this panel can be toggled)
-- Player movement/map collision detection rework
-- - Small error correction/ignoring of float imprecision
-- - Make player speed, gravity, friction, etc. configurable
-- - Generalize player movement code and map collision detection so that other entities can use the same code
-- Basic movement of other entities (akin to how eg. Goombas move back and forth in Mario)
+- ~~Camera system and a follow camera that keeps any specified entity on screen~~
+- ~~Better in-engine debug information (game data and engine controls in panel on left of screen- this panel can be toggled)~~
+- ~~Player movement/map collision detection rework~~
+- - ~~Small error correction/ignoring of float imprecision~~
+- - ~~Make player speed, gravity, friction, etc. configurable~~
+- - ~~Improve standing on ground detection algorithm~~
+- - ~~Generalize player movement code and map collision detection so that other entities can use the same code~~
 ### Week 5
+- Make size of visible entity sprite not tied to the size of its collider
+- Basic movement of other entities (akin to how eg. Goombas move back and forth in Mario)
 - Entity collision detection and resolution
 - Audio setup (win32: DirectSound, or XAudio2? linux: ALSA)
 - Basic audio mixer

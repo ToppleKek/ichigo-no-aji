@@ -110,6 +110,141 @@ static bool test_wall(f32 x, f32 x0, f32 dx, f32 py, f32 dy, f32 ty0, f32 ty1, f
     return false;
 }
 
+static void move_entity(Ichigo::Entity *entity) {
+    Vec2<f32> entity_delta = 0.5f * entity->acceleration * (Ichigo::Internal::dt * Ichigo::Internal::dt) + entity->velocity * Ichigo::Internal::dt;
+    RectangleCollider potential_next_col = entity->col;
+    potential_next_col.pos = entity_delta + entity->col.pos;
+
+    entity->velocity += entity->acceleration * Ichigo::Internal::dt;
+    entity->velocity.x = clamp(entity->velocity.x, -entity->max_velocity.x, entity->max_velocity.x);
+    entity->velocity.y = clamp(entity->velocity.y, -entity->max_velocity.y, entity->max_velocity.y);
+
+    if (!FLAG_IS_SET(entity->flags, Ichigo::EntityFlag::EF_ON_GROUND)) {
+        entity->velocity.y += entity->gravity * Ichigo::Internal::dt;
+    }
+
+    if (entity->velocity.x == 0.0f && entity->velocity.y == 0.0f) {
+        return;
+    }
+
+    // ICHIGO_INFO("Nearby tiles this frame:");
+    f32 t_remaining = 1.0f;
+
+    for (u32 i = 0; i < 4 && t_remaining > 0.0f; ++i) {
+        u32 max_tile_y = std::ceil(MAX(potential_next_col.pos.y + entity->col.h, entity->col.pos.y + entity->col.h));
+        u32 max_tile_x = std::ceil(MAX(potential_next_col.pos.x + entity->col.w, entity->col.pos.x + entity->col.w));
+        u32 min_tile_y = MIN(potential_next_col.pos.y, entity->col.pos.y);
+        u32 min_tile_x = MIN(potential_next_col.pos.x, entity->col.pos.x);
+        f32 best_t = 1.0f;
+        Vec2<f32> wall_normal{};
+        Vec2<f32> wall_position{};
+
+        for (u32 tile_y = min_tile_y; tile_y <= max_tile_y; ++tile_y) {
+            for (u32 tile_x = min_tile_x; tile_x <= max_tile_x; ++tile_x) {
+                if (tile_at({tile_x, tile_y}) != 0) {
+                    Vec2<f32> centered_entity_p = entity->col.pos + Vec2<f32>{entity->col.w / 2.0f, entity->col.h / 2.0f};
+                    Vec2<f32> min_corner = {tile_x - entity->col.w / 2.0f, tile_y - entity->col.h / 2.0f};
+                    Vec2<f32> max_corner = {tile_x + 1 + entity->col.w / 2.0f, tile_y + 1 + entity->col.h / 2.0f};
+                    // ICHIGO_INFO("min_corner=%f,%f max_corner=%f,%f tile=%u,%u", min_corner.x, min_corner.y, max_corner.x, max_corner.y, tile_x, tile_y);
+                    bool updated = false;
+                    if (test_wall(min_corner.x, centered_entity_p.x, entity_delta.x, centered_entity_p.y, entity_delta.y, min_corner.y, max_corner.y, &best_t)) {
+                        updated = true;
+                        wall_normal = { -1, 0 };
+                        // ICHIGO_INFO("(-1,0) Tile collide %d,%d best_t=%f", tile_x, tile_y, best_t);
+                    }
+                    if (test_wall(max_corner.x, centered_entity_p.x, entity_delta.x, centered_entity_p.y, entity_delta.y, min_corner.y, max_corner.y, &best_t)) {
+                        updated = true;
+                        wall_normal = { 1, 0 };
+                        // ICHIGO_INFO("(1,0) Tile collide %d,%d best_t=%f", tile_x, tile_y, best_t);
+                    }
+                    if (test_wall(min_corner.y, centered_entity_p.y, entity_delta.y, centered_entity_p.x, entity_delta.x, min_corner.x, max_corner.x, &best_t)) {
+                        updated = true;
+                        wall_normal = { 0, -1 };
+                        // ICHIGO_INFO("(0,-1) Tile collide %d,%d best_t=%f", tile_x, tile_y, best_t);
+                    }
+                    if (test_wall(max_corner.y, centered_entity_p.y, entity_delta.y, centered_entity_p.x, entity_delta.x, min_corner.x, max_corner.x, &best_t)) {
+                        updated = true;
+                        wall_normal = { 0, 1 };
+                        // ICHIGO_INFO("(0,1) Tile collide %d,%d best_t=%f", tile_x, tile_y, best_t);
+                    }
+
+                    if (wall_normal.x != 0.0f || wall_normal.y != 0.0f) {
+                        wall_position = { (f32) tile_x, (f32) tile_y };
+                    }
+                    // if (updated)
+                    //     ICHIGO_INFO("Decided wall normal: %f,%f", wall_normal.x, wall_normal.y);
+                }
+            }
+        }
+
+        if (wall_normal.x != 0.0f || wall_normal.y != 0.0f)
+            ICHIGO_INFO("FINAL wall normal: %f,%f best_t=%f", wall_normal.x, wall_normal.y, best_t);
+
+        if (!FLAG_IS_SET(entity->flags, Ichigo::EntityFlag::EF_ON_GROUND) && wall_normal.y == -1.0f) {
+            ICHIGO_INFO("ENTITY %d:%d HIT GROUND at tile: %f,%f", entity->id.generation, entity->id.index, wall_position.x, wall_position.y);
+            SET_FLAG(entity->flags, Ichigo::EntityFlag::EF_ON_GROUND);
+            // TODO: Bug where you stop at 0.0000001 units away from the ground
+            //       Floating point precision error? Maybe we will just snap to the floor when we touch it?
+            //       This has implications based on what kind of floor it is. What if we want a bouncy floor?
+            // The bug is that due to floating point imprecision, we end up slightly above the floor, but here since we hit the floor (wall normal y is -1),
+            // we are counted as hitting the floor. Next frame, we are standing on air, so we apply gravity. Then, the best_t gets so small
+            // that it ends up not moving the player at all (because we are so close to the floor).
+
+            // Solutions:
+            // 1: Snap to the floor
+            //    This would probably be the best? We could save the position of the floor that the player hit, and then
+            //    determine what to do with the player with that information. If the tile is a bouncy tile, we would bounce the player.
+            //    If the tile is a regular floor, snap the player to the floors position.
+            // 2: Round the player's y position if they hit a floor
+            //    Can't really do half tiles very well (is that a real problem? -NO!)
+            // 3: Epsilon error correction?
+            // 4: Fix gravity velocity problem?
+
+            // We went with solution 2
+            // TODO: This is also a problem where you can get 0.0000002 units into a wall. We can probably lose the last 2 digits of the float and still be happy.
+        }
+
+        Vec2<f32> final_delta{};
+#define D_EPSILON 0.0001
+        final_delta.x = std::fabsf(entity_delta.x * best_t) < D_EPSILON ? 0.0f : entity_delta.x * best_t;
+        final_delta.y = std::fabsf(entity_delta.y * best_t) < D_EPSILON ? 0.0f : entity_delta.y * best_t;
+#undef  D_EPSILON
+        entity->col.pos += final_delta;
+        entity->velocity = entity->velocity - 1 * dot(entity->velocity, wall_normal) * wall_normal;
+        entity_delta = entity_delta - 1 * dot(entity_delta, wall_normal) * wall_normal;
+        t_remaining -= best_t * t_remaining;
+
+        for (u32 tile_y = min_tile_y; tile_y <= max_tile_y; ++tile_y) {
+            for (u32 tile_x = min_tile_x; tile_x <= max_tile_x; ++tile_x) {
+                if (tile_at({tile_x, tile_y}) != 0 && rectangles_intersect({{(f32) tile_x, (f32) tile_y}, 1.0f, 1.0f}, entity->col)) {
+                    ICHIGO_ERROR(
+                        "Collision fail at tile %d,%d! potential_next_col=%f,%f wall_normal=%f,%f entity %d:%d position now=%f,%f",
+                        tile_x, tile_y, potential_next_col.pos.x, potential_next_col.pos.y, wall_normal.x, wall_normal.y, entity->id.generation, entity->id.index, entity->col.pos.x, entity->col.pos.y
+                    );
+                    // __builtin_debugtrap();
+                }
+            }
+        }
+
+        // if (entity->velocity.x == 0.0f && entity->velocity.y == 0.0f) {
+        //     ICHIGO_INFO("EARLY OUT");
+        //     break;
+        // }
+    }
+
+    // if (entity->velocity.y != 0.0f)
+    //     CLEAR_FLAG(entity->flags, Ichigo::EntityFlag::EF_ON_GROUND);
+
+    if (FLAG_IS_SET(entity->flags, Ichigo::EntityFlag::EF_ON_GROUND)) {
+        standing_tile1 = { (u32) entity->col.pos.x, (u32) (entity->col.pos.y + entity->col.h) + 1 };
+        standing_tile2 = { (u32) (entity->col.pos.x + entity->col.w), (u32) (entity->col.pos.y + entity->col.h) + 1 };
+        if (tile_at(standing_tile1) == 0 && tile_at(standing_tile2) == 0) {
+            ICHIGO_INFO("ENTITY %d:%d BECAME AIRBORNE!", entity->id.generation, entity->id.index);
+            CLEAR_FLAG(entity->flags, Ichigo::EntityFlag::EF_ON_GROUND);
+        }
+    }
+}
+
 void Ichigo::EntityControllers::player_controller(Ichigo::Entity *player_entity) {
     static f32 jump_t = 0.0f;
 
@@ -142,145 +277,7 @@ void Ichigo::EntityControllers::player_controller(Ichigo::Entity *player_entity)
     // v' = at + v
     // a
 
-    // ICHIGO_INFO("dt: %f", dt);
-
-
-    Vec2<f32> player_delta = 0.5f * player_entity->acceleration * (Ichigo::Internal::dt * Ichigo::Internal::dt) + player_entity->velocity * Ichigo::Internal::dt;
-    RectangleCollider potential_next_col = player_entity->col;
-    potential_next_col.pos = player_delta + player_entity->col.pos;
-
-    player_entity->velocity += player_entity->acceleration * Ichigo::Internal::dt;
-    player_entity->velocity.x = clamp(player_entity->velocity.x, -player_entity->max_velocity.x, player_entity->max_velocity.x);
-    player_entity->velocity.y = clamp(player_entity->velocity.y, -player_entity->max_velocity.y, player_entity->max_velocity.y);
-
-    if (!FLAG_IS_SET(player_entity->flags, Ichigo::EntityFlag::EF_ON_GROUND)) {
-        player_entity->velocity.y += player_entity->gravity * Ichigo::Internal::dt;
-    }
-
-    if (player_entity->velocity.x == 0.0f && player_entity->velocity.y == 0.0f) {
-        return;
-    }
-
-    // ICHIGO_INFO("Nearby tiles this frame:");
-    f32 t_remaining = 1.0f;
-
-    for (u32 i = 0; i < 4 && t_remaining > 0.0f; ++i) {
-        u32 max_tile_y = std::ceil(MAX(potential_next_col.pos.y, player_entity->col.pos.y));
-        u32 max_tile_x = std::ceil(MAX(potential_next_col.pos.x, player_entity->col.pos.x));
-        u32 min_tile_y = MIN(potential_next_col.pos.y, player_entity->col.pos.y);
-        u32 min_tile_x = MIN(potential_next_col.pos.x, player_entity->col.pos.x);
-        // ICHIGO_INFO("MOVE ATTEMPT %d player velocity: %f,%f", i + 1, player_entity.velocity.x, player_entity.velocity.y);
-        f32 best_t = 1.0f;
-        Vec2<f32> wall_normal{};
-        Vec2<f32> wall_position{};
-
-        for (u32 tile_y = min_tile_y; tile_y <= max_tile_y; ++tile_y) {
-            for (u32 tile_x = min_tile_x; tile_x <= max_tile_x; ++tile_x) {
-                if (tile_at({tile_x, tile_y}) != 0) {
-                    Vec2<f32> centered_player_p = player_entity->col.pos + Vec2<f32>{player_entity->col.w / 2.0f, player_entity->col.h / 2.0f};
-                    Vec2<f32> min_corner = {tile_x - player_entity->col.w / 2.0f, tile_y - player_entity->col.h / 2.0f};
-                    Vec2<f32> max_corner = {tile_x + 1 + player_entity->col.w / 2.0f, tile_y + 1 + player_entity->col.h / 2.0f};
-                    // ICHIGO_INFO("min_corner=%f,%f max_corner=%f,%f tile=%u,%u", min_corner.x, min_corner.y, max_corner.x, max_corner.y, tile_x, tile_y);
-                    bool updated = false;
-                    if (test_wall(min_corner.x, centered_player_p.x, player_delta.x, centered_player_p.y, player_delta.y, min_corner.y, max_corner.y, &best_t)) {
-                        updated = true;
-                        wall_normal = { -1, 0 };
-                        // ICHIGO_INFO("(-1,0) Tile collide %d,%d best_t=%f", tile_x, tile_y, best_t);
-                    }
-                    if (test_wall(max_corner.x, centered_player_p.x, player_delta.x, centered_player_p.y, player_delta.y, min_corner.y, max_corner.y, &best_t)) {
-                        updated = true;
-                        wall_normal = { 1, 0 };
-                        // ICHIGO_INFO("(1,0) Tile collide %d,%d best_t=%f", tile_x, tile_y, best_t);
-                    }
-                    if (test_wall(min_corner.y, centered_player_p.y, player_delta.y, centered_player_p.x, player_delta.x, min_corner.x, max_corner.x, &best_t)) {
-                        updated = true;
-                        wall_normal = { 0, -1 };
-                        // ICHIGO_INFO("(0,-1) Tile collide %d,%d best_t=%f", tile_x, tile_y, best_t);
-                    }
-                    if (test_wall(max_corner.y, centered_player_p.y, player_delta.y, centered_player_p.x, player_delta.x, min_corner.x, max_corner.x, &best_t)) {
-                        updated = true;
-                        wall_normal = { 0, 1 };
-                        // ICHIGO_INFO("(0,1) Tile collide %d,%d best_t=%f", tile_x, tile_y, best_t);
-                    }
-
-                    if (wall_normal.x != 0.0f || wall_normal.y != 0.0f) {
-                        wall_position = { (f32) tile_x, (f32) tile_y };
-                    }
-                    // if (updated)
-                    //     ICHIGO_INFO("Decided wall normal: %f,%f", wall_normal.x, wall_normal.y);
-                }
-            }
-        }
-
-        if (wall_normal.x != 0.0f || wall_normal.y != 0.0f)
-            ICHIGO_INFO("FINAL wall normal: %f,%f best_t=%f", wall_normal.x, wall_normal.y, best_t);
-
-        if (!FLAG_IS_SET(player_entity->flags, Ichigo::EntityFlag::EF_ON_GROUND) && wall_normal.y == -1.0f) {
-            ICHIGO_INFO("PLAYER HIT GROUND at tile: %f,%f", wall_position.x, wall_position.y);
-            SET_FLAG(player_entity->flags, Ichigo::EntityFlag::EF_ON_GROUND);
-            // TODO: Bug where you stop at 0.0000001 units away from the ground
-            //       Floating point precision error? Maybe we will just snap to the floor when we touch it?
-            //       This has implications based on what kind of floor it is. What if we want a bouncy floor?
-            // The bug is that due to floating point imprecision, we end up slightly above the floor, but here since we hit the floor (wall normal y is -1),
-            // we are counted as hitting the floor. Next frame, we are standing on air, so we apply gravity. Then, the best_t gets so small
-            // that it ends up not moving the player at all (because we are so close to the floor).
-
-            // Solutions:
-            // 1: Snap to the floor
-            //    This would probably be the best? We could save the position of the floor that the player hit, and then
-            //    determine what to do with the player with that information. If the tile is a bouncy tile, we would bounce the player.
-            //    If the tile is a regular floor, snap the player to the floors position.
-            // 2: Round the player's y position if they hit a floor
-            //    Can't really do half tiles very well (is that a real problem? -NO!)
-            // 3: Epsilon error correction?
-            // 4: Fix gravity velocity problem?
-
-            // We went with solution 2
-            // TODO: This is also a problem where you can get 0.0000002 units into a wall. We can probably lose the last 2 digits of the float and still be happy.
-        }
-
-        // ICHIGO_INFO("player position before: %f,%f best_t=%f player_velocity=%f,%f", player_entity->col.pos.x, player_entity->col.pos.y, best_t, player_entity->velocity.x, player_entity->velocity.y);
-        Vec2<f32> final_delta{};
-#define D_EPSILON 0.0001
-        final_delta.x = std::fabsf(player_delta.x * best_t) < D_EPSILON ? 0.0f : player_delta.x * best_t;
-        final_delta.y = std::fabsf(player_delta.y * best_t) < D_EPSILON ? 0.0f : player_delta.y * best_t;
-#undef  D_EPSILON
-        player_entity->col.pos += final_delta;
-        // ICHIGO_INFO("player position after: %f,%f player_delta: %f,%f best_t=%f player_velocity=%f,%f", player_entity->col.pos.x, player_entity->col.pos.y, player_delta.x, player_delta.y, best_t, player_entity->velocity.x, player_entity->velocity.y);
-        player_entity->velocity = player_entity->velocity - 1 * dot(player_entity->velocity, wall_normal) * wall_normal;
-        player_delta = player_delta - 1 * dot(player_delta, wall_normal) * wall_normal;
-        // ICHIGO_INFO("after calculations: velocity=%f,%f delta=%f,%f, wall normal=%f,%f", player_entity->velocity.x, player_entity->velocity.y, player_delta.x, player_delta.y, wall_normal.x, wall_normal.y);
-        t_remaining -= best_t * t_remaining;
-
-        for (u32 tile_y = min_tile_y; tile_y <= max_tile_y; ++tile_y) {
-            for (u32 tile_x = min_tile_x; tile_x <= max_tile_x; ++tile_x) {
-                if (tile_at({tile_x, tile_y}) != 0 && rectangles_intersect({{(f32) tile_x, (f32) tile_y}, 1.0f, 1.0f}, player_entity->col)) {
-                    ICHIGO_ERROR(
-                        "Collision fail at tile %d,%d! potential_next_col=%f,%f wall_normal=%f,%f player position now=%f,%f",
-                        tile_x, tile_y, potential_next_col.pos.x, potential_next_col.pos.y, wall_normal.x, wall_normal.y, player_entity->col.pos.x, player_entity->col.pos.y
-                    );
-                    // __builtin_debugtrap();
-                }
-            }
-        }
-
-        // if (player_entity->velocity.x == 0.0f && player_entity->velocity.y == 0.0f) {
-        //     ICHIGO_INFO("EARLY OUT");
-        //     break;
-        // }
-    }
-
-    // if (player_entity->velocity.y != 0.0f)
-    //     CLEAR_FLAG(player_entity->flags, Ichigo::EntityFlag::EF_ON_GROUND);
-
-    if (FLAG_IS_SET(player_entity->flags, Ichigo::EntityFlag::EF_ON_GROUND)) {
-        standing_tile1 = { (u32) player_entity->col.pos.x, (u32) std::roundf(player_entity->col.pos.y) + 1 };
-        standing_tile2 = { (u32) player_entity->col.pos.x + 1, (u32) std::roundf(player_entity->col.pos.y) + 1 };
-        if (tile_at(standing_tile1) == 0 && tile_at(standing_tile2) == 0) {
-            ICHIGO_INFO("PLAYER BECAME AIRBORNE!");
-            CLEAR_FLAG(player_entity->flags, Ichigo::EntityFlag::EF_ON_GROUND);
-        }
-    }
+    move_entity(player_entity);
 }
 
 static void render_tile(Vec2<u32> tile_pos) {
