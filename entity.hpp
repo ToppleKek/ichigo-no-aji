@@ -21,10 +21,13 @@ enum EntityFlag {
 
 struct Entity {
     EntityID id;
-    RectangleCollider col;
+    Rectangle col;
     Vec2<f32> velocity;
     Vec2<f32> acceleration;
     Vec2<f32> max_velocity;
+    Vec2<f32> sprite_pos_offset;
+    f32 sprite_w;
+    f32 sprite_h;
     f32 movement_speed;
     f32 jump_acceleration;
     f32 gravity;

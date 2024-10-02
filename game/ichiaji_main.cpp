@@ -40,9 +40,10 @@ void Ichigo::Game::init() {
     Ichigo::set_tilemap(TILEMAP_WIDTH, TILEMAP_HEIGHT, (u16 *) tilemap, tile_texture_map);
     Ichigo::Entity *player = Ichigo::spawn_entity();
 
-#define PLAYER_FRICTION 8.0f
-#define PLAYER_GRAVITY 12.0f
-    player->col               = {{3.0f, 2.0f}, 0.8f, 1.5f};
+    player->col               = {{3.0f, 2.0f}, 0.5f, 1.5f};
+    player->sprite_pos_offset = {-0.25f, -0.5f};
+    player->sprite_w          = 1.0f;
+    player->sprite_h          = 2.0f;
     player->max_velocity      = {8.0f, 12.0f};
     player->movement_speed    = 18.0f;
     player->jump_acceleration = 128.0f;

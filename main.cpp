@@ -20,13 +20,13 @@ EMBED("shaders/opengl/frag.glsl", fragment_shader_source)
 EMBED("shaders/opengl/solid_colour.glsl", solid_colour_fragment_shader_source)
 EMBED("shaders/opengl/vert.glsl", vertex_shader_source)
 
-
 static f32 scale = 1.0f;
 static ImGuiStyle initial_style;
 static ImFontConfig font_config;
 static bool show_debug_menu = true;
 static f32 target_frame_time = 0.016f;
 
+// TODO: This should not be global
 static Vec2<u32> standing_tile1;
 static Vec2<u32> standing_tile2;
 
@@ -66,12 +66,13 @@ void default_entity_render_proc(Ichigo::Entity *entity) {
     Ichigo::Internal::gl.glUseProgram(texture_shader_program.program_id);
     Ichigo::Internal::gl.glBindTexture(GL_TEXTURE_2D, textures.at(entity->texture_id).id);
 
-    Vec2<f32> draw_pos = { entity->col.pos.x - Ichigo::Camera::offset.x, entity->col.pos.y - Ichigo::Camera::offset.y };
+
+    Vec2<f32> draw_pos = { entity->col.pos.x + entity->sprite_pos_offset.x - Ichigo::Camera::offset.x, entity->col.pos.y + entity->sprite_pos_offset.y - Ichigo::Camera::offset.y };
     Vertex vertices[] = {
         {{draw_pos.x, draw_pos.y, 0.0f}, {0.0f, 1.0f}},  // top left
-        {{draw_pos.x + entity->col.w, draw_pos.y, 0.0f}, {1.0f, 1.0f}}, // top right
-        {{draw_pos.x, draw_pos.y + entity->col.h, 0.0f}, {0.0f, 0.0f}}, // bottom left
-        {{draw_pos.x + entity->col.w, draw_pos.y + entity->col.h, 0.0f}, {1.0f, 0.0f}}, // bottom right
+        {{draw_pos.x + entity->sprite_w, draw_pos.y, 0.0f}, {1.0f, 1.0f}}, // top right
+        {{draw_pos.x, draw_pos.y + entity->sprite_h, 0.0f}, {0.0f, 0.0f}}, // bottom left
+        {{draw_pos.x + entity->sprite_w, draw_pos.y + entity->sprite_h, 0.0f}, {1.0f, 0.0f}}, // bottom right
     };
 
     Ichigo::Internal::gl.glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
@@ -112,7 +113,7 @@ static bool test_wall(f32 x, f32 x0, f32 dx, f32 py, f32 dy, f32 ty0, f32 ty1, f
 
 static void move_entity(Ichigo::Entity *entity) {
     Vec2<f32> entity_delta = 0.5f * entity->acceleration * (Ichigo::Internal::dt * Ichigo::Internal::dt) + entity->velocity * Ichigo::Internal::dt;
-    RectangleCollider potential_next_col = entity->col;
+    Rectangle potential_next_col = entity->col;
     potential_next_col.pos = entity_delta + entity->col.pos;
 
     entity->velocity += entity->acceleration * Ichigo::Internal::dt;
