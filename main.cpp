@@ -59,7 +59,6 @@ void default_entity_render_proc(Ichigo::Entity *entity) {
     Ichigo::Internal::gl.glUseProgram(texture_shader_program.program_id);
     Ichigo::Internal::gl.glBindTexture(GL_TEXTURE_2D, textures.at(entity->texture_id).id);
 
-
     Vec2<f32> draw_pos = { entity->col.pos.x + entity->sprite_pos_offset.x - Ichigo::Camera::offset.x, entity->col.pos.y + entity->sprite_pos_offset.y - Ichigo::Camera::offset.y };
     Vertex vertices[] = {
         {{draw_pos.x, draw_pos.y, 0.0f}, {0.0f, 1.0f}},  // top left
@@ -80,41 +79,6 @@ u16 Ichigo::tile_at(Vec2<u32> tile_coord) {
         return 0;
 
     return current_tilemap[tile_coord.y * Ichigo::Internal::current_tilemap_width + tile_coord.x];
-}
-
-void Ichigo::EntityControllers::player_controller(Ichigo::Entity *player_entity) {
-    static f32 jump_t = 0.0f;
-
-    player_entity->acceleration = {0.0f, 0.0f};
-    if (Ichigo::Internal::keyboard_state[Ichigo::IK_RIGHT].down)
-        player_entity->acceleration.x = player_entity->movement_speed;
-    if (Ichigo::Internal::keyboard_state[Ichigo::IK_LEFT].down)
-        player_entity->acceleration.x = -player_entity->movement_speed;
-    if (Ichigo::Internal::keyboard_state[Ichigo::IK_SPACE].down_this_frame && FLAG_IS_SET(player_entity->flags, Ichigo::EntityFlag::EF_ON_GROUND))
-        jump_t = 0.06f;
-
-    if (jump_t != 0.0f) {
-        CLEAR_FLAG(player_entity->flags, Ichigo::EntityFlag::EF_ON_GROUND);
-        f32 effective_dt = jump_t < Ichigo::Internal::dt ? jump_t : Ichigo::Internal::dt;
-        player_entity->acceleration.y = -player_entity->jump_acceleration * (effective_dt / Ichigo::Internal::dt);
-        jump_t -= effective_dt;
-    }
-
-    i32 direction = player_entity->velocity.x < 0 ? -1 : 1;
-
-    if (player_entity->velocity.x != 0.0f) {
-        player_entity->velocity += {player_entity->friction * Ichigo::Internal::dt * -direction, 0.0f};
-        i32 new_direction = player_entity->velocity.x < 0 ? -1 : 1;
-
-        if (new_direction != direction)
-            player_entity->velocity.x = 0.0f;
-    }
-
-    // p' = 1/2 at^2 + vt + p
-    // v' = at + v
-    // a
-
-    Ichigo::move_entity_in_world(player_entity);
 }
 
 static void render_tile(Vec2<u32> tile_pos) {
@@ -267,6 +231,12 @@ void Ichigo::Internal::do_frame() {
                     ImGui::Text("Entity slot %u: (empty)", i);
                 } else {
                     ImGui::Text("Entity slot %u: %s (%s)", i, entity.name, Internal::entity_id_as_string(entity.id));
+                    ImGui::SameLine();
+
+                    ImGui::PushID(entity.id.index);
+                    if (ImGui::Button("Follow"))
+                        Ichigo::Camera::follow(entity.id);
+                    ImGui::PopID();
                 }
             }
         }

@@ -10,6 +10,11 @@ using EntityRenderProc = void (Entity *);
 using EntityUpdateProc = void (Entity *);
 using EntityFlags      = u64;
 
+namespace EntityControllers {
+void player_controller(Entity *entity);
+void patrol_controller(Entity *entity);
+}
+
 struct EntityID {
     u32 generation;
     u32 index;

@@ -50,6 +50,9 @@
 - Black bar/windowing of aspect ratios out of range
 - Linux platform layer: fill out remaining key input
 - All platforms: support mouse input
+- Render order?
+- Animations?
+- Better asset system? I.e. tie multiple sprites to one asset, entity has "texture asset" or something so you can have multiple sprites make up one entity
 
 ## Wishlist
 - Fixed number of timesteps? (fixed ~200hz physics?)

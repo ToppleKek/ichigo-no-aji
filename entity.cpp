@@ -132,8 +132,8 @@ void Ichigo::move_entity_in_world(Ichigo::Entity *entity) {
             }
         }
 
-        if (wall_normal.x != 0.0f || wall_normal.y != 0.0f)
-            ICHIGO_INFO("FINAL wall normal: %f,%f best_t=%f", wall_normal.x, wall_normal.y, best_t);
+        // if (wall_normal.x != 0.0f || wall_normal.y != 0.0f)
+        //     ICHIGO_INFO("FINAL wall normal: %f,%f best_t=%f", wall_normal.x, wall_normal.y, best_t);
 
         if (!FLAG_IS_SET(entity->flags, Ichigo::EntityFlag::EF_ON_GROUND) && wall_normal.y == -1.0f) {
             ICHIGO_INFO("ENTITY %s HIT GROUND at tile: %f,%f", Internal::entity_id_as_string(entity->id), wall_position.x, wall_position.y);
@@ -176,7 +176,7 @@ void Ichigo::move_entity_in_world(Ichigo::Entity *entity) {
                         "Collision fail at tile %d,%d! potential_next_col=%f,%f wall_normal=%f,%f entity %s position now=%f,%f",
                         tile_x, tile_y, potential_next_col.pos.x, potential_next_col.pos.y, wall_normal.x, wall_normal.y, Internal::entity_id_as_string(entity->id), entity->col.pos.x, entity->col.pos.y
                     );
-                    // __builtin_debugtrap();
+                    __builtin_debugtrap();
                 }
             }
         }
@@ -198,6 +198,46 @@ void Ichigo::move_entity_in_world(Ichigo::Entity *entity) {
             CLEAR_FLAG(entity->flags, Ichigo::EntityFlag::EF_ON_GROUND);
         }
     }
+}
+
+void Ichigo::EntityControllers::player_controller(Ichigo::Entity *player_entity) {
+    static f32 jump_t = 0.0f;
+
+    player_entity->acceleration = {0.0f, 0.0f};
+    if (Ichigo::Internal::keyboard_state[Ichigo::IK_RIGHT].down)
+        player_entity->acceleration.x = player_entity->movement_speed;
+    if (Ichigo::Internal::keyboard_state[Ichigo::IK_LEFT].down)
+        player_entity->acceleration.x = -player_entity->movement_speed;
+    if (Ichigo::Internal::keyboard_state[Ichigo::IK_SPACE].down_this_frame && FLAG_IS_SET(player_entity->flags, Ichigo::EntityFlag::EF_ON_GROUND))
+        jump_t = 0.06f;
+
+    if (jump_t != 0.0f) {
+        CLEAR_FLAG(player_entity->flags, Ichigo::EntityFlag::EF_ON_GROUND);
+        f32 effective_dt = jump_t < Ichigo::Internal::dt ? jump_t : Ichigo::Internal::dt;
+        player_entity->acceleration.y = -player_entity->jump_acceleration * (effective_dt / Ichigo::Internal::dt);
+        jump_t -= effective_dt;
+    }
+
+    i32 direction = player_entity->velocity.x < 0 ? -1 : 1;
+
+    if (player_entity->velocity.x != 0.0f) {
+        player_entity->velocity += {player_entity->friction * Ichigo::Internal::dt * -direction, 0.0f};
+        i32 new_direction = player_entity->velocity.x < 0 ? -1 : 1;
+
+        if (new_direction != direction)
+            player_entity->velocity.x = 0.0f;
+    }
+
+    // p' = 1/2 at^2 + vt + p
+    // v' = at + v
+    // a
+
+    Ichigo::move_entity_in_world(player_entity);
+}
+
+void Ichigo::EntityControllers::patrol_controller(Entity *entity) {
+    entity->acceleration.x = -entity->movement_speed;
+    Ichigo::move_entity_in_world(entity);
 }
 
 char *Ichigo::Internal::entity_id_as_string(EntityID entity_id) {

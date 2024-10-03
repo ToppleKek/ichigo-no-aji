@@ -1,16 +1,19 @@
+#include "entity.hpp"
 #include "ichigo.hpp"
 
 Vec2<f32> Ichigo::Camera::offset{};
 
 static Ichigo::EntityID follow_target{};
 
-void Ichigo::Camera::follow(Ichigo::EntityID entity) {
-    if (!Ichigo::get_entity(entity)) {
+void Ichigo::Camera::follow(Ichigo::EntityID entity_id) {
+    Entity *entity;
+    if (!(entity = Ichigo::get_entity(entity_id))) {
         ICHIGO_ERROR("Camera asked to follow non-existant entity!");
         return;
     }
 
-    follow_target = entity;
+    follow_target = entity_id;
+    ICHIGO_INFO("Camera now following: %s (%s)", entity->name, Ichigo::Internal::entity_id_as_string(entity_id));
 }
 
 void Ichigo::Camera::update() {
