@@ -351,6 +351,9 @@ i32 main() {
     Ichigo::Internal::gl.glTexParameteri  = glTexParameteri;
     Ichigo::Internal::gl.glTexParameteriv = glTexParameteriv;
     Ichigo::Internal::gl.glTexImage2D     = glTexImage2D;
+    Ichigo::Internal::gl.glEnable         = glEnable;
+    Ichigo::Internal::gl.glDisable        = glDisable;
+    Ichigo::Internal::gl.glBlendFunc      = glBlendFunc;
 
     GET_ADDR_OF_OPENGL_FUNCTION(glGenBuffers);
     GET_ADDR_OF_OPENGL_FUNCTION(glGenVertexArrays);
@@ -380,6 +383,9 @@ i32 main() {
     GET_ADDR_OF_OPENGL_FUNCTION(glTexParameterIiv);
     GET_ADDR_OF_OPENGL_FUNCTION(glTexParameterIuiv);
     GET_ADDR_OF_OPENGL_FUNCTION(glGenerateMipmap);
+    GET_ADDR_OF_OPENGL_FUNCTION(glEnablei);
+    GET_ADDR_OF_OPENGL_FUNCTION(glDisablei);
+    GET_ADDR_OF_OPENGL_FUNCTION(glBlendFunci);
     GET_ADDR_OF_OPENGL_FUNCTION(glUniform1f);
     GET_ADDR_OF_OPENGL_FUNCTION(glUniform2f);
     GET_ADDR_OF_OPENGL_FUNCTION(glUniform3f);

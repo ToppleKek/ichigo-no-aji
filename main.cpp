@@ -227,16 +227,26 @@ void Ichigo::Internal::do_frame() {
             ImGui::SeparatorText("Entity List");
             for (u32 i = 0; i < Ichigo::Internal::entities.size; ++i) {
                 Ichigo::Entity &entity = Ichigo::Internal::entities.at(i);
-                if (entity.id.index == 0) {
-                    ImGui::Text("Entity slot %u: (empty)", i);
-                } else {
-                    ImGui::Text("Entity slot %u: %s (%s)", i, entity.name, Internal::entity_id_as_string(entity.id));
-                    ImGui::SameLine();
 
-                    ImGui::PushID(entity.id.index);
-                    if (ImGui::Button("Follow"))
-                        Ichigo::Camera::follow(entity.id);
-                    ImGui::PopID();
+                if (entity.id.index == 0) {
+                    if (ImGui::TreeNode((void *) (uptr) i, "Entity slot %u: (empty)", i)) {
+                        ImGui::Text("No entity loaded in this slot.");
+                        ImGui::TreePop();
+                    }
+                } else {
+                    if (ImGui::TreeNode((void *) (uptr) i, "Entity slot %u: %s (%s)", i, entity.name, Internal::entity_id_as_string(entity.id))) {
+                        ImGui::PushID(entity.id.index);
+                        if (ImGui::Button("Follow"))
+                            Ichigo::Camera::follow(entity.id);
+                        ImGui::PopID();
+
+                        ImGui::Text("pos=%f,%f", entity.col.pos.x, entity.col.pos.y);
+                        ImGui::Text("velocity=%f,%f", entity.velocity.x, entity.velocity.y);
+                        ImGui::Text("on ground?=%d", FLAG_IS_SET(entity.flags, Ichigo::EntityFlag::EF_ON_GROUND));
+                        ImGui::Text("left_standing_tile=%d,%d", entity.left_standing_tile.x, entity.left_standing_tile.y);
+                        ImGui::Text("right_standing_tile=%d,%d", entity.right_standing_tile.x, entity.right_standing_tile.y);
+                        ImGui::TreePop();
+                    }
                 }
             }
         }
@@ -345,6 +355,9 @@ void Ichigo::Internal::init() {
     io.Fonts->AddFontFromMemoryTTF((void *) noto_font, noto_font_len, 18, &font_config, io.Fonts->GetGlyphRangesJapanese());
 
     ICHIGO_INFO("GL_VERSION=%s", Ichigo::Internal::gl.glGetString(GL_VERSION));
+
+    Ichigo::Internal::gl.glEnable(GL_BLEND);
+    Ichigo::Internal::gl.glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     texture_shader_program.vertex_shader_id = Ichigo::Internal::gl.glCreateShader(GL_VERTEX_SHADER);
     solid_colour_shader_program.vertex_shader_id = texture_shader_program.vertex_shader_id;

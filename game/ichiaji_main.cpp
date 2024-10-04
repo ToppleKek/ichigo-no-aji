@@ -49,7 +49,7 @@ void Ichigo::Game::init() {
     player->sprite_w          = 1.0f;
     player->sprite_h          = 2.0f;
     player->max_velocity      = {8.0f, 12.0f};
-    player->movement_speed    = 18.0f;
+    player->movement_speed    = 22.0f;
     player->jump_acceleration = 128.0f;
     player->friction          = 8.0f; // TODO: Friction should be a property of the ground maybe?
     player->gravity           = 12.0f; // TODO: gravity should be a property of the level?
@@ -62,7 +62,7 @@ void Ichigo::Game::init() {
     Ichigo::Entity *enemy = Ichigo::spawn_entity();
 
     std::strcpy(enemy->name, "enemy");
-    enemy->col            = {{10.0f, 2.0f}, 0.5f, 0.5f};
+    enemy->col            = {{8.0f, 2.0f}, 0.5f, 0.5f};
     enemy->sprite_w       = 0.5f;
     enemy->sprite_h       = 0.5f;
     enemy->max_velocity   = {2.0f, 12.0f};

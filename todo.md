@@ -53,6 +53,8 @@
 - Render order?
 - Animations?
 - Better asset system? I.e. tie multiple sprites to one asset, entity has "texture asset" or something so you can have multiple sprites make up one entity
+- Just like there is a tile texture map, there needs to be a way for the game to specify tile properties
+- - Set certain tiles to be intangible, etc.
 
 ## Wishlist
 - Fixed number of timesteps? (fixed ~200hz physics?)

@@ -406,6 +406,12 @@ using Type_glTexParameterf            = void (GLenum target, GLenum pname, GLflo
 using Type_glTexParameteri            = void (GLenum target, GLenum pname, GLint param);
 using Type_glTexImage2D               = void (GLenum target, GLint level, GLint internalFormat, GLsizei width, GLsizei height, GLint border, GLenum format, GLenum type, const GLvoid *data);
 using Type_glGenerateMipmap           = void (GLenum target);
+using Type_glEnable                   = void (GLenum cap);
+using Type_glDisable                  = void (GLenum cap);
+using Type_glEnablei                  = void (GLenum cap, GLuint index);
+using Type_glDisablei                 = void (GLenum cap, GLuint index);
+using Type_glBlendFunc                = void (GLenum sfactor, GLenum dfactor);
+using Type_glBlendFunci               = void (GLuint buf, GLenum sfactor, GLenum dfactor);
 
 using Type_glUniform1f          = void (GLint location, GLfloat v0);
 using Type_glUniform2f          = void (GLint location, GLfloat v0, GLfloat v1);
@@ -482,6 +488,12 @@ struct OpenGL {
     OPENGL_FUNC_PTR(glTexParameteri);
     OPENGL_FUNC_PTR(glTexImage2D);
     OPENGL_FUNC_PTR(glGenerateMipmap);
+    OPENGL_FUNC_PTR(glEnable);
+    OPENGL_FUNC_PTR(glDisable);
+    OPENGL_FUNC_PTR(glEnablei);
+    OPENGL_FUNC_PTR(glDisablei);
+    OPENGL_FUNC_PTR(glBlendFunc);
+    OPENGL_FUNC_PTR(glBlendFunci);
     OPENGL_FUNC_PTR(glUniform1f);
     OPENGL_FUNC_PTR(glUniform2f);
     OPENGL_FUNC_PTR(glUniform3f);

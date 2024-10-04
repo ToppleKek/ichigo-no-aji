@@ -65,6 +65,11 @@ static bool test_wall(f32 x, f32 x0, f32 dx, f32 py, f32 dy, f32 ty0, f32 ty1, f
     return false;
 }
 
+static inline Vec2<f32> calculate_projected_next_position(Ichigo::Entity *entity) {
+    Vec2<f32> entity_delta = 0.5f * entity->acceleration * (Ichigo::Internal::dt * Ichigo::Internal::dt) + entity->velocity * Ichigo::Internal::dt;
+    return entity_delta + entity->col.pos;
+}
+
 void Ichigo::move_entity_in_world(Ichigo::Entity *entity) {
     Vec2<f32> entity_delta = 0.5f * entity->acceleration * (Ichigo::Internal::dt * Ichigo::Internal::dt) + entity->velocity * Ichigo::Internal::dt;
     Rectangle potential_next_col = entity->col;
@@ -105,27 +110,28 @@ void Ichigo::move_entity_in_world(Ichigo::Entity *entity) {
                     if (test_wall(min_corner.x, centered_entity_p.x, entity_delta.x, centered_entity_p.y, entity_delta.y, min_corner.y, max_corner.y, &best_t)) {
                         updated = true;
                         wall_normal = { -1, 0 };
+                        wall_position = { (f32) tile_x, (f32) tile_y };
                         // ICHIGO_INFO("(-1,0) Tile collide %d,%d best_t=%f", tile_x, tile_y, best_t);
                     }
                     if (test_wall(max_corner.x, centered_entity_p.x, entity_delta.x, centered_entity_p.y, entity_delta.y, min_corner.y, max_corner.y, &best_t)) {
                         updated = true;
                         wall_normal = { 1, 0 };
+                        wall_position = { (f32) tile_x, (f32) tile_y };
                         // ICHIGO_INFO("(1,0) Tile collide %d,%d best_t=%f", tile_x, tile_y, best_t);
                     }
                     if (test_wall(min_corner.y, centered_entity_p.y, entity_delta.y, centered_entity_p.x, entity_delta.x, min_corner.x, max_corner.x, &best_t)) {
                         updated = true;
                         wall_normal = { 0, -1 };
+                        wall_position = { (f32) tile_x, (f32) tile_y };
                         // ICHIGO_INFO("(0,-1) Tile collide %d,%d best_t=%f", tile_x, tile_y, best_t);
                     }
                     if (test_wall(max_corner.y, centered_entity_p.y, entity_delta.y, centered_entity_p.x, entity_delta.x, min_corner.x, max_corner.x, &best_t)) {
                         updated = true;
                         wall_normal = { 0, 1 };
+                        wall_position = { (f32) tile_x, (f32) tile_y };
                         // ICHIGO_INFO("(0,1) Tile collide %d,%d best_t=%f", tile_x, tile_y, best_t);
                     }
 
-                    if (wall_normal.x != 0.0f || wall_normal.y != 0.0f) {
-                        wall_position = { (f32) tile_x, (f32) tile_y };
-                    }
                     // if (updated)
                     //     ICHIGO_INFO("Decided wall normal: %f,%f", wall_normal.x, wall_normal.y);
                 }
@@ -236,7 +242,21 @@ void Ichigo::EntityControllers::player_controller(Ichigo::Entity *player_entity)
 }
 
 void Ichigo::EntityControllers::patrol_controller(Entity *entity) {
-    entity->acceleration.x = -entity->movement_speed;
+    if (entity->acceleration.x == 0.0f) {
+        entity->acceleration.x = -entity->movement_speed;
+    }
+
+    Vec2<f32> projected_next_pos = calculate_projected_next_position(entity);
+
+    Vec2<u32> projected_left_standing_tile  = { (u32) projected_next_pos.x, (u32) (projected_next_pos.y + entity->col.h) + 1 };
+    Vec2<u32> projected_right_standing_tile = { (u32) (projected_next_pos.x + entity->col.w), (u32) (projected_next_pos.y + entity->col.h) + 1 };
+
+    // FIXME: This is hardcoding 0 as being the only non-solid tile!
+    if (Ichigo::tile_at(projected_left_standing_tile) == 0 && Ichigo::tile_at(projected_right_standing_tile) == 0) {
+        entity->acceleration.x = -entity->acceleration.x;
+        entity->velocity.x = 0.0f;
+    }
+
     Ichigo::move_entity_in_world(entity);
 }
 
