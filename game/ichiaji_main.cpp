@@ -33,6 +33,10 @@ static u16 tilemap[TILEMAP_HEIGHT][TILEMAP_WIDTH] = {
 
 static Ichigo::TextureID tile_texture_map[2]{};
 
+static void entity_collide_proc(Ichigo::Entity *entity, Ichigo::Entity *other_entity) {
+    ICHIGO_INFO("I (%s) just collided with %s!", entity->name, other_entity->name);
+}
+
 void Ichigo::Game::init() {
     player_texture_id = Ichigo::load_texture(test_png_image, test_png_image_len);
     enemy_texture_id  = Ichigo::load_texture(enemy_png, enemy_png_len);
@@ -55,6 +59,7 @@ void Ichigo::Game::init() {
     player->gravity           = 12.0f; // TODO: gravity should be a property of the level?
     player->texture_id        = player_texture_id;
     player->update_proc       = Ichigo::EntityControllers::player_controller;
+    player->collide_proc      = entity_collide_proc;
 
     Ichigo::game_state.player_entity_id = player->id;
     Ichigo::Camera::follow(player->id);
@@ -71,6 +76,7 @@ void Ichigo::Game::init() {
     enemy->gravity        = 12.0f;
     enemy->texture_id     = enemy_texture_id;
     enemy->update_proc    = Ichigo::EntityControllers::patrol_controller;
+    enemy->collide_proc   = entity_collide_proc;
 }
 
 void Ichigo::Game::frame_begin() {

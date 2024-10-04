@@ -87,6 +87,7 @@
 - VSCode (editor)
 - RenderDoc (Graphics debugger)
 - NVIDIA Nsight graphics (Graphics debugger)
+- Ctime (Compile time analysis tool)
 
 ## Project Objective
 ### The problem
@@ -125,15 +126,16 @@ A simple, minimal dependency game engine for 2D side scrolling games. Built for 
 - - ~~Improve standing on ground detection algorithm~~
 - - ~~Generalize player movement code and map collision detection so that other entities can use the same code~~
 ### Week 5
-- Make size of visible entity sprite not tied to the size of its collider
+- ~~Make size of visible entity sprite not tied to the size of its collider~~
 - Basic movement of other entities (akin to how eg. Goombas move back and forth in Mario)
-- Entity collision detection and resolution
+- - MAKE THIS WORK WHEN IT RUNS INTO A WALL
+- ~~Entity collision detection and resolution~~
 - Audio setup (win32: DirectSound, or XAudio2? linux: ALSA)
 - Basic audio mixer
 - - Plan Audio mixer interface
+### Week 6
 - Implement planned push_render_command() function
 - - Allows the game to draw primitives/text (text rendering planned for a later week) for a UI
-### Week 6
 - Catchup on anything not completed
 - Text rendering with stb_truetype
 - Design a unit test system for the game

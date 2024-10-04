@@ -206,6 +206,7 @@ void Ichigo::Internal::do_frame() {
             // ImGui::SeparatorText("Performance");
             ImGui::Text("FPS: %f", ImGui::GetIO().Framerate);
             ImGui::SliderFloat("Target SPF", &target_frame_time, 0.0f, 0.1f, "%fs");
+            ImGui::Text("Resolution: %ux%u (%ux%u)", window_width, window_height, aspect_fit_width, aspect_fit_height);
 
             if (ImGui::Button("120fps"))
                 target_frame_time = 0.008333f;
@@ -266,6 +267,19 @@ void Ichigo::Internal::do_frame() {
         Ichigo::Entity &entity = Ichigo::Internal::entities.at(i);
         if (entity.update_proc)
             entity.update_proc(&entity);
+    }
+
+    for (u32 i = 1; i < Ichigo::Internal::entities.size; ++i) {
+        Ichigo::Entity &entity = Ichigo::Internal::entities.at(i);
+        for (u32 j = i; j < Ichigo::Internal::entities.size; ++j) {
+            Ichigo::Entity &other_entity = Ichigo::Internal::entities.at(j);
+            if (rectangles_intersect(entity.col, other_entity.col)) {
+                if (entity.collide_proc)
+                    entity.collide_proc(&entity, &other_entity);
+                if (other_entity.collide_proc)
+                    other_entity.collide_proc(&other_entity, &entity);
+            }
+        }
     }
 
     // TODO: Let the game update first? Not sure? Maybe they want to change something about an entity before it gets updated.
@@ -334,9 +348,6 @@ static void compile_shader(u32 shader_id, const GLchar *shader_source, i32 shade
 
 void Ichigo::Internal::init() {
     stbi_set_flip_vertically_on_load(true);
-    // Util::IchigoVector<Entity> fuck;
-    // fuck.append({ {100.0f, 100.0f}, {0.5f, 0.2f, 0.8f}, 25, 35 });
-    // fucking_shit.append({ {100.0f, 100.0f}, {0.5f, 0.2f, 0.8f}, 25, 35 });
     font_config.FontDataOwnedByAtlas = false;
     font_config.OversampleH = 2;
     font_config.OversampleV = 2;

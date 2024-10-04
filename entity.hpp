@@ -6,9 +6,10 @@
 
 namespace Ichigo {
 struct Entity;
-using EntityRenderProc = void (Entity *);
-using EntityUpdateProc = void (Entity *);
-using EntityFlags      = u64;
+using EntityRenderProc  = void (Entity *);
+using EntityUpdateProc  = void (Entity *);
+using EntityCollideProc = void (Entity *, Entity *);
+using EntityFlags       = u64;
 
 namespace EntityControllers {
 void player_controller(Entity *entity);
@@ -44,6 +45,7 @@ struct Entity {
     EntityFlags flags;
     EntityRenderProc *render_proc;
     EntityUpdateProc *update_proc;
+    EntityCollideProc *collide_proc;
 };
 
 Entity *spawn_entity();
