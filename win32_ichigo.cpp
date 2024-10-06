@@ -242,12 +242,16 @@ static void platform_do_frame() {
         else
             write_cursor_delta = write_cursor - last_write_cursor_position;
 
+        if (write_cursor_delta == 0)
+            goto skip;
+
         Ichigo::Internal::fill_sample_buffer(audio_samples, AUDIO_SAMPLES_BUFFER_SIZE, write_cursor_delta);
         last_write_cursor_position = write_cursor;
     }
 
     win32_write_samples(audio_samples, write_cursor, AUDIO_SAMPLES_BUFFER_SIZE);
 
+skip:
     // Ichigo::Internal::fill_sample_buffer(audio_samples, sizeof(audio_samples));
     last_frame_time = frame_start_time;
     f64 frame_time = Ichigo::Internal::platform_get_current_time() - frame_start_time;
