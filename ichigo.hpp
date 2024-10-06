@@ -106,6 +106,7 @@ extern OpenGL gl;
 extern bool must_rebuild_swapchain;
 extern u32 window_width;
 extern u32 window_height;
+extern f32 target_frame_time;
 extern f32 dpi_scale;
 extern f32 dt;
 extern Ichigo::KeyState keyboard_state[Ichigo::Keycode::IK_ENUM_COUNT];
@@ -141,8 +142,8 @@ bool platform_file_exists(const char *path);
 */
 Util::IchigoVector<std::string> platform_recurse_directory(const std::string &path, const char **extension_filter, const u16 extension_filter_count);
 
-void platform_sleep(f32 t);
-f32 platform_get_current_time();
+void platform_sleep(f64 t);
+f64 platform_get_current_time();
 void platform_toggle_audio_playback();
 }
 }

@@ -27,7 +27,7 @@ static IDirectSoundBuffer8 *secondary_dsound_buffer = nullptr;
 static u8 audio_samples[AUDIO_SAMPLES_BUFFER_SIZE]{};
 static i64 last_write_cursor_position = -1;
 static i64 performance_frequency;
-static i64 last_frame_time;
+static f64 last_frame_time;
 static HWND window_handle;
 static HDC hdc;
 static HGLRC wgl_context;
@@ -59,10 +59,14 @@ static char *from_wide_char(const wchar_t *str) {
     return u8_bytes;
 }
 
-static i64 win32_get_time() {
+static i64 win32_get_timestamp() {
     LARGE_INTEGER i;
     QueryPerformanceCounter(&i);
     return i.QuadPart;
+}
+
+static i64 win32_get_time_ms() {
+    return win32_get_timestamp() * 1000 / performance_frequency;
 }
 
 std::FILE *Ichigo::Internal::platform_open_file(const std::string &path, const std::string &mode) {
@@ -165,12 +169,12 @@ Util::IchigoVector<std::string> Ichigo::Internal::platform_recurse_directory(con
     return ret;
 }
 
-void Ichigo::Internal::platform_sleep(f32 t) {
-    Sleep((u64) (t * 1000));
+void Ichigo::Internal::platform_sleep(f64 t) {
+    Sleep((u32) (t * 1000));
 }
 
-f32 Ichigo::Internal::platform_get_current_time() {
-    return win32_get_time() / (f32) performance_frequency;
+f64 Ichigo::Internal::platform_get_current_time() {
+    return (f64) win32_get_timestamp() / (f64) performance_frequency;
 }
 
 static void init_dsound(HWND window) {
@@ -210,17 +214,18 @@ static void win32_write_samples(u8 *buffer, u32 offset, u32 bytes_to_write) {
     u32 region1_size;
     u32 region2_size;
     assert(SUCCEEDED(secondary_dsound_buffer->Lock(offset, bytes_to_write, (void **) &region1, (LPDWORD) &region1_size, (void **) &region2, (LPDWORD) &region2_size, 0)));
-    std::memcpy(region1, audio_samples, region1_size);
-    std::memcpy(region2, audio_samples + region1_size, region2_size);
+    std::memcpy(region1, buffer, region1_size);
+    std::memcpy(region2, buffer + region1_size, region2_size);
     secondary_dsound_buffer->Unlock(region1, region1_size, region2, region2_size);
 }
 
 static void platform_do_frame() {
+    f64 frame_start_time = Ichigo::Internal::platform_get_current_time();
+
     ImGui_ImplWin32_NewFrame();
 
-    i64 now = win32_get_time();
     Ichigo::Internal::dpi_scale = ImGui_ImplWin32_GetDpiScaleForHwnd(window_handle);
-    Ichigo::Internal::dt        = (now - last_frame_time) / (f32) performance_frequency;
+    Ichigo::Internal::dt        =  frame_start_time - last_frame_time;
     Ichigo::Internal::do_frame();
 
     u32 play_cursor = 0;
@@ -244,7 +249,12 @@ static void platform_do_frame() {
     win32_write_samples(audio_samples, write_cursor, AUDIO_SAMPLES_BUFFER_SIZE);
 
     // Ichigo::Internal::fill_sample_buffer(audio_samples, sizeof(audio_samples));
-    last_frame_time = now;
+    last_frame_time = frame_start_time;
+    f64 frame_time = Ichigo::Internal::platform_get_current_time() - frame_start_time;
+    f64 sleep_time = Ichigo::Internal::target_frame_time - frame_time;
+
+    if (sleep_time > 0.0)
+        Ichigo::Internal::platform_sleep(sleep_time);
 
     SwapBuffers(hdc);
 }
@@ -325,7 +335,6 @@ static LRESULT window_proc(HWND window, u32 msg, WPARAM wparam, LPARAM lparam) {
     } break;
 
     case WM_PAINT: {
-        // std::printf("WM_PAINT lparam=%lld wparam=%lld\n", lparam, wparam);
         PAINTSTRUCT paint;
         BeginPaint(window, &paint);
 
@@ -512,7 +521,7 @@ i32 main() {
     QueryPerformanceFrequency(&frequency);
     performance_frequency = frequency.QuadPart;
 
-    last_frame_time = win32_get_time();
+    last_frame_time = Ichigo::Internal::platform_get_current_time();
     init_completed = true;
 
     for (;;) {

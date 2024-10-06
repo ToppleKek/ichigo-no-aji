@@ -25,7 +25,6 @@ static f32 scale = 1.0f;
 static ImGuiStyle initial_style;
 static ImFontConfig font_config;
 static bool show_debug_menu = true;
-static f32 target_frame_time = 0.016f;
 
 static drmp3 mp3;
 static u64 song_length_in_bytes;
@@ -51,6 +50,7 @@ bool Ichigo::Internal::must_rebuild_swapchain = false;
 Ichigo::GameState Ichigo::game_state = {};
 u32 Ichigo::Internal::current_tilemap_width  = 0;
 u32 Ichigo::Internal::current_tilemap_height = 0;
+f32 Ichigo::Internal::target_frame_time = 0.016f;
 
 struct Vertex {
     Vec3<f32> pos;
@@ -165,8 +165,6 @@ static void frame_render() {
 }
 
 void Ichigo::Internal::do_frame() {
-    f32 frame_start_time = Ichigo::Internal::platform_get_current_time();
-
     if (dt > 0.1)
         dt = 0.1;
     // static bool do_wireframe = 0;
@@ -213,15 +211,15 @@ void Ichigo::Internal::do_frame() {
         if (ImGui::CollapsingHeader("Performance", ImGuiTreeNodeFlags_DefaultOpen)) {
             // ImGui::SeparatorText("Performance");
             ImGui::Text("FPS: %f", ImGui::GetIO().Framerate);
-            ImGui::SliderFloat("Target SPF", &target_frame_time, 0.0f, 0.1f, "%fs");
+            ImGui::SliderFloat("Target SPF", &Ichigo::Internal::target_frame_time, 0.0f, 0.1f, "%fs");
             ImGui::Text("Resolution: %ux%u (%ux%u)", window_width, window_height, aspect_fit_width, aspect_fit_height);
 
             if (ImGui::Button("120fps"))
-                target_frame_time = 0.008333f;
+                Ichigo::Internal::target_frame_time = 0.0083f;
             if (ImGui::Button("60fps"))
-                target_frame_time = 0.016f;
+                Ichigo::Internal::target_frame_time = 0.016f;
             if (ImGui::Button("30fps"))
-                target_frame_time = 0.033f;
+                Ichigo::Internal::target_frame_time = 0.033f;
         }
 
         if (ImGui::CollapsingHeader("Entities", ImGuiTreeNodeFlags_DefaultOpen)) {
@@ -299,12 +297,6 @@ void Ichigo::Internal::do_frame() {
     if (Ichigo::Internal::window_height != 0 && Ichigo::Internal::window_width != 0) {
         frame_render();
     }
-
-
-    f32 sleep_time = target_frame_time - (Ichigo::Internal::platform_get_current_time() - frame_start_time);
-    // ICHIGO_INFO("frame start at: %f sleep time: %f", frame_start_time, sleep_time);
-    if (sleep_time > 0.0f)
-        Ichigo::Internal::platform_sleep(sleep_time);
 
     Ichigo::Game::frame_end();
 }
