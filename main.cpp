@@ -12,16 +12,23 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 
+#define DR_MP3_IMPLEMENTATION
+#include <dr_mp3.h>
+
 EMBED("noto.ttf", noto_font)
 EMBED("shaders/opengl/frag.glsl", fragment_shader_source)
 EMBED("shaders/opengl/solid_colour.glsl", solid_colour_fragment_shader_source)
 EMBED("shaders/opengl/vert.glsl", vertex_shader_source)
+EMBED("assets/music/song.mp3", test_song)
 
 static f32 scale = 1.0f;
 static ImGuiStyle initial_style;
 static ImFontConfig font_config;
 static bool show_debug_menu = true;
 static f32 target_frame_time = 0.016f;
+
+static drmp3 mp3;
+static u64 song_length_in_bytes;
 
 static ShaderProgram texture_shader_program;
 static ShaderProgram solid_colour_shader_program;
@@ -38,6 +45,7 @@ static Ichigo::TextureID *current_tile_texture_map = nullptr;
 static Util::IchigoVector<Ichigo::Texture> textures{64};
 
 static char string_buffer[1024];
+static u8 music_buffer[MEGABYTES(100)];
 
 bool Ichigo::Internal::must_rebuild_swapchain = false;
 Ichigo::GameState Ichigo::game_state = {};
@@ -348,6 +356,17 @@ static void compile_shader(u32 shader_id, const GLchar *shader_source, i32 shade
 
 void Ichigo::Internal::init() {
     stbi_set_flip_vertically_on_load(true);
+
+    // DEBUG CODE
+
+    drmp3_init_memory(&mp3, test_song, test_song_len, nullptr);
+    song_length_in_bytes = drmp3_get_pcm_frame_count(&mp3) * mp3.channels * sizeof(i16);
+
+    const u64 num_frames = sizeof(music_buffer) / (2 * sizeof(i16));
+    u64 frames_read = drmp3_read_pcm_frames_s16(&mp3, num_frames, (i16 *) music_buffer);
+    ICHIGO_INFO("Frames read from mp3: %llu", frames_read);
+    // END DEBUG CODE
+
     font_config.FontDataOwnedByAtlas = false;
     font_config.OversampleH = 2;
     font_config.OversampleV = 2;
@@ -439,3 +458,10 @@ void Ichigo::Internal::init() {
 }
 
 void Ichigo::Internal::deinit() {}
+
+void Ichigo::Internal::fill_sample_buffer(u8 *buffer, usize buffer_size, usize write_cursor_position_delta) {
+    static u8 *DEBUG_ptr = music_buffer;
+    ICHIGO_INFO("write_cursor_position_delta=%llu", write_cursor_position_delta);
+    DEBUG_ptr += write_cursor_position_delta;
+    std::memcpy(buffer, DEBUG_ptr, buffer_size);
+}

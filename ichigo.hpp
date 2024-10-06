@@ -116,6 +116,7 @@ extern u32 current_tilemap_height;
 void init();
 void do_frame();
 void deinit();
+void fill_sample_buffer(u8 *buffer, usize buffer_size, usize write_cursor_position_delta);
 
 /*
     Open a file with the specified mode.
@@ -142,5 +143,6 @@ Util::IchigoVector<std::string> platform_recurse_directory(const std::string &pa
 
 void platform_sleep(f32 t);
 f32 platform_get_current_time();
+void platform_toggle_audio_playback();
 }
 }

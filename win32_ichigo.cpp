@@ -5,9 +5,15 @@
 
 #define UNICODE
 #include <windows.h>
+#include <dsound.h>
 
 #include <gl/GL.h>
 #include "thirdparty/imgui/imgui_impl_win32.h"
+
+#define AUDIO_SAMPLE_RATE 44100
+#define AUDIO_CHANNEL_COUNT 2
+#define AUDIO_SAMPLES_BUFFER_SIZE AUDIO_CHANNEL_COUNT * sizeof(i16) * AUDIO_SAMPLE_RATE * 4
+#define DSOUND_BUFFER_SIZE AUDIO_CHANNEL_COUNT * sizeof(i16) * AUDIO_SAMPLE_RATE * 8
 
 u32 Ichigo::Internal::window_width = 1920;
 u32 Ichigo::Internal::window_height = 1080;
@@ -16,6 +22,10 @@ Ichigo::KeyState Ichigo::Internal::keyboard_state[Ichigo::Keycode::IK_ENUM_COUNT
 f32 Ichigo::Internal::dt = 0.0f;
 f32 Ichigo::Internal::dpi_scale = 0.0f;
 
+static LPDIRECTSOUND8 direct_sound;
+static IDirectSoundBuffer8 *secondary_dsound_buffer = nullptr;
+static u8 audio_samples[AUDIO_SAMPLES_BUFFER_SIZE]{};
+static i64 last_write_cursor_position = -1;
 static i64 performance_frequency;
 static i64 last_frame_time;
 static HWND window_handle;
@@ -47,6 +57,12 @@ static char *from_wide_char(const wchar_t *str) {
     char *u8_bytes = new char[u8_buf_size]();
     WideCharToMultiByte(CP_UTF8, 0, str, -1, u8_bytes, u8_buf_size, nullptr, nullptr);
     return u8_bytes;
+}
+
+static i64 win32_get_time() {
+    LARGE_INTEGER i;
+    QueryPerformanceCounter(&i);
+    return i.QuadPart;
 }
 
 std::FILE *Ichigo::Internal::platform_open_file(const std::string &path, const std::string &mode) {
@@ -149,27 +165,85 @@ Util::IchigoVector<std::string> Ichigo::Internal::platform_recurse_directory(con
     return ret;
 }
 
-static i64 platform_get_time() {
-    LARGE_INTEGER i;
-    QueryPerformanceCounter(&i);
-    return i.QuadPart;
-}
-
 void Ichigo::Internal::platform_sleep(f32 t) {
     Sleep((u64) (t * 1000));
 }
 
 f32 Ichigo::Internal::platform_get_current_time() {
-    return platform_get_time() / (f32) performance_frequency;
+    return win32_get_time() / (f32) performance_frequency;
+}
+
+static void init_dsound(HWND window) {
+    assert(SUCCEEDED(DirectSoundCreate8(nullptr, &direct_sound, nullptr)) && SUCCEEDED(direct_sound->SetCooperativeLevel(window, DSSCL_NORMAL)));
+}
+
+static void realloc_dsound_buffer(u32 samples_per_second, u32 buffer_size) {
+    if (secondary_dsound_buffer)
+        secondary_dsound_buffer->Release();
+
+    WAVEFORMATEX wave_format = {};
+    wave_format.wFormatTag = WAVE_FORMAT_PCM;
+    wave_format.nChannels = 2;
+    wave_format.nSamplesPerSec = samples_per_second;
+    wave_format.wBitsPerSample = 16;
+    wave_format.nBlockAlign = wave_format.nChannels * wave_format.wBitsPerSample / 8;
+    wave_format.nAvgBytesPerSec = wave_format.nSamplesPerSec * wave_format.nBlockAlign;
+    wave_format.cbSize = 0;
+
+    DSBUFFERDESC secondary_buffer_description = {};
+    secondary_buffer_description.dwSize = sizeof(secondary_buffer_description);
+    secondary_buffer_description.dwFlags = DSBCAPS_GLOBALFOCUS | DSBCAPS_TRUEPLAYPOSITION;
+    secondary_buffer_description.dwBufferBytes = buffer_size;
+    secondary_buffer_description.lpwfxFormat = &wave_format;
+
+    IDirectSoundBuffer *query_secondary_dsound_buffer;
+
+    assert(SUCCEEDED(direct_sound->CreateSoundBuffer(&secondary_buffer_description, &query_secondary_dsound_buffer, nullptr)));
+    assert(SUCCEEDED(query_secondary_dsound_buffer->QueryInterface(IID_IDirectSoundBuffer8, reinterpret_cast<void **>(&secondary_dsound_buffer))));
+
+    query_secondary_dsound_buffer->Release();
+}
+
+static void win32_write_samples(u8 *buffer, u32 offset, u32 bytes_to_write) {
+    u8 *region1;
+    u8 *region2;
+    u32 region1_size;
+    u32 region2_size;
+    assert(SUCCEEDED(secondary_dsound_buffer->Lock(offset, bytes_to_write, (void **) &region1, (LPDWORD) &region1_size, (void **) &region2, (LPDWORD) &region2_size, 0)));
+    std::memcpy(region1, audio_samples, region1_size);
+    std::memcpy(region2, audio_samples + region1_size, region2_size);
+    secondary_dsound_buffer->Unlock(region1, region1_size, region2, region2_size);
 }
 
 static void platform_do_frame() {
     ImGui_ImplWin32_NewFrame();
 
-    i64 now = platform_get_time();
+    i64 now = win32_get_time();
     Ichigo::Internal::dpi_scale = ImGui_ImplWin32_GetDpiScaleForHwnd(window_handle);
     Ichigo::Internal::dt        = (now - last_frame_time) / (f32) performance_frequency;
     Ichigo::Internal::do_frame();
+
+    u32 play_cursor = 0;
+    u32 write_cursor = 0;
+    assert(SUCCEEDED(secondary_dsound_buffer->GetCurrentPosition((LPDWORD) &play_cursor, (LPDWORD) &write_cursor)));
+
+    if (last_write_cursor_position == -1) {
+        Ichigo::Internal::fill_sample_buffer(audio_samples, AUDIO_SAMPLES_BUFFER_SIZE, 0);
+        last_write_cursor_position = write_cursor;
+    } else {
+        u32 write_cursor_delta;
+        if (last_write_cursor_position > write_cursor)
+            write_cursor_delta = DSOUND_BUFFER_SIZE - last_write_cursor_position + write_cursor;
+        else
+            write_cursor_delta = write_cursor - last_write_cursor_position;
+
+        Ichigo::Internal::fill_sample_buffer(audio_samples, AUDIO_SAMPLES_BUFFER_SIZE, write_cursor_delta);
+        last_write_cursor_position = write_cursor;
+    }
+
+    win32_write_samples(audio_samples, write_cursor, AUDIO_SAMPLES_BUFFER_SIZE);
+
+    // Ichigo::Internal::fill_sample_buffer(audio_samples, sizeof(audio_samples));
     last_frame_time = now;
 
     SwapBuffers(hdc);
@@ -303,6 +377,11 @@ i32 main() {
 
     assert(window_handle);
 
+    init_dsound(window_handle);
+    realloc_dsound_buffer(AUDIO_SAMPLE_RATE, DSOUND_BUFFER_SIZE);
+    win32_write_samples(audio_samples, 0, AUDIO_SAMPLES_BUFFER_SIZE);
+    secondary_dsound_buffer->Play(0 ,0, DSBPLAY_LOOPING);
+
     hdc = GetDC(window_handle);
     PIXELFORMATDESCRIPTOR pfd{};
     pfd.nSize      = sizeof(pfd);
@@ -433,7 +512,7 @@ i32 main() {
     QueryPerformanceFrequency(&frequency);
     performance_frequency = frequency.QuadPart;
 
-    last_frame_time = platform_get_time();
+    last_frame_time = win32_get_time();
     init_completed = true;
 
     for (;;) {

@@ -130,10 +130,12 @@ A simple, minimal dependency game engine for 2D side scrolling games. Built for 
 - Basic movement of other entities (akin to how eg. Goombas move back and forth in Mario)
 - - MAKE THIS WORK WHEN IT RUNS INTO A WALL
 - ~~Entity collision detection and resolution~~
-- Audio setup (win32: DirectSound, or XAudio2? linux: ALSA)
+- ~~Audio setup (win32: DirectSound, or XAudio2? linux: ALSA)~~
+- - Port this to linux? Not sure if the ALSA interface works well with the method we are using on win32
 - Basic audio mixer
 - - Plan Audio mixer interface
 ### Week 6
+- Finish introduction in report
 - Implement planned push_render_command() function
 - - Allows the game to draw primitives/text (text rendering planned for a later week) for a UI
 - Catchup on anything not completed
