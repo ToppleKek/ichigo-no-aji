@@ -45,7 +45,7 @@ void Ichigo::Internal::platform_sleep(f64 t) {
 f64 Ichigo::Internal::platform_get_current_time() {
     timespec ts;
     clock_gettime(CLOCK_MONOTONIC, &ts);
-    return (ts.tv_sec * 1000) + (ts.tv_nsec / (f64) 1e9);
+    return ts.tv_sec + (ts.tv_nsec / (f64) 1e9);
 }
 
 // static void platform_do_frame() {

@@ -165,8 +165,9 @@ static void frame_render() {
 }
 
 void Ichigo::Internal::do_frame() {
-    if (dt > 0.1)
-        dt = 0.1;
+    if (Ichigo::Internal::dt > 0.1)
+        Ichigo::Internal::dt = 0.1;
+
     // static bool do_wireframe = 0;
 
     Ichigo::Game::frame_begin();
