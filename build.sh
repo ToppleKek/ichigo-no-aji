@@ -44,8 +44,10 @@ fi
 if [ "${1}" = "br" ]; then
     if [ "$OS" = "win32" ]; then
         ./thirdparty/tools/ctime.exe -begin ./build/timings.ctm
-    clang++ ${CXX_FLAGS} ${CXX_FLAGS_GAME} -l ${LIBS} -I ${INCLUDE} ${CXX_FILES} ${CXX_FILES_GAME} ${IMGUI_OBJECT_FILES_DIRECTORY}/*.o -o build/${EXE_NAME}
+        clang++ ${CXX_FLAGS} ${CXX_FLAGS_GAME} -l ${LIBS} -I ${INCLUDE} ${CXX_FILES} ${CXX_FILES_GAME} ${IMGUI_OBJECT_FILES_DIRECTORY}/*.o -o build/${EXE_NAME}
         ./thirdparty/tools/ctime.exe -end ./build/timings.ctm
+    else
+        clang++ ${CXX_FLAGS} ${CXX_FLAGS_GAME} -l ${LIBS} -I ${INCLUDE} ${CXX_FILES} ${CXX_FILES_GAME} ${IMGUI_OBJECT_FILES_DIRECTORY}/*.o -o build/${EXE_NAME}
     fi
     cd build
     ./$EXE_NAME

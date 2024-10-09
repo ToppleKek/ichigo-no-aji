@@ -5,6 +5,7 @@
 #include <SDL2/SDL_video.h>
 #include <cstdio>
 #include <unistd.h>
+#include <ctime>
 
 #include "common.hpp"
 #include "ichigo.hpp"
@@ -21,7 +22,6 @@ f32 Ichigo::Internal::dpi_scale = 0.0f;
 
 static SDL_Window *window;
 static SDL_GLContext gl_context;
-static u64 last_tick_time = 0;
 static bool init_completed = false;
 
 std::FILE *Ichigo::Internal::platform_open_file(const std::string &path, const std::string &mode) {
@@ -38,12 +38,14 @@ Util::IchigoVector<std::string> Ichigo::Internal::platform_recurse_directory(con
     return {};
 }
 
-void Ichigo::Internal::platform_sleep(f32 t) {
+void Ichigo::Internal::platform_sleep(f64 t) {
     usleep(static_cast<u64>(t * 1000 * 1000));
 }
 
-f32 Ichigo::Internal::platform_get_current_time() {
-    return SDL_GetTicks64() / 1000.0f;
+f64 Ichigo::Internal::platform_get_current_time() {
+    timespec ts;
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    return (ts.tv_sec * 1000) + (ts.tv_nsec / (f64) 1e9);
 }
 
 // static void platform_do_frame() {
@@ -73,6 +75,12 @@ i32 main() {
     GET_ADDR_OF_OPENGL_FUNCTION(glTexParameteri);
     GET_ADDR_OF_OPENGL_FUNCTION(glTexParameteriv);
     GET_ADDR_OF_OPENGL_FUNCTION(glTexImage2D);
+    GET_ADDR_OF_OPENGL_FUNCTION(glEnable);
+    GET_ADDR_OF_OPENGL_FUNCTION(glEnablei);
+    GET_ADDR_OF_OPENGL_FUNCTION(glDisable);
+    GET_ADDR_OF_OPENGL_FUNCTION(glDisablei);
+    GET_ADDR_OF_OPENGL_FUNCTION(glBlendFunc);
+    GET_ADDR_OF_OPENGL_FUNCTION(glBlendFunci);
 
     GET_ADDR_OF_OPENGL_FUNCTION(glGenBuffers);
     GET_ADDR_OF_OPENGL_FUNCTION(glGenVertexArrays);
@@ -145,7 +153,10 @@ i32 main() {
     ImGui_ImplSDL2_InitForOpenGL(window, gl_context);
     init_completed = true;
 
+    static f64 last_tick_time = 0.0;
     for (;;) {
+        f64 frame_begin = Ichigo::Internal::platform_get_current_time();
+
         SDL_Event event;
         while (SDL_PollEvent(&event)) {
             ImGui_ImplSDL2_ProcessEvent(&event);
@@ -203,14 +214,21 @@ i32 main() {
         }
 
 
-        u64 new_tick_time = SDL_GetTicks64();
-        u64 delta = new_tick_time - last_tick_time;
+        f64 new_tick_time = Ichigo::Internal::platform_get_current_time();
+        f64 delta = new_tick_time - last_tick_time;
         last_tick_time = new_tick_time;
 
-        Ichigo::Internal::dt = delta / 1000.0f;
+        Ichigo::Internal::dt = delta;
         Ichigo::Internal::dpi_scale = 1.0f; // TODO: ?
 
         Ichigo::Internal::do_frame();
+
+        f64 frame_time = Ichigo::Internal::platform_get_current_time() - frame_begin;
+        f64 sleep_time = Ichigo::Internal::target_frame_time - frame_time;
+
+        if (sleep_time > 0.0)
+            Ichigo::Internal::platform_sleep(sleep_time);
+
         SDL_GL_SwapWindow(window);
     }
 
