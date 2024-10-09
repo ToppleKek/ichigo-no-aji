@@ -21,6 +21,8 @@ EMBED("shaders/opengl/solid_colour.glsl", solid_colour_fragment_shader_source)
 EMBED("shaders/opengl/vert.glsl", vertex_shader_source)
 EMBED("assets/music/song.mp3", test_song)
 
+#define MAX_DRAW_COMMANDS 4096
+
 static f32 scale = 1.0f;
 static ImGuiStyle initial_style;
 static ImFontConfig font_config;
@@ -120,6 +122,12 @@ static void render_tile(Vec2<u32> tile_pos) {
     }
 }
 
+void Ichigo::push_draw_command(DrawCommand draw_command) {
+    assert(Ichigo::game_state.this_frame_data.draw_command_count < MAX_DRAW_COMMANDS);
+    Ichigo::game_state.this_frame_data.draw_commands[Ichigo::game_state.this_frame_data.draw_command_count] = draw_command;
+    ++Ichigo::game_state.this_frame_data.draw_command_count;
+}
+
 static void frame_render() {
     ImGui::Render();
     auto imgui_draw_data = ImGui::GetDrawData();
@@ -161,6 +169,19 @@ static void frame_render() {
     // else
     //     default_entity_render_proc(&Ichigo::game_state.player_entity);
 
+    // TODO: This is technically a "stack" I guess. Should we do this in stack order?
+    for (u32 i = 0; i < Ichigo::game_state.this_frame_data.draw_command_count; ++i) {
+        Ichigo::DrawCommand &cmd = Ichigo::game_state.this_frame_data.draw_commands[i];
+        switch (cmd.type) {
+            case Ichigo::DrawCommandType::SOLID_COLOUR_RECT: {
+                // ICHIGO_INFO("TODO: Implement SOLID_COLOUR_RECT draw command!");
+            } break;
+            default: {
+                ICHIGO_ERROR("Invalid draw command type: %u", cmd.type);
+            }
+        }
+    }
+
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 }
 
@@ -169,6 +190,11 @@ void Ichigo::Internal::do_frame() {
         Ichigo::Internal::dt = 0.1;
 
     // static bool do_wireframe = 0;
+    RESET_ARENA(Ichigo::game_state.transient_storage_arena);
+
+    // TODO: Use an arena for this??
+    Ichigo::game_state.this_frame_data.draw_commands      = PUSH_ARRAY(&Ichigo::game_state.transient_storage_arena, DrawCommand, MAX_DRAW_COMMANDS);
+    Ichigo::game_state.this_frame_data.draw_command_count = 0;
 
     Ichigo::Game::frame_begin();
 
@@ -359,6 +385,10 @@ void Ichigo::Internal::init() {
     u64 frames_read = drmp3_read_pcm_frames_s16(&mp3, num_frames, (i16 *) music_buffer);
     ICHIGO_INFO("Frames read from mp3: %llu", frames_read);
     // END DEBUG CODE
+
+    Ichigo::game_state.transient_storage_arena.pointer  = 0;
+    Ichigo::game_state.transient_storage_arena.capacity = MEGABYTES(32);
+    Ichigo::game_state.transient_storage_arena.data     = (u8 *) malloc(Ichigo::game_state.transient_storage_arena.capacity);
 
     font_config.FontDataOwnedByAtlas = false;
     font_config.OversampleH = 2;

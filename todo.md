@@ -127,8 +127,7 @@ A simple, minimal dependency game engine for 2D side scrolling games. Built for 
 - - ~~Generalize player movement code and map collision detection so that other entities can use the same code~~
 ### Week 5
 - ~~Make size of visible entity sprite not tied to the size of its collider~~
-- Basic movement of other entities (akin to how eg. Goombas move back and forth in Mario)
-- - MAKE THIS WORK WHEN IT RUNS INTO A WALL
+- ~~Basic movement of other entities (akin to how eg. Goombas move back and forth in Mario)~~
 - ~~Entity collision detection and resolution~~
 - ~~Audio setup (win32: DirectSound, or XAudio2? linux: ALSA)~~
 - - Port this to linux? Not sure if the ALSA interface works well with the method we are using on win32

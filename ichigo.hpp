@@ -85,14 +85,34 @@ enum Keycode {
     IK_ENUM_COUNT
 };
 
+
+enum DrawCommandType {
+    SOLID_COLOUR_RECT
+};
+
+struct DrawCommand {
+    DrawCommandType type;
+    Rectangle rect;
+    Vec4<u8> colour;
+};
+
+struct FrameData {
+    // Util::IchigoVector<DrawCommand> draw_commands;
+    DrawCommand *draw_commands;
+    usize draw_command_count;
+};
+
 struct GameState {
     Ichigo::EntityID player_entity_id;
+    Util::Arena transient_storage_arena;
+    FrameData this_frame_data;
 };
 
 extern GameState game_state;
 
 void set_tilemap(u32 tilemap_width, u32 tilemap_height, u16 *tilemap, TextureID *tile_texture_map);
 u16 tile_at(Vec2<u32> tile_coord);
+void push_draw_command(DrawCommand draw_command);
 
 namespace Game {
 void init();

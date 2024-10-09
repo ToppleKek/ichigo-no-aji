@@ -1,6 +1,31 @@
 #include "util.hpp"
 #include <cctype>
 
+void *Util::push_array(Arena *arena, usize size, usize count) {
+    usize len = size * count;
+
+    if (arena->pointer + len > arena->capacity) {
+        assert(false && "Out of memory");
+        return nullptr;
+    }
+
+    void *ret = &arena->data[arena->pointer];
+    arena->pointer += len;
+    return ret;
+}
+
+void *Util::push_struct(Util::Arena *arena, void *s, usize len) {
+    if (arena->pointer + len > arena->capacity) {
+        assert(false && "Out of memory");
+        return nullptr;
+    }
+
+    void *ret = &arena->data[arena->pointer];
+    memcpy(ret, s, len);
+    arena->pointer += len;
+    return ret;
+}
+
 char *Util::json_string_serialize(const char *json_string) {
     const u32 length = std::strlen(json_string);
     IchigoVector<char> data(length);

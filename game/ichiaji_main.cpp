@@ -86,7 +86,11 @@ void Ichigo::Game::frame_begin() {
 void Ichigo::Game::update_and_render() {
     // Runs right before the engine begins to render
 
-    // Ichigo::push_draw_command(...);
+    Ichigo::DrawCommand test_draw_command;
+    test_draw_command.type   = Ichigo::DrawCommandType::SOLID_COLOUR_RECT;
+    test_draw_command.rect   = {{0.5f, 0.0f}, 0.1f, 0.1f};
+    test_draw_command.colour = {123, 43, 76, 255};
+    Ichigo::push_draw_command(test_draw_command);
 }
 
 void Ichigo::Game::frame_end() {
