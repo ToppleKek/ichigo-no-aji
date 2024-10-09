@@ -242,9 +242,8 @@ void Ichigo::EntityControllers::player_controller(Ichigo::Entity *player_entity)
 }
 
 void Ichigo::EntityControllers::patrol_controller(Entity *entity) {
-    if (entity->acceleration.x == 0.0f) {
+    if (entity->acceleration.x == 0.0f)
         entity->acceleration.x = -entity->movement_speed;
-    }
 
     Vec2<f32> projected_next_pos = calculate_projected_next_position(entity);
 
@@ -258,6 +257,9 @@ void Ichigo::EntityControllers::patrol_controller(Entity *entity) {
     }
 
     Ichigo::move_entity_in_world(entity);
+
+    if (entity->velocity.x == 0.0f)
+        entity->acceleration.x = -entity->acceleration.x;
 }
 
 char *Ichigo::Internal::entity_id_as_string(EntityID entity_id) {
