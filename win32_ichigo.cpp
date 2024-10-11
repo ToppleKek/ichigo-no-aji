@@ -10,8 +10,6 @@
 #include <gl/GL.h>
 #include "thirdparty/imgui/imgui_impl_win32.h"
 
-#define AUDIO_SAMPLE_RATE 44100
-#define AUDIO_CHANNEL_COUNT 2
 #define AUDIO_SAMPLES_BUFFER_SIZE AUDIO_CHANNEL_COUNT * sizeof(i16) * AUDIO_SAMPLE_RATE * 4
 #define DSOUND_BUFFER_SIZE AUDIO_CHANNEL_COUNT * sizeof(i16) * AUDIO_SAMPLE_RATE * 8
 

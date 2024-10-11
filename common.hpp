@@ -50,6 +50,8 @@ using f64 = double;
 // TODO: Make these configurable?
 #define SCREEN_TILE_WIDTH 16
 #define SCREEN_TILE_HEIGHT 9
+#define AUDIO_SAMPLE_RATE 44100
+#define AUDIO_CHANNEL_COUNT 2
 
 #ifdef _WIN32
 #define platform_alloca _alloca

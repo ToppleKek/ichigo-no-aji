@@ -1,6 +1,6 @@
 #pragma once
 
-#include "texture.hpp"
+#include "asset.hpp"
 #include "camera.hpp"
 #include "entity.hpp"
 #include "util.hpp"
