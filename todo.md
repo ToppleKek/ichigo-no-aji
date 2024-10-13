@@ -153,19 +153,26 @@ void Ichigo::Internal::fill_sample_buffer(u8 *buffer, usize buffer_size, usize w
 - ~~Entity collision detection and resolution~~
 - ~~Audio setup (win32: DirectSound, or XAudio2? linux: ALSA)~~
 - - Port this to linux? Not sure if the ALSA interface works well with the method we are using on win32
-- Basic audio mixer
-- - Plan Audio mixer interface
+- ~~Basic audio mixer~~
+- - ~~Plan Audio mixer interface~~
 ### Week 6
-- Finish introduction in report
-- Implement planned push_render_command() function
+- ~~Finish introduction in report~~
+- ~~Implement planned push_render_command() function~~
 - - Allows the game to draw primitives/text (text rendering planned for a later week) for a UI
+- Improve audio mixer
+- - Platform pause playback
+- - Allow canceling specific sounds
+- - Volume control
+- - Pan control
+- - Fading effect
 - Catchup on anything not completed
-- Text rendering with stb_truetype
 - Design a unit test system for the game
 - - Eg. ensure spawning entities always works, requesting a entity that was killed correctly rejects the request, etc.
 - Support controller input
 - Draw backgrounds
 ### Week 7
+- Literature review
+- Text rendering with stb_truetype
 - Begin work on a tilemap editor
 - - It will allow you to "create new tile types" where you assign a texture that you load into the editor
 - - The tilemap editor will export (compressed?) tilemap files

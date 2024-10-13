@@ -31,6 +31,7 @@ static HDC hdc;
 static HGLRC wgl_context;
 static bool in_sizing_loop = false;
 static bool init_completed = false;
+
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 static wchar_t *to_wide_char(const char *str) {
@@ -175,6 +176,14 @@ f64 Ichigo::Internal::platform_get_current_time() {
     return (f64) win32_get_timestamp() / (f64) performance_frequency;
 }
 
+void Ichigo::Internal::platform_pause_audio() {
+    secondary_dsound_buffer->Stop();
+}
+
+void Ichigo::Internal::platform_resume_audio() {
+    secondary_dsound_buffer->Play(0, 0, DSBPLAY_LOOPING);
+}
+
 static void init_dsound(HWND window) {
     assert(SUCCEEDED(DirectSoundCreate8(nullptr, &direct_sound, nullptr)) && SUCCEEDED(direct_sound->SetCooperativeLevel(window, DSSCL_NORMAL)));
 }
@@ -184,19 +193,19 @@ static void realloc_dsound_buffer(u32 samples_per_second, u32 buffer_size) {
         secondary_dsound_buffer->Release();
 
     WAVEFORMATEX wave_format = {};
-    wave_format.wFormatTag = WAVE_FORMAT_PCM;
-    wave_format.nChannels = 2;
-    wave_format.nSamplesPerSec = samples_per_second;
-    wave_format.wBitsPerSample = 16;
-    wave_format.nBlockAlign = wave_format.nChannels * wave_format.wBitsPerSample / 8;
+    wave_format.wFormatTag      = WAVE_FORMAT_PCM;
+    wave_format.nChannels       = 2;
+    wave_format.nSamplesPerSec  = samples_per_second;
+    wave_format.wBitsPerSample  = 16;
+    wave_format.nBlockAlign     = wave_format.nChannels * wave_format.wBitsPerSample / 8;
     wave_format.nAvgBytesPerSec = wave_format.nSamplesPerSec * wave_format.nBlockAlign;
-    wave_format.cbSize = 0;
+    wave_format.cbSize          = 0;
 
-    DSBUFFERDESC secondary_buffer_description = {};
-    secondary_buffer_description.dwSize = sizeof(secondary_buffer_description);
-    secondary_buffer_description.dwFlags = DSBCAPS_GLOBALFOCUS | DSBCAPS_TRUEPLAYPOSITION;
+    DSBUFFERDESC secondary_buffer_description  = {};
+    secondary_buffer_description.dwSize        = sizeof(secondary_buffer_description);
+    secondary_buffer_description.dwFlags       = DSBCAPS_GLOBALFOCUS | DSBCAPS_TRUEPLAYPOSITION;
     secondary_buffer_description.dwBufferBytes = buffer_size;
-    secondary_buffer_description.lpwfxFormat = &wave_format;
+    secondary_buffer_description.lpwfxFormat   = &wave_format;
 
     IDirectSoundBuffer *query_secondary_dsound_buffer;
 
@@ -217,7 +226,7 @@ static void win32_write_samples(u8 *buffer, u32 offset, u32 bytes_to_write) {
     secondary_dsound_buffer->Unlock(region1, region1_size, region2, region2_size);
 }
 
-static void platform_do_frame() {
+static void win32_do_frame() {
     f64 frame_start_time = Ichigo::Internal::platform_get_current_time();
 
     ImGui_ImplWin32_NewFrame();
@@ -264,12 +273,14 @@ skip:
 static LRESULT window_proc(HWND window, u32 msg, WPARAM wparam, LPARAM lparam) {
     switch (msg) {
     case WM_ENTERSIZEMOVE: {
-        printf("WM_ENTERSIZEMOVE\n");
+        ICHIGO_INFO("WM_ENTERSIZEMOVE\n");
+        Ichigo::Internal::platform_pause_audio();
         in_sizing_loop = true;
     } break;
 
     case WM_EXITSIZEMOVE: {
-        printf("WM_EXITSIZEMOVE\n");
+        ICHIGO_INFO("WM_EXITSIZEMOVE\n");
+        Ichigo::Internal::platform_resume_audio();
         in_sizing_loop = false;
     } break;
 
@@ -278,13 +289,13 @@ static LRESULT window_proc(HWND window, u32 msg, WPARAM wparam, LPARAM lparam) {
     } break;
 
     case WM_DESTROY: {
-        std::printf("WM_DESTROY\n");
+        ICHIGO_INFO("WM_DESTROY\n");
         PostQuitMessage(0);
         return 0;
     } break;
 
     case WM_CLOSE: {
-        std::printf("WM_CLOSE\n");
+        ICHIGO_INFO("WM_CLOSE\n");
         PostQuitMessage(0);
         return 0;
     } break;
@@ -337,6 +348,10 @@ static LRESULT window_proc(HWND window, u32 msg, WPARAM wparam, LPARAM lparam) {
     } break;
 
     case WM_PAINT: {
+        // TODO: Since we pause playback of audio while we are in the sizing loop, should we not process new frames
+        //       here, and instead just draw an image to cover the window?
+        //       Or, we can keep processing frames and leave the music playing by setting a timer and processing a new
+        //       frame on WM_TIMER...
         PAINTSTRUCT paint;
         BeginPaint(window, &paint);
 
@@ -352,13 +367,10 @@ static LRESULT window_proc(HWND window, u32 msg, WPARAM wparam, LPARAM lparam) {
                 Ichigo::Internal::window_height = height;
             }
 
-            platform_do_frame();
+            win32_do_frame();
         }
         EndPaint(window, &paint);
         return 0;
-    } break;
-    case WM_MOVE: {
-        // std::printf("WM_MOVE\n");
     } break;
     }
 
@@ -541,7 +553,7 @@ i32 main() {
             DispatchMessage(&message);
         }
 
-        platform_do_frame();
+        win32_do_frame();
     }
 
 exit:

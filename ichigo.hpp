@@ -166,6 +166,7 @@ Util::IchigoVector<std::string> platform_recurse_directory(const std::string &pa
 
 void platform_sleep(f64 t);
 f64 platform_get_current_time();
-void platform_toggle_audio_playback();
+void platform_pause_audio();
+void platform_resume_audio();
 }
 }

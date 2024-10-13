@@ -280,9 +280,20 @@ void Ichigo::Internal::do_frame() {
         }
 
         if (ImGui::CollapsingHeader("Mixer", ImGuiTreeNodeFlags_DefaultOpen)) {
-            if (ImGui::Button("Test Sound")) {
+            if (ImGui::Button("Test Sound"))
                 Ichigo::Mixer::play_audio(test_sound_id);
+
+            static bool is_playing_audio = true;
+            if (ImGui::Button("Toggle Playback")) {
+                if (is_playing_audio) {
+                    Ichigo::Internal::platform_pause_audio();
+                    is_playing_audio = false;
+                } else {
+                    Ichigo::Internal::platform_resume_audio();
+                    is_playing_audio = true;
+                }
             }
+
             ImGui::SeparatorText("Playing Audio");
             for (u32 i = 0; i < Mixer::playing_audio.size; ++i) {
                 Mixer::PlayingAudio &pa = Mixer::playing_audio.at(i);
