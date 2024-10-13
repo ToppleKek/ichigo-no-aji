@@ -300,7 +300,7 @@ static LRESULT window_proc(HWND window, u32 msg, WPARAM wparam, LPARAM lparam) {
         bool is_down  = ((lparam & (1 << 31)) == 0);
         // ICHIGO_INFO("VK input: %u was_down: %u is_down %u", vk_code, was_down, is_down);
 
-#define SET_KEY_STATE(IK_KEY) Ichigo::Internal::keyboard_state[IK_KEY].down = is_down; Ichigo::Internal::keyboard_state[IK_KEY].up = !is_down; Ichigo::Internal::keyboard_state[IK_KEY].down_this_frame = is_down && !was_down; Ichigo::Internal::keyboard_state[IK_KEY].up_this_frame = !is_down && was_down
+#define SET_KEY_STATE(IK_KEY) {Ichigo::Internal::keyboard_state[IK_KEY].down = is_down; Ichigo::Internal::keyboard_state[IK_KEY].up = !is_down; Ichigo::Internal::keyboard_state[IK_KEY].down_this_frame = is_down && !was_down; Ichigo::Internal::keyboard_state[IK_KEY].up_this_frame = !is_down && was_down;}
         switch (vk_code) {
             case VK_LBUTTON:  SET_KEY_STATE(Ichigo::IK_MOUSE_1);       break;
             case VK_RBUTTON:  SET_KEY_STATE(Ichigo::IK_MOUSE_2);       break;

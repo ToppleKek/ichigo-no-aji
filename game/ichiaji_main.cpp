@@ -3,9 +3,13 @@
 EMBED("assets/test3.png", test_png_image)
 EMBED("assets/grass.png", grass_tile_png)
 EMBED("assets/enemy.png", enemy_png)
+EMBED("assets/music/song.mp3", test_song)
+
 static Ichigo::TextureID player_texture_id = 0;
 static Ichigo::TextureID enemy_texture_id  = 0;
 static Ichigo::TextureID grass_texture_id  = 0;
+static Ichigo::AudioID   test_music_id     = 0;
+
 
 #define TILEMAP_WIDTH SCREEN_TILE_WIDTH * 2
 #define TILEMAP_HEIGHT SCREEN_TILE_HEIGHT * 2
@@ -41,6 +45,7 @@ void Ichigo::Game::init() {
     player_texture_id = Ichigo::load_texture(test_png_image, test_png_image_len);
     enemy_texture_id  = Ichigo::load_texture(enemy_png, enemy_png_len);
     grass_texture_id  = Ichigo::load_texture(grass_tile_png, grass_tile_png_len);
+    test_music_id     = Ichigo::load_audio(test_song, test_song_len);
 
     tile_texture_map[1] = grass_texture_id;
 
@@ -66,7 +71,7 @@ void Ichigo::Game::init() {
 
     Ichigo::Entity *enemy = Ichigo::spawn_entity();
 
-    std::strcpy(enemy->name, "enemy");
+    std::strcpy(enemy->name, "gert");
     enemy->col            = {{9.0f, 2.0f}, 0.5f, 0.5f};
     enemy->sprite_w       = 0.5f;
     enemy->sprite_h       = 0.5f;
@@ -77,6 +82,8 @@ void Ichigo::Game::init() {
     enemy->texture_id     = enemy_texture_id;
     enemy->update_proc    = Ichigo::EntityControllers::patrol_controller;
     enemy->collide_proc   = entity_collide_proc;
+
+    Ichigo::Mixer::play_audio(test_music_id);
 }
 
 void Ichigo::Game::frame_begin() {

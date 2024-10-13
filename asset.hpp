@@ -1,5 +1,6 @@
 #pragma once
 #include "common.hpp"
+#include "util.hpp"
 
 namespace Ichigo {
 using TextureID = u32;
@@ -21,16 +22,21 @@ struct Texture {
     const u8 *png_data;
 };
 
-struct Sample2ChI16LE {
+struct AudioFrame2ChI16LE {
     i16 l;
     i16 r;
 };
 
 struct Audio {
     usize size_in_bytes;
-    const Sample2ChI16LE *sample_data;
+    AudioFrame2ChI16LE *frames;
 };
 
 TextureID load_texture(const u8 *png_data, usize png_data_size);
 AudioID load_audio(const u8 *mp3_data, usize mp3_data_size);
+
+namespace Internal {
+extern Util::IchigoVector<Ichigo::Texture> textures;
+extern Util::IchigoVector<Ichigo::Audio> audio_assets;
+}
 }

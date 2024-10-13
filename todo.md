@@ -108,6 +108,28 @@ A simple, minimal dependency game engine for 2D side scrolling games. Built for 
 - Written from scratch; no licensing.
 - Ultimate control over everything in the project
 
+## Interesting things to put in presentation
+### Original audio mixer
+"It's great to have all of these ideas on how to structure your program, but if you don't have a program yet then you don't have a structural problem to solve yet."
+
+The software design methodology: "rapid understanding"
+- Start with a real problem statement: I want to be able to play sounds and music in my game.
+- What do you need to make this a reality? Break it down: I need an audio mixer.
+- Keep breaking it down: I need a way to play audio samples.
+- Notice that this is a platform issue. Okay, now: I need a way to communicate the sounds I want to play to the platform layer
+Finally we have two problems to solve:
+- I need a way to play samples (in the platform layer)
+- I need a way to send audio samples to the platform layer
+
+The first audio mixer:
+```c++
+void Ichigo::Internal::fill_sample_buffer(u8 *buffer, usize buffer_size, usize write_cursor_position_delta) {
+    static u8 *DEBUG_ptr = music_buffer;
+    ICHIGO_INFO("write_cursor_position_delta=%llu", write_cursor_position_delta);
+    DEBUG_ptr += write_cursor_position_delta;
+    std::memcpy(buffer, DEBUG_ptr, buffer_size);
+}
+```
 ## Timetable
 ### Week 1
 - ~~Proof of concept~~

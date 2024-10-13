@@ -3,6 +3,7 @@
 #include "asset.hpp"
 #include "camera.hpp"
 #include "entity.hpp"
+#include "mixer.hpp"
 #include "util.hpp"
 #include <string> // TODO: Remove this shit
 #include "opengl.hpp"
@@ -105,6 +106,7 @@ struct FrameData {
 struct GameState {
     Ichigo::EntityID player_entity_id;
     Util::Arena transient_storage_arena;
+    Util::Arena permanent_storage_arena;
     FrameData this_frame_data;
 };
 
