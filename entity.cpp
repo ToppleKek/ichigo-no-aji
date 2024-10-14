@@ -106,34 +106,26 @@ void Ichigo::move_entity_in_world(Ichigo::Entity *entity) {
                     Vec2<f32> min_corner = {tile_x - entity->col.w / 2.0f, tile_y - entity->col.h / 2.0f};
                     Vec2<f32> max_corner = {tile_x + 1 + entity->col.w / 2.0f, tile_y + 1 + entity->col.h / 2.0f};
                     // ICHIGO_INFO("min_corner=%f,%f max_corner=%f,%f tile=%u,%u", min_corner.x, min_corner.y, max_corner.x, max_corner.y, tile_x, tile_y);
-                    bool updated = false;
                     if (test_wall(min_corner.x, centered_entity_p.x, entity_delta.x, centered_entity_p.y, entity_delta.y, min_corner.y, max_corner.y, &best_t)) {
-                        updated = true;
                         wall_normal = { -1, 0 };
                         wall_position = { (f32) tile_x, (f32) tile_y };
                         // ICHIGO_INFO("(-1,0) Tile collide %d,%d best_t=%f", tile_x, tile_y, best_t);
                     }
                     if (test_wall(max_corner.x, centered_entity_p.x, entity_delta.x, centered_entity_p.y, entity_delta.y, min_corner.y, max_corner.y, &best_t)) {
-                        updated = true;
                         wall_normal = { 1, 0 };
                         wall_position = { (f32) tile_x, (f32) tile_y };
                         // ICHIGO_INFO("(1,0) Tile collide %d,%d best_t=%f", tile_x, tile_y, best_t);
                     }
                     if (test_wall(min_corner.y, centered_entity_p.y, entity_delta.y, centered_entity_p.x, entity_delta.x, min_corner.x, max_corner.x, &best_t)) {
-                        updated = true;
                         wall_normal = { 0, -1 };
                         wall_position = { (f32) tile_x, (f32) tile_y };
                         // ICHIGO_INFO("(0,-1) Tile collide %d,%d best_t=%f", tile_x, tile_y, best_t);
                     }
                     if (test_wall(max_corner.y, centered_entity_p.y, entity_delta.y, centered_entity_p.x, entity_delta.x, min_corner.x, max_corner.x, &best_t)) {
-                        updated = true;
                         wall_normal = { 0, 1 };
                         wall_position = { (f32) tile_x, (f32) tile_y };
                         // ICHIGO_INFO("(0,1) Tile collide %d,%d best_t=%f", tile_x, tile_y, best_t);
                     }
-
-                    // if (updated)
-                    //     ICHIGO_INFO("Decided wall normal: %f,%f", wall_normal.x, wall_normal.y);
                 }
             }
         }

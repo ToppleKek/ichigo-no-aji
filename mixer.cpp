@@ -2,14 +2,14 @@
 #include "math.hpp"
 
 Util::IchigoVector<Ichigo::Mixer::PlayingAudio> Ichigo::Mixer::playing_audio{64};
+f32 Ichigo::Mixer::master_volume = 1.0f;
 // TODO: Use transient storage?
 // static Ichigo::AudioFrame2ChI16LE mix_buffer[MEGABYTES(50)];
 
-Ichigo::Mixer::PlayingAudioID Ichigo::Mixer::play_audio(AudioID audio_id) {
-    PlayingAudioID new_pa_id;
+Ichigo::Mixer::PlayingAudioID Ichigo::Mixer::play_audio(AudioID audio_id, f32 volume) {
     PlayingAudio pa;
     pa.audio_id          = audio_id;
-    pa.volume            = 1.0f; // TODO: Custom volume
+    pa.volume            = volume;
     pa.frame_play_cursor = 0;
 
     for (u32 i = 0; i < playing_audio.size; ++i) {
@@ -54,7 +54,6 @@ void Ichigo::Mixer::cancel_audio(PlayingAudioID id) {
 }
 
 void Ichigo::Mixer::mix_into_buffer(AudioFrame2ChI16LE *sound_buffer, usize buffer_size, usize write_cursor_position_delta) {
-    ICHIGO_INFO("write_cursor_position_delta=%llu ?? %d", write_cursor_position_delta, write_cursor_position_delta % sizeof(AudioFrame2ChI16LE));
     for (u32 i = 0; i < playing_audio.size; ++i) {
         PlayingAudio &pa = playing_audio.at(i);
         if (pa.audio_id == 0)
@@ -74,8 +73,8 @@ void Ichigo::Mixer::mix_into_buffer(AudioFrame2ChI16LE *sound_buffer, usize buff
 
         for (u32 audio_frame_index = pa.frame_play_cursor, i = 0; audio_frame_index < audio.size_in_bytes / sizeof(AudioFrame2ChI16LE) && i < buffer_size / sizeof(AudioFrame2ChI16LE); ++audio_frame_index, ++i) {
             // TODO: Mix into i32 buffer, and clamp after that
-            i32 mixed_value_l = sound_buffer[i].l + audio.frames[audio_frame_index].l;
-            i32 mixed_value_r = sound_buffer[i].r + audio.frames[audio_frame_index].r;
+            i32 mixed_value_l = sound_buffer[i].l + audio.frames[audio_frame_index].l * pa.volume * master_volume;
+            i32 mixed_value_r = sound_buffer[i].r + audio.frames[audio_frame_index].r * pa.volume * master_volume;
             mixed_value_l = clamp(mixed_value_l, (i32) INT16_MIN, (i32) INT16_MAX);
             mixed_value_r = clamp(mixed_value_r, (i32) INT16_MIN, (i32) INT16_MAX);
             sound_buffer[i].l = mixed_value_l;

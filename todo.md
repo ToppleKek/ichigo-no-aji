@@ -22,18 +22,18 @@
 - ~~Review collision, you can get stuck~~
 - ~~Separate game code and engine code~~
 - ~~Follow camera~~
-- Improve ImGui debug window
-- - Make two panels on each side of screen?
+- ~~Improve ImGui debug window~~
+- - ~~Make two panels on each side of screen?~~
 - - ~~Press a key to toggle the visibility of the debug windows?~~
-- - Entity list viewer (shows active, inactive entities; allows you to focus/kill them)
+- - ~~Entity list viewer (shows active, inactive entities; allows you to focus/kill them)~~
 - Change world scale- maybe 32x18 tiles in a screen?
 - - Make world scale configurable by the game (right now it is hardcoded into the engine)
-- Change player size
-- - This will include updating the collision code to work for non-square sizes
-- Entity collisions
-- - Check for collisions between every active entity (maybe only ones within a certain distance from the player)
-- - Resolve collisions by calling a collision handler on each entity
-- Audio setup (DirectSound? XAudio?)
+- ~~Change player size~~
+- - ~~This will include updating the collision code to work for non-square sizes~~
+- ~~Entity collisions~~
+- - ~~Check for collisions between every active entity (maybe only ones within a certain distance from the player)~~
+- - ~~Resolve collisions by calling a collision handler on each entity~~
+- ~~Audio setup (DirectSound? XAudio?)~~
 - Audio mixer
 - Ichigo::push_render_command for allowing the game to draw the UI
 - Controller input (DirectInput? XInput?)
@@ -161,7 +161,7 @@ void Ichigo::Internal::fill_sample_buffer(u8 *buffer, usize buffer_size, usize w
 - - Allows the game to draw primitives/text (text rendering planned for a later week) for a UI
 - Improve audio mixer
 - - ~~Platform pause playback~~
-- - Allow canceling specific sounds
+- - ~~Allow canceling specific sounds~~
 - - Volume control
 - - Pan control
 - - Fading effect
@@ -170,6 +170,7 @@ void Ichigo::Internal::fill_sample_buffer(u8 *buffer, usize buffer_size, usize w
 - - Eg. ensure spawning entities always works, requesting a entity that was killed correctly rejects the request, etc.
 - Support controller input
 - Draw backgrounds
+- https://www.dr-lex.be/info-stuff/volumecontrols.html#about
 ### Week 7
 - Literature review
 - Text rendering with stb_truetype

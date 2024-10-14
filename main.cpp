@@ -280,8 +280,11 @@ void Ichigo::Internal::do_frame() {
         }
 
         if (ImGui::CollapsingHeader("Mixer", ImGuiTreeNodeFlags_DefaultOpen)) {
+            static f32 next_test_sound_volume = 1.0f;
+            ImGui::SliderFloat("Sound Volume", &next_test_sound_volume, 0.0f, 1.0f, "%f");
+
             if (ImGui::Button("Test Sound"))
-                Ichigo::Mixer::play_audio(test_sound_id);
+                Ichigo::Mixer::play_audio(test_sound_id, next_test_sound_volume);
 
             static bool is_playing_audio = true;
             if (ImGui::Button("Toggle Playback")) {
@@ -294,17 +297,19 @@ void Ichigo::Internal::do_frame() {
                 }
             }
 
+            ImGui::SliderFloat("Master Volume", &Ichigo::Mixer::master_volume, 0.0f, 1.0f, "%f");
+
             ImGui::SeparatorText("Playing Audio");
             for (u32 i = 0; i < Mixer::playing_audio.size; ++i) {
                 Mixer::PlayingAudio &pa = Mixer::playing_audio.at(i);
                 if (pa.audio_id == 0) {
-                    ImGui::Text("Audio slot %u: (empty)");
+                    ImGui::Text("Audio slot %u: (empty)", i);
                 } else {
-                    ImGui::Text("Audio slot %u: %u (%u)", i, pa.audio_id, pa.frame_play_cursor);
-                    ImGui::SameLine();
                     if (ImGui::SmallButton("X")) {
                         Ichigo::Mixer::cancel_audio(pa.id);
                     }
+                    ImGui::SameLine();
+                    ImGui::Text("Audio slot %u: %u (%llu)", i, pa.audio_id, pa.frame_play_cursor);
                 }
             }
         }
