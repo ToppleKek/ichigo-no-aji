@@ -83,7 +83,7 @@ void Ichigo::Game::init() {
     enemy->update_proc    = Ichigo::EntityControllers::patrol_controller;
     enemy->collide_proc   = entity_collide_proc;
 
-    Ichigo::Mixer::play_audio(test_music_id, 1.0f);
+    Ichigo::Mixer::play_audio(test_music_id, 1.0f, 1.0f, 1.0f);
 }
 
 void Ichigo::Game::frame_begin() {

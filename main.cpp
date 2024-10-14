@@ -280,11 +280,15 @@ void Ichigo::Internal::do_frame() {
         }
 
         if (ImGui::CollapsingHeader("Mixer", ImGuiTreeNodeFlags_DefaultOpen)) {
-            static f32 next_test_sound_volume = 1.0f;
+            static f32 next_test_sound_volume   = 1.0f;
+            static f32 next_test_sound_volume_l = 1.0f;
+            static f32 next_test_sound_volume_r = 1.0f;
             ImGui::SliderFloat("Sound Volume", &next_test_sound_volume, 0.0f, 1.0f, "%f");
+            ImGui::SliderFloat("Left Ch.", &next_test_sound_volume_l, 0.0f, 1.0f, "%f");
+            ImGui::SliderFloat("Right Ch.", &next_test_sound_volume_r, 0.0f, 1.0f, "%f");
 
             if (ImGui::Button("Test Sound"))
-                Ichigo::Mixer::play_audio(test_sound_id, next_test_sound_volume);
+                Ichigo::Mixer::play_audio(test_sound_id, next_test_sound_volume, next_test_sound_volume_l, next_test_sound_volume_r);
 
             static bool is_playing_audio = true;
             if (ImGui::Button("Toggle Playback")) {
