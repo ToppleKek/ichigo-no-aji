@@ -5,7 +5,8 @@ Util::IchigoVector<Ichigo::Mixer::PlayingAudio> Ichigo::Mixer::playing_audio{64}
 // TODO: Use transient storage?
 // static Ichigo::AudioFrame2ChI16LE mix_buffer[MEGABYTES(50)];
 
-void Ichigo::Mixer::play_audio(AudioID audio_id) {
+Ichigo::Mixer::PlayingAudioID Ichigo::Mixer::play_audio(AudioID audio_id) {
+    PlayingAudioID new_pa_id;
     PlayingAudio pa;
     pa.audio_id          = audio_id;
     pa.volume            = 1.0f; // TODO: Custom volume
@@ -13,12 +14,43 @@ void Ichigo::Mixer::play_audio(AudioID audio_id) {
 
     for (u32 i = 0; i < playing_audio.size; ++i) {
         if (playing_audio.at(i).audio_id == 0) {
+            pa.id.generation = playing_audio.at(i).id.generation + 1;
+            pa.id.index      = i;
             std::memcpy(&playing_audio.at(i), &pa, sizeof(pa));
-            return;
+            return pa.id;
         }
     }
 
+    pa.id.generation = 0;
+    pa.id.index      = playing_audio.size;
     playing_audio.append(pa);
+
+    return pa.id;
+}
+
+Ichigo::Mixer::PlayingAudio *Ichigo::Mixer::get_playing_audio(PlayingAudioID id) {
+    if (id. index >= Ichigo::Mixer::playing_audio.size)
+        return nullptr;
+
+    PlayingAudio *pa = &Ichigo::Mixer::playing_audio.at(id.index);
+
+    // TODO: See other TODO after this, but for now we just know that if a PlayingAudio has an audio asset id of 0 then it is invalid.
+    //       Should we instead do what everything else does and have id.index == 0 be the "null playing audio" and have that be invalid?
+    if (pa->id.generation != id.generation || pa->audio_id == 0)
+        return nullptr;
+
+    return &Ichigo::Mixer::playing_audio.at(id.index);
+}
+
+void Ichigo::Mixer::cancel_audio(PlayingAudioID id) {
+    PlayingAudio *pa = get_playing_audio(id);
+    if (!pa)
+        return;
+
+    // NOTE: In the mixer, if the audio of a PlayingAudio is 0, then the slot is open.
+    // TODO: Should there be a "null playing audio (id.index = 0)"? There is for entities, audio, textures, etc...
+    //       BUT, we have other ways of telling if the playing audio is invalid or not.
+    pa->audio_id = 0;
 }
 
 void Ichigo::Mixer::mix_into_buffer(AudioFrame2ChI16LE *sound_buffer, usize buffer_size, usize write_cursor_position_delta) {

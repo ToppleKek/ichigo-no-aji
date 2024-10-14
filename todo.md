@@ -160,7 +160,7 @@ void Ichigo::Internal::fill_sample_buffer(u8 *buffer, usize buffer_size, usize w
 - ~~Implement planned push_render_command() function~~
 - - Allows the game to draw primitives/text (text rendering planned for a later week) for a UI
 - Improve audio mixer
-- - Platform pause playback
+- - ~~Platform pause playback~~
 - - Allow canceling specific sounds
 - - Volume control
 - - Pan control

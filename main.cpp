@@ -301,6 +301,10 @@ void Ichigo::Internal::do_frame() {
                     ImGui::Text("Audio slot %u: (empty)");
                 } else {
                     ImGui::Text("Audio slot %u: %u (%u)", i, pa.audio_id, pa.frame_play_cursor);
+                    ImGui::SameLine();
+                    if (ImGui::SmallButton("X")) {
+                        Ichigo::Mixer::cancel_audio(pa.id);
+                    }
                 }
             }
         }
