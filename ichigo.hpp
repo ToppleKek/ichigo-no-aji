@@ -86,6 +86,34 @@ enum Keycode {
     IK_ENUM_COUNT
 };
 
+struct Gamepad {
+    // Face buttons
+    KeyState a;
+    KeyState b;
+    KeyState x;
+    KeyState y;
+
+    // D-pad
+    KeyState up;
+    KeyState down;
+    KeyState left;
+    KeyState right;
+
+    // Shoulder buttons
+    KeyState lb;
+    KeyState rb;
+
+    // Triggers
+    f32 lt;
+    f32 rt;
+
+    // Analog sticks
+    KeyState stick_left_click;
+    KeyState stick_right_click;
+    Vec2<f32> stick_left;
+    Vec2<f32> stick_right;
+};
+
 
 enum DrawCommandType {
     SOLID_COLOUR_RECT
@@ -130,11 +158,13 @@ extern u32 window_width;
 extern u32 window_height;
 extern f32 target_frame_time;
 extern f32 dpi_scale;
-extern f32 dt;
-extern Ichigo::KeyState keyboard_state[Ichigo::Keycode::IK_ENUM_COUNT];
-
 extern u32 current_tilemap_width;
 extern u32 current_tilemap_height;
+
+// TODO: Move these out of internal?
+extern f32 dt;
+extern Ichigo::KeyState keyboard_state[Ichigo::Keycode::IK_ENUM_COUNT];
+extern Gamepad gamepad;
 
 void init();
 void do_frame();

@@ -6,6 +6,7 @@
 #define UNICODE
 #include <windows.h>
 #include <dsound.h>
+#include <xinput.h>
 
 #include <gl/GL.h>
 #include "thirdparty/imgui/imgui_impl_win32.h"
@@ -17,6 +18,7 @@ u32 Ichigo::Internal::window_width = 1920;
 u32 Ichigo::Internal::window_height = 1080;
 OpenGL Ichigo::Internal::gl{};
 Ichigo::KeyState Ichigo::Internal::keyboard_state[Ichigo::Keycode::IK_ENUM_COUNT] = {};
+Ichigo::Gamepad Ichigo::Internal::gamepad = {};
 f32 Ichigo::Internal::dt = 0.0f;
 f32 Ichigo::Internal::dpi_scale = 0.0f;
 
@@ -228,6 +230,87 @@ static void win32_write_samples(u8 *buffer, u32 offset, u32 bytes_to_write) {
 
 static void win32_do_frame() {
     f64 frame_start_time = Ichigo::Internal::platform_get_current_time();
+
+    static bool controller_connected = false;
+    XINPUT_STATE controller0_state = {};
+    if (XInputGetState(0, &controller0_state) == ERROR_SUCCESS) {
+        if (!controller_connected) {
+            ICHIGO_INFO("XInput: Controller 0 connected");
+            controller_connected = true;
+        }
+
+#define WAS_DOWN(BTN) Ichigo::Internal::gamepad.BTN.down
+#define IS_DOWN(XINPUT_BTN) FLAG_IS_SET(controller0_state.Gamepad.wButtons, XINPUT_BTN)
+#define SET_BUTTON_STATE(ICHIGO_BTN, XINPUT_BTN)                                                     \
+{                                                                                                    \
+Ichigo::Internal::gamepad.ICHIGO_BTN.down_this_frame = IS_DOWN(XINPUT_BTN) && !WAS_DOWN(ICHIGO_BTN); \
+Ichigo::Internal::gamepad.ICHIGO_BTN.up_this_frame   = !IS_DOWN(XINPUT_BTN) && WAS_DOWN(ICHIGO_BTN); \
+Ichigo::Internal::gamepad.ICHIGO_BTN.down            = IS_DOWN(XINPUT_BTN);                          \
+Ichigo::Internal::gamepad.ICHIGO_BTN.up              = !IS_DOWN(XINPUT_BTN);                         \
+}
+        SET_BUTTON_STATE(a, XINPUT_GAMEPAD_A);
+        SET_BUTTON_STATE(b, XINPUT_GAMEPAD_B);
+        SET_BUTTON_STATE(x, XINPUT_GAMEPAD_X);
+        SET_BUTTON_STATE(y, XINPUT_GAMEPAD_Y);
+
+        SET_BUTTON_STATE(up,    XINPUT_GAMEPAD_DPAD_UP);
+        SET_BUTTON_STATE(down,  XINPUT_GAMEPAD_DPAD_DOWN);
+        SET_BUTTON_STATE(left,  XINPUT_GAMEPAD_DPAD_LEFT);
+        SET_BUTTON_STATE(right, XINPUT_GAMEPAD_DPAD_RIGHT);
+
+        SET_BUTTON_STATE(lb, XINPUT_GAMEPAD_LEFT_SHOULDER);
+        SET_BUTTON_STATE(rb, XINPUT_GAMEPAD_RIGHT_SHOULDER);
+
+        SET_BUTTON_STATE(stick_left_click,  XINPUT_GAMEPAD_LEFT_THUMB);
+        SET_BUTTON_STATE(stick_right_click, XINPUT_GAMEPAD_RIGHT_THUMB);
+#undef WAS_DOWN
+#undef IS_DOWN
+#undef SET_BUTTON_STATE
+
+        if (controller0_state.Gamepad.bLeftTrigger > XINPUT_GAMEPAD_TRIGGER_THRESHOLD)
+            Ichigo::Internal::gamepad.lt = (controller0_state.Gamepad.bLeftTrigger - XINPUT_GAMEPAD_TRIGGER_THRESHOLD) / (255.0f - XINPUT_GAMEPAD_TRIGGER_THRESHOLD);
+        else
+            Ichigo::Internal::gamepad.lt = 0.0f;
+
+        if (controller0_state.Gamepad.bRightTrigger > XINPUT_GAMEPAD_TRIGGER_THRESHOLD)
+            Ichigo::Internal::gamepad.rt = (controller0_state.Gamepad.bRightTrigger - XINPUT_GAMEPAD_TRIGGER_THRESHOLD) / (255.0f - XINPUT_GAMEPAD_TRIGGER_THRESHOLD);
+        else
+            Ichigo::Internal::gamepad.rt = 0.0f;
+
+        Vec2<i32> stick_left = {controller0_state.Gamepad.sThumbLX, controller0_state.Gamepad.sThumbLY};
+        if (stick_left.length() > XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE) {
+#define MIN_STICK_VALUE -32767 + XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE
+#define MAX_STICK_VALUE 32767  - XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE
+            // NOTE: The MIN_STICK_VALUE uses -32767 instead of -32768 to make the math simpler here.
+            Ichigo::Internal::gamepad.stick_left = {
+                clamp((i32) stick_left.x, MIN_STICK_VALUE, MAX_STICK_VALUE) / (32767.0f - XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE),
+                clamp((i32) stick_left.y, MIN_STICK_VALUE, MAX_STICK_VALUE) / (32767.0f - XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE)
+            };
+#undef MIN_STICK_VALUE
+#undef MAX_STICK_VALUE
+        } else {
+            Ichigo::Internal::gamepad.stick_left = {0.0f, 0.0f};
+        }
+        Vec2<i32> stick_right = {controller0_state.Gamepad.sThumbRX, controller0_state.Gamepad.sThumbRY};
+        if (stick_right.length() > XINPUT_GAMEPAD_RIGHT_THUMB_DEADZONE) {
+#define MIN_STICK_VALUE -32767 + XINPUT_GAMEPAD_RIGHT_THUMB_DEADZONE
+#define MAX_STICK_VALUE 32767  - XINPUT_GAMEPAD_RIGHT_THUMB_DEADZONE
+            // NOTE: The MIN_STICK_VALUE uses -32767 instead of -32768 to make the math simpler here.
+            Ichigo::Internal::gamepad.stick_right = {
+                clamp((i32) stick_right.x, MIN_STICK_VALUE, MAX_STICK_VALUE) / (32767.0f - XINPUT_GAMEPAD_RIGHT_THUMB_DEADZONE),
+                clamp((i32) stick_right.y, MIN_STICK_VALUE, MAX_STICK_VALUE) / (32767.0f - XINPUT_GAMEPAD_RIGHT_THUMB_DEADZONE)
+            };
+#undef MIN_STICK_VALUE
+#undef MAX_STICK_VALUE
+        } else {
+            Ichigo::Internal::gamepad.stick_right = {0.0f, 0.0f};
+        }
+    } else {
+        if (controller_connected) {
+            ICHIGO_INFO("XInput: Controller 0 disconnected");
+            controller_connected = false;
+        }
+    }
 
     ImGui_ImplWin32_NewFrame();
 

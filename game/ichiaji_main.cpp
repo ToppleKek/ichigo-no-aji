@@ -98,6 +98,10 @@ void Ichigo::Game::update_and_render() {
     test_draw_command.rect   = {{0.5f, 0.0f}, 0.1f, 0.1f};
     test_draw_command.colour = {123, 43, 76, 255};
     Ichigo::push_draw_command(test_draw_command);
+
+    // ICHIGO_INFO("A button state: %d %d %d %d", Ichigo::Internal::gamepad.a.down, Ichigo::Internal::gamepad.a.up, Ichigo::Internal::gamepad.a.down_this_frame, Ichigo::Internal::gamepad.a.up_this_frame);
+    // ICHIGO_INFO("LT: %f RT: %f", Ichigo::Internal::gamepad.lt, Ichigo::Internal::gamepad.rt);
+    // ICHIGO_INFO("left stick: %f,%f", Ichigo::Internal::gamepad.stick_left.x, Ichigo::Internal::gamepad.stick_left.y);
 }
 
 void Ichigo::Game::frame_end() {

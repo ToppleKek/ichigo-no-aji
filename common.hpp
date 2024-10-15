@@ -29,7 +29,7 @@ using f64 = double;
 #define VK_ASSERT_OK(err) assert(err == VK_SUCCESS)
 #define SET_FLAG(FLAGS, FLAG)    (FLAGS |= FLAG)
 #define CLEAR_FLAG(FLAGS, FLAG)  (FLAGS &= ~FLAG)
-#define FLAG_IS_SET(FLAGS, FLAG) ((bool) FLAGS & FLAG)
+#define FLAG_IS_SET(FLAGS, FLAG) ((bool) (FLAGS & FLAG))
 
 #define EMBED(FNAME, VNAME)                                                               \
     __asm__(                                                                              \

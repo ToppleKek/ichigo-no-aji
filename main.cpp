@@ -318,6 +318,16 @@ void Ichigo::Internal::do_frame() {
             }
         }
 
+        if (ImGui::CollapsingHeader("Controller", ImGuiTreeNodeFlags_DefaultOpen)) {
+            ImGui::Text("A: %d B: %d X: %d Y: %d", Ichigo::Internal::gamepad.a.down, Ichigo::Internal::gamepad.b.down, Ichigo::Internal::gamepad.x.down, Ichigo::Internal::gamepad.y.down);
+            ImGui::Text("U: %d D: %d L: %d R: %d", Ichigo::Internal::gamepad.up.down, Ichigo::Internal::gamepad.down.down, Ichigo::Internal::gamepad.left.down, Ichigo::Internal::gamepad.right.down);
+            ImGui::Text("lb: %d rb: %d", Ichigo::Internal::gamepad.lb.down, Ichigo::Internal::gamepad.rb.down);
+            ImGui::Text("lt: %f rt: %f", Ichigo::Internal::gamepad.lt, Ichigo::Internal::gamepad.rt);
+            ImGui::Text("ls (click): %d rs (click): %d", Ichigo::Internal::gamepad.stick_left_click.down, Ichigo::Internal::gamepad.stick_right_click.down);
+            ImGui::Text("ls: %f,%f", Ichigo::Internal::gamepad.stick_left.x, Ichigo::Internal::gamepad.stick_left.y);
+            ImGui::Text("rs: %f,%f", Ichigo::Internal::gamepad.stick_right.x, Ichigo::Internal::gamepad.stick_right.y);
+        }
+
         // ImGui::Checkbox("Wireframe", &do_wireframe);
 
         ImGui::End();
