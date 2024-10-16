@@ -173,9 +173,10 @@ void Ichigo::Internal::fill_sample_buffer(u8 *buffer, usize buffer_size, usize w
 - - Eg. ensure spawning entities always works, requesting a entity that was killed correctly rejects the request, etc.
 - ~~Support controller input~~
 - Draw backgrounds
-- https://www.dr-lex.be/info-stuff/volumecontrols.html#about
 ### Week 7
 - Literature review
+- - https://www.dr-lex.be/info-stuff/volumecontrols.html#about
+- - https://dl.acm.org/doi/pdf/10.1145/971564.971590
 - Text rendering with stb_truetype
 - Begin work on a tilemap editor
 - - It will allow you to "create new tile types" where you assign a texture that you load into the editor

@@ -103,6 +103,10 @@ struct Gamepad {
     KeyState lb;
     KeyState rb;
 
+    // Menu buttons
+    KeyState start;
+    KeyState select;
+
     // Triggers
     f32 lt;
     f32 rt;

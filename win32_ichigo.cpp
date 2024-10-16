@@ -260,6 +260,9 @@ Ichigo::Internal::gamepad.ICHIGO_BTN.up              = !IS_DOWN(XINPUT_BTN);    
         SET_BUTTON_STATE(lb, XINPUT_GAMEPAD_LEFT_SHOULDER);
         SET_BUTTON_STATE(rb, XINPUT_GAMEPAD_RIGHT_SHOULDER);
 
+        SET_BUTTON_STATE(start, XINPUT_GAMEPAD_START);
+        SET_BUTTON_STATE(select, XINPUT_GAMEPAD_BACK);
+
         SET_BUTTON_STATE(stick_left_click,  XINPUT_GAMEPAD_LEFT_THUMB);
         SET_BUTTON_STATE(stick_right_click, XINPUT_GAMEPAD_RIGHT_THUMB);
 #undef WAS_DOWN
@@ -505,10 +508,23 @@ i32 main() {
     //     WGL_CONTEXT_MAJOR_VERSION
     // };
 
+    HINSTANCE opengl_dll = LoadLibrary(L"opengl32.dll");
+    assert(opengl_dll);
+
+    using Type_wglCreateContext           = HGLRC (HDC);
+    using Type_wglMakeCurrent             = BOOL (HDC, HGLRC);
+    using Type_wglGetProcAddress          = PROC (LPCSTR);
+    using Type_wglDeleteContext           = BOOL (HGLRC);
+    using Type_wglCreateContextAttribsARB = HGLRC (HDC, HGLRC, const i32 *);
+
+#define WGL_FUNCTION(FUNC_NAME) Type_##FUNC_NAME *FUNC_NAME = (Type_##FUNC_NAME *) GetProcAddress(opengl_dll, #FUNC_NAME)
+    WGL_FUNCTION(wglCreateContext);
+    WGL_FUNCTION(wglMakeCurrent);
+    WGL_FUNCTION(wglGetProcAddress);
+    WGL_FUNCTION(wglDeleteContext);
+
     wgl_context = wglCreateContext(hdc);
     wglMakeCurrent(hdc, wgl_context);
-
-    using Type_wglCreateContextAttribsARB = HGLRC (HDC, HGLRC, const i32 *);
 
     Type_wglCreateContextAttribsARB *wglCreateContextAttribsARB = (Type_wglCreateContextAttribsARB *) wglGetProcAddress("wglCreateContextAttribsARB");
     assert(wglCreateContextAttribsARB);
@@ -521,9 +537,6 @@ i32 main() {
     wgl_context = wglCreateContextAttribsARB(hdc, 0, nullptr);
     wglMakeCurrent(hdc, wgl_context);
     wglSwapIntervalEXT(0);
-
-    HINSTANCE opengl_dll = LoadLibrary(L"opengl32.dll");
-    assert(opengl_dll);
 
 #define GET_ADDR_OF_OPENGL_FUNCTION(FUNC_NAME)                                                    \
 {                                                                                                 \
