@@ -8,7 +8,6 @@
 #include <dsound.h>
 #include <xinput.h>
 
-#include <gl/GL.h>
 #include "thirdparty/imgui/imgui_impl_win32.h"
 
 #define AUDIO_SAMPLES_BUFFER_SIZE AUDIO_CHANNEL_COUNT * sizeof(i16) * AUDIO_SAMPLE_RATE * 4
@@ -463,7 +462,6 @@ static LRESULT window_proc(HWND window, u32 msg, WPARAM wparam, LPARAM lparam) {
     return DefWindowProc(window, msg, wparam, lparam);
 }
 
-
 i32 main() {
     SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
     SetConsoleOutputCP(CP_UTF8);
@@ -524,21 +522,31 @@ i32 main() {
     wglMakeCurrent(hdc, wgl_context);
     wglSwapIntervalEXT(0);
 
-#define GET_ADDR_OF_OPENGL_FUNCTION(FUNC_NAME) Ichigo::Internal::gl.FUNC_NAME = (Type_##FUNC_NAME *) wglGetProcAddress(#FUNC_NAME); assert(Ichigo::Internal::gl.FUNC_NAME != nullptr)
-    Ichigo::Internal::gl.glViewport       = glViewport;
-    Ichigo::Internal::gl.glClearColor     = glClearColor;
-    Ichigo::Internal::gl.glClear          = glClear;
-    Ichigo::Internal::gl.glGetString      = glGetString;
-    Ichigo::Internal::gl.glPolygonMode    = glPolygonMode;
-    Ichigo::Internal::gl.glGetError       = glGetError;
-    Ichigo::Internal::gl.glTexParameterf  = glTexParameterf;
-    Ichigo::Internal::gl.glTexParameterfv = glTexParameterfv;
-    Ichigo::Internal::gl.glTexParameteri  = glTexParameteri;
-    Ichigo::Internal::gl.glTexParameteriv = glTexParameteriv;
-    Ichigo::Internal::gl.glTexImage2D     = glTexImage2D;
-    Ichigo::Internal::gl.glEnable         = glEnable;
-    Ichigo::Internal::gl.glDisable        = glDisable;
-    Ichigo::Internal::gl.glBlendFunc      = glBlendFunc;
+    HINSTANCE opengl_dll = LoadLibrary(L"opengl32.dll");
+    assert(opengl_dll);
+
+#define GET_ADDR_OF_OPENGL_FUNCTION(FUNC_NAME)                                                    \
+{                                                                                                 \
+Ichigo::Internal::gl.FUNC_NAME = (Type_##FUNC_NAME *) wglGetProcAddress(#FUNC_NAME);              \
+if (!Ichigo::Internal::gl.FUNC_NAME)                                                              \
+    Ichigo::Internal::gl.FUNC_NAME = (Type_##FUNC_NAME *) GetProcAddress(opengl_dll, #FUNC_NAME); \
+assert(Ichigo::Internal::gl.FUNC_NAME != nullptr);                                                \
+}
+
+    GET_ADDR_OF_OPENGL_FUNCTION(glViewport);
+    GET_ADDR_OF_OPENGL_FUNCTION(glClearColor);
+    GET_ADDR_OF_OPENGL_FUNCTION(glClear);
+    GET_ADDR_OF_OPENGL_FUNCTION(glGetString);
+    GET_ADDR_OF_OPENGL_FUNCTION(glPolygonMode);
+    GET_ADDR_OF_OPENGL_FUNCTION(glGetError);
+    GET_ADDR_OF_OPENGL_FUNCTION(glTexParameterf);
+    GET_ADDR_OF_OPENGL_FUNCTION(glTexParameterfv);
+    GET_ADDR_OF_OPENGL_FUNCTION(glTexParameteri);
+    GET_ADDR_OF_OPENGL_FUNCTION(glTexParameteriv);
+    GET_ADDR_OF_OPENGL_FUNCTION(glTexImage2D);
+    GET_ADDR_OF_OPENGL_FUNCTION(glEnable);
+    GET_ADDR_OF_OPENGL_FUNCTION(glDisable);
+    GET_ADDR_OF_OPENGL_FUNCTION(glBlendFunc);
 
     GET_ADDR_OF_OPENGL_FUNCTION(glGenBuffers);
     GET_ADDR_OF_OPENGL_FUNCTION(glGenVertexArrays);

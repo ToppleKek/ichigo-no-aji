@@ -171,7 +171,7 @@ void Ichigo::Internal::fill_sample_buffer(u8 *buffer, usize buffer_size, usize w
 - Catchup on anything not completed
 - Design a unit test system for the game
 - - Eg. ensure spawning entities always works, requesting a entity that was killed correctly rejects the request, etc.
-- Support controller input
+- ~~Support controller input~~
 - Draw backgrounds
 - https://www.dr-lex.be/info-stuff/volumecontrols.html#about
 ### Week 7
