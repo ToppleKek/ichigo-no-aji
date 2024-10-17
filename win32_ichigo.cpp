@@ -260,7 +260,7 @@ Ichigo::Internal::gamepad.ICHIGO_BTN.up              = !IS_DOWN(XINPUT_BTN);    
         SET_BUTTON_STATE(lb, XINPUT_GAMEPAD_LEFT_SHOULDER);
         SET_BUTTON_STATE(rb, XINPUT_GAMEPAD_RIGHT_SHOULDER);
 
-        SET_BUTTON_STATE(start, XINPUT_GAMEPAD_START);
+        SET_BUTTON_STATE(start,  XINPUT_GAMEPAD_START);
         SET_BUTTON_STATE(select, XINPUT_GAMEPAD_BACK);
 
         SET_BUTTON_STATE(stick_left_click,  XINPUT_GAMEPAD_LEFT_THUMB);
@@ -358,13 +358,13 @@ skip:
 static LRESULT window_proc(HWND window, u32 msg, WPARAM wparam, LPARAM lparam) {
     switch (msg) {
     case WM_ENTERSIZEMOVE: {
-        ICHIGO_INFO("WM_ENTERSIZEMOVE\n");
+        ICHIGO_INFO("WM_ENTERSIZEMOVE");
         Ichigo::Internal::platform_pause_audio();
         in_sizing_loop = true;
     } break;
 
     case WM_EXITSIZEMOVE: {
-        ICHIGO_INFO("WM_EXITSIZEMOVE\n");
+        ICHIGO_INFO("WM_EXITSIZEMOVE");
         Ichigo::Internal::platform_resume_audio();
         in_sizing_loop = false;
     } break;
@@ -374,13 +374,13 @@ static LRESULT window_proc(HWND window, u32 msg, WPARAM wparam, LPARAM lparam) {
     } break;
 
     case WM_DESTROY: {
-        ICHIGO_INFO("WM_DESTROY\n");
+        ICHIGO_INFO("WM_DESTROY");
         PostQuitMessage(0);
         return 0;
     } break;
 
     case WM_CLOSE: {
-        ICHIGO_INFO("WM_CLOSE\n");
+        ICHIGO_INFO("WM_CLOSE");
         PostQuitMessage(0);
         return 0;
     } break;

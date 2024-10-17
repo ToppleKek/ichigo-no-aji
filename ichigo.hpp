@@ -137,6 +137,7 @@ struct FrameData {
 
 struct GameState {
     Ichigo::EntityID player_entity_id;
+    Vec4<f32> background_colour;
     Util::Arena transient_storage_arena;
     Util::Arena permanent_storage_arena;
     FrameData this_frame_data;

@@ -162,6 +162,10 @@ inline bool rectangles_intersect(Rectangle rect1, Rectangle rect2) {
            ((rect1.pos.y > rect2.pos.y && rect1.pos.y < rect2.pos.y + rect2.h) || (rect2.pos.y > rect1.pos.y && rect2.pos.y < rect1.pos.y + rect1.h));
 }
 
+inline f32 pixels_to_metres(f32 pixels) {
+    return pixels / PIXELS_PER_METRE;
+}
+
 template<typename T>
 inline T dot(Vec2<T> lhs, Vec2<T> rhs) {
     return lhs.x * rhs.x + lhs.y * rhs.y;
