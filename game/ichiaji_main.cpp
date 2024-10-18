@@ -3,7 +3,7 @@
 EMBED("assets/test3.png", test_png_image)
 EMBED("assets/grass.png", grass_tile_png)
 EMBED("assets/enemy.png", enemy_png)
-EMBED("assets/music/song.mp3", test_song)
+EMBED("assets/music/yori.mp3", test_song)
 
 static Ichigo::TextureID player_texture_id = 0;
 static Ichigo::TextureID enemy_texture_id  = 0;

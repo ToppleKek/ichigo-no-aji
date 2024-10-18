@@ -136,8 +136,11 @@ struct Vec4 {
 };
 
 template<typename T>
-struct Mat4x4 {
-    T data[4][4];
+struct Mat4 {
+    Vec4<T> a;
+    Vec4<T> b;
+    Vec4<T> c;
+    Vec4<T> d;
 };
 
 struct Rectangle {
@@ -146,16 +149,38 @@ struct Rectangle {
     f32 h;
 };
 
-inline Mat4x4<f32> orthogonal_projection_matrix(f32 l, f32 r, f32 b, f32 t, f32 zn, f32 zf) {
-    Mat4x4<f32> ret;
-    ret.data[0][0] = 2 / (r - l);
-    ret.data[1][1] = 2 / (t - b);
-    ret.data[2][2] = 2 / (zf - zn);
-    ret.data[3][0] = -(r + l) / (r - l);
-    ret.data[3][1] = -(t + b) / (t - b);
-    ret.data[3][2] = - (zf + zn) / (zf - zn);
-    return ret;
+inline Mat4<f32> m4identity() {
+    return {
+        {1, 0, 0, 0},
+        {0, 1, 0, 0},
+        {0, 0, 1, 0},
+        {0, 0, 0, 1},
+    };
 }
+
+inline Mat4<f32> translate2d(Vec2<f32> t) {
+    return {
+        {1, 0, 0, t.x},
+        {0, 1, 0, t.y},
+        {0, 0, 1, 0},
+        {0, 0, 0, 1},
+    };
+}
+
+inline Vec2<f32> get_translation2d(Mat4<f32> m) {
+    return {m.a.w, m.b.w};
+}
+
+// inline Mat4<f32> orthogonal_projection_matrix(f32 l, f32 r, f32 b, f32 t, f32 zn, f32 zf) {
+//     Mat4<f32> ret;
+//     ret.a.x = 2 / (r - l);
+//     ret.b.y = 2 / (t - b);
+//     ret.c.z = 2 / (zf - zn);
+//     ret.d.x = -(r + l) / (r - l);
+//     ret.d.y = -(t + b) / (t - b);
+//     ret.d.z = - (zf + zn) / (zf - zn);
+//     return ret;
+// }
 
 inline bool rectangles_intersect(Rectangle rect1, Rectangle rect2) {
     return ((rect1.pos.x > rect2.pos.x && rect1.pos.x < rect2.pos.x + rect2.w) || (rect2.pos.x > rect1.pos.x && rect2.pos.x < rect1.pos.x + rect1.w)) &&

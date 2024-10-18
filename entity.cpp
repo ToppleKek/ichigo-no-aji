@@ -153,16 +153,27 @@ void Ichigo::move_entity_in_world(Ichigo::Entity *entity) {
             // 3: Epsilon error correction?
             // 4: Fix gravity velocity problem?
 
-            // We went with solution 2
+            // We went with solutions 1 and 2 and 3
             // TODO: This is also a problem where you can get 0.0000002 units into a wall. We can probably lose the last 2 digits of the float and still be happy.
         }
 
         Vec2<f32> final_delta{};
 #define D_EPSILON 0.0001
-        final_delta.x = std::fabsf(entity_delta.x * best_t) < D_EPSILON ? 0.0f : entity_delta.x * best_t;
-        final_delta.y = std::fabsf(entity_delta.y * best_t) < D_EPSILON ? 0.0f : entity_delta.y * best_t;
+        if (wall_normal.x == 1.0f) {
+            entity->col.pos.x = wall_position.x + 1.0f + D_EPSILON;
+        } else if (wall_normal.x == -1.0f) {
+            entity->col.pos.x = wall_position.x - entity->col.w - D_EPSILON;
+        } else if (wall_normal.y == 1.0f) {
+            entity->col.pos.y = wall_position.y + 1.0f + D_EPSILON;
+        } else if (wall_normal.y == -1.0f) {
+            entity->col.pos.y = wall_position.y - entity->col.h - D_EPSILON;
+        } else {
+            final_delta.x = std::fabsf(entity_delta.x * best_t) < D_EPSILON ? 0.0f : entity_delta.x * best_t;
+            final_delta.y = std::fabsf(entity_delta.y * best_t) < D_EPSILON ? 0.0f : entity_delta.y * best_t;
+            entity->col.pos += final_delta;
 #undef  D_EPSILON
-        entity->col.pos += final_delta;
+        }
+
         entity->velocity = entity->velocity - 1 * dot(entity->velocity, wall_normal) * wall_normal;
         entity_delta = entity_delta - 1 * dot(entity_delta, wall_normal) * wall_normal;
         t_remaining -= best_t * t_remaining;
