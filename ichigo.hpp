@@ -9,6 +9,8 @@
 #include "opengl.hpp"
 #include "math.hpp"
 
+#define ICHIGO_MAX_BACKGROUNDS 16
+
 namespace Ichigo {
 struct KeyState {
     bool down_this_frame;
@@ -129,6 +131,20 @@ struct DrawCommand {
     Vec4<u8> colour;
 };
 
+using BackgroundFlags = u32;
+
+enum BackgroundFlag {
+    BG_REPEAT_X = 1 << 0,
+    BG_REPEAT_Y = 1 << 1,
+};
+
+struct Background {
+    TextureID texture_id;
+    BackgroundFlags flags;
+    Vec2<f32> start_position;
+    Vec2<f32> scroll_speed;
+};
+
 struct FrameData {
     // Util::IchigoVector<DrawCommand> draw_commands;
     DrawCommand *draw_commands;
@@ -138,6 +154,7 @@ struct FrameData {
 struct GameState {
     Ichigo::EntityID player_entity_id;
     Vec4<f32> background_colour;
+    Background background_layers[ICHIGO_MAX_BACKGROUNDS];
     Util::Arena transient_storage_arena;
     Util::Arena permanent_storage_arena;
     FrameData this_frame_data;

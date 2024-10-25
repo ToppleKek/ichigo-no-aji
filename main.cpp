@@ -19,9 +19,7 @@ EMBED("shaders/opengl/vert.glsl", vertex_shader_source)
 EMBED("shaders/opengl/screenspace_vert.glsl", screenspace_vertex_shader_source)
 
 // DEBUG
-EMBED("assets/bg.png", test_bg)
 EMBED("assets/music/sound.mp3", test_sound)
-static Ichigo::TextureID test_bg_texture_id = 0;
 static Ichigo::AudioID test_sound_id = 0;
 // END DEBUG
 #define MAX_DRAW_COMMANDS 4096
@@ -195,7 +193,7 @@ void Ichigo::push_draw_command(DrawCommand draw_command) {
     ++Ichigo::game_state.this_frame_data.draw_command_count;
 }
 
-f32 calculate_background_start_x(f32 texture_width_in_metres, f32 scroll_speed) {
+f32 calculate_background_start_position(f32 camera_offset, f32 texture_width_in_metres, f32 scroll_speed) {
     // The start of the infinite looping background (in metres) is defined by:
     // begin_x = n*texture_width + offset * scroll_speed
     // And, let n be the "number of backgrounds already scrolled passed". For example, once the camera has scrolled passed one whole background,
@@ -206,7 +204,7 @@ f32 calculate_background_start_x(f32 texture_width_in_metres, f32 scroll_speed) 
     // The calculation for n is done by calculating how far the camera has to scroll to get passed one background tile.
     // This is the (texture_width_in_metres * (1 / scroll_speed)) part. If the background scrolls at half the speed of the camera (0.5f)
     // and the texture is 16.0f metres wide, then the camera must scroll 16 * (1/0.5) = 16 * 2 = 32 metres.
-    return ((u32) (Ichigo::Camera::offset.x / (texture_width_in_metres * (1 / scroll_speed)))) * texture_width_in_metres + Ichigo::Camera::offset.x * scroll_speed;
+    return ((u32) (camera_offset / (texture_width_in_metres * (1 / scroll_speed)))) * texture_width_in_metres + camera_offset * scroll_speed;
 }
 
 static void frame_render() {
@@ -223,13 +221,24 @@ static void frame_render() {
     screen_render_solid_colour_rect({{0.0f, 0.0f}, 1.0f, 1.0f}, Ichigo::game_state.background_colour);
 
     // Background
-    Ichigo::Texture &bg_texture = Ichigo::Internal::textures.at(test_bg_texture_id);
-    f32 width_metres = pixels_to_metres(bg_texture.width);
-    f32 beginning_of_first_texture_in_screen = calculate_background_start_x(width_metres, 0.5f);
-    f32 end_of_first_texture_in_screen = beginning_of_first_texture_in_screen + width_metres;
+    for (u32 i = 0; i < ICHIGO_MAX_BACKGROUNDS; ++i) {
+        if (Ichigo::game_state.background_layers[i].texture_id != 0) {
+            Ichigo::Background &bg = Ichigo::game_state.background_layers[i];
+            Ichigo::Texture &bg_texture = Ichigo::Internal::textures.at(Ichigo::game_state.background_layers[i].texture_id);
 
-    world_render_textured_rect({{beginning_of_first_texture_in_screen, 0.0f + Ichigo::Camera::offset.y * 0.6f}, width_metres, pixels_to_metres(bg_texture.height)}, test_bg_texture_id);
-    world_render_textured_rect({{end_of_first_texture_in_screen, 0.0f + Ichigo::Camera::offset.y * 0.6f}, width_metres, pixels_to_metres(bg_texture.height)}, test_bg_texture_id);
+            // TODO: BG_REPEAT_Y
+            if (FLAG_IS_SET(bg.flags, Ichigo::BG_REPEAT_X)) {
+                f32 width_metres = pixels_to_metres(bg_texture.width);
+                f32 beginning_of_first_texture_in_screen = bg.start_position.x + calculate_background_start_position(-get_translation2d(Ichigo::Camera::transform).x, width_metres, bg.scroll_speed.x);
+                f32 end_of_first_texture_in_screen = beginning_of_first_texture_in_screen + width_metres;
+
+                world_render_textured_rect({{beginning_of_first_texture_in_screen, bg.start_position.y + Ichigo::Camera::offset.y * bg.scroll_speed.y}, width_metres, pixels_to_metres(bg_texture.height)}, bg.texture_id);
+                world_render_textured_rect({{end_of_first_texture_in_screen, bg.start_position.y + Ichigo::Camera::offset.y * bg.scroll_speed.y}, width_metres, pixels_to_metres(bg_texture.height)}, bg.texture_id);
+            } else {
+                world_render_textured_rect({{bg.start_position.x, bg.start_position.y}, pixels_to_metres(bg_texture.width), pixels_to_metres(bg_texture.height)}, bg.texture_id);
+            }
+        }
+    }
 
     for (u32 row = (u32) Ichigo::Camera::offset.y; row < (u32) Ichigo::Camera::offset.y + SCREEN_TILE_HEIGHT + 1; ++row) {
         for (u32 col = (u32) Ichigo::Camera::offset.x; col < Ichigo::Camera::offset.x + SCREEN_TILE_WIDTH + 1; ++col) {
@@ -420,7 +429,7 @@ void Ichigo::Internal::do_frame() {
             ImGui::Text("rs: %f,%f", Ichigo::Internal::gamepad.stick_right.x, Ichigo::Internal::gamepad.stick_right.y);
         }
 
-        if (ImGui::CollapsingHeader("Background scroll", ImGuiTreeNodeFlags_DefaultOpen)) {
+        if (ImGui::CollapsingHeader("Camera", ImGuiTreeNodeFlags_DefaultOpen)) {
             ImGui::Text("Camera transform:\n%f %f %f %f\n%f %f %f %f\n%f %f %f %f\n%f %f %f %f",
                 Ichigo::Camera::transform.a.x, Ichigo::Camera::transform.a.y, Ichigo::Camera::transform.a.z, Ichigo::Camera::transform.a.w,
                 Ichigo::Camera::transform.b.x, Ichigo::Camera::transform.b.y, Ichigo::Camera::transform.b.z, Ichigo::Camera::transform.b.w,
@@ -428,8 +437,6 @@ void Ichigo::Internal::do_frame() {
                 Ichigo::Camera::transform.d.x, Ichigo::Camera::transform.d.y, Ichigo::Camera::transform.d.z, Ichigo::Camera::transform.d.w
             );
             ImGui::Text("Camera offset x: %f", Ichigo::Camera::offset.x);
-            ImGui::Text("Guessed start index: %d", (u32) (Ichigo::Camera::offset.x / 32.0f));
-            ImGui::Text("Calculated x position: %f", calculate_background_start_x(16.0f, 0.5f));
         }
 
         // ImGui::Checkbox("Wireframe", &do_wireframe);
@@ -620,7 +627,6 @@ void Ichigo::Internal::init() {
 
     // DEBUG
     test_sound_id = Ichigo::load_audio(test_sound, test_sound_len);
-    test_bg_texture_id = Ichigo::load_texture(test_bg, test_bg_len);
     // END DEBUG
 }
 

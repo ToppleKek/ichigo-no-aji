@@ -3,12 +3,14 @@
 EMBED("assets/test3.png", test_png_image)
 EMBED("assets/grass.png", grass_tile_png)
 EMBED("assets/enemy.png", enemy_png)
+EMBED("assets/bg.png", test_bg)
 EMBED("assets/music/yori.mp3", test_song)
 
-static Ichigo::TextureID player_texture_id = 0;
-static Ichigo::TextureID enemy_texture_id  = 0;
-static Ichigo::TextureID grass_texture_id  = 0;
-static Ichigo::AudioID   test_music_id     = 0;
+static Ichigo::TextureID player_texture_id  = 0;
+static Ichigo::TextureID enemy_texture_id   = 0;
+static Ichigo::TextureID grass_texture_id   = 0;
+static Ichigo::TextureID test_bg_texture_id = 0;
+static Ichigo::AudioID   test_music_id      = 0;
 
 
 #define TILEMAP_WIDTH SCREEN_TILE_WIDTH * 4
@@ -42,11 +44,17 @@ static void entity_collide_proc(Ichigo::Entity *entity, Ichigo::Entity *other_en
 }
 
 void Ichigo::Game::init() {
+    test_bg_texture_id = Ichigo::load_texture(test_bg, test_bg_len);
+    player_texture_id  = Ichigo::load_texture(test_png_image, test_png_image_len);
+    enemy_texture_id   = Ichigo::load_texture(enemy_png, enemy_png_len);
+    grass_texture_id   = Ichigo::load_texture(grass_tile_png, grass_tile_png_len);
+    test_music_id      = Ichigo::load_audio(test_song, test_song_len);
+
     Ichigo::game_state.background_colour = {0.54f, 0.84f, 1.0f, 1.0f};
-    player_texture_id = Ichigo::load_texture(test_png_image, test_png_image_len);
-    enemy_texture_id  = Ichigo::load_texture(enemy_png, enemy_png_len);
-    grass_texture_id  = Ichigo::load_texture(grass_tile_png, grass_tile_png_len);
-    test_music_id     = Ichigo::load_audio(test_song, test_song_len);
+    Ichigo::game_state.background_layers[0].texture_id     = test_bg_texture_id;
+    Ichigo::game_state.background_layers[0].flags          = Ichigo::BG_REPEAT_X;
+    Ichigo::game_state.background_layers[0].start_position = {0.0f, 0.0f};
+    Ichigo::game_state.background_layers[0].scroll_speed   = {0.5f, 0.6f};
 
     tile_texture_map[1] = grass_texture_id;
 
