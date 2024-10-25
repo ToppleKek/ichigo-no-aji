@@ -172,9 +172,9 @@ void Ichigo::Internal::fill_sample_buffer(u8 *buffer, usize buffer_size, usize w
 - Design a unit test system for the game
 - - Eg. ensure spawning entities always works, requesting a entity that was killed correctly rejects the request, etc.
 - ~~Support controller input~~
-- Draw backgrounds
+- ~~Draw backgrounds~~
 ### Week 7
-- Literature review
+- ~~Literature review~~
 - - https://www.dr-lex.be/info-stuff/volumecontrols.html#about
 - - https://dl.acm.org/doi/pdf/10.1145/971564.971590
 - Text rendering with stb_truetype
@@ -185,9 +185,10 @@ void Ichigo::Internal::fill_sample_buffer(u8 *buffer, usize buffer_size, usize w
 - - The hpp file will have the embed directives for embedding the tilemap files (The direct embedding approach, thinking about this still), a struct containing all of the names of the textures you imported (all are fields of type Ichigo::TextureID), and a function to load all the textures.
 ### Week 8
 - More tilemap editor work
-- Catchup, Start seriously putting together a report (I just have a bunch of notes at this point probably)
+- ~~Main goal and rationale~~
 - Quite busy this week, might not get much done
 ### Week 9
+- More tilemap editor work
 - Start thinking about localization support
 - - String tables
 - Try to support ruby characters? (furigana)

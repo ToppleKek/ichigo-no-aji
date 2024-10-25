@@ -439,6 +439,12 @@ void Ichigo::Internal::do_frame() {
             ImGui::Text("Camera offset x: %f", Ichigo::Camera::offset.x);
         }
 
+        if (ImGui::CollapsingHeader("Mouse", ImGuiTreeNodeFlags_DefaultOpen)) {
+            ImGui::Text("Position: %u,%u", Ichigo::Internal::mouse.pos.x, Ichigo::Internal::mouse.pos.y);
+            ImGui::Text("Left button: %u Middle button: %u Right Button: %u", Ichigo::Internal::mouse.left_button.down, Ichigo::Internal::mouse.middle_button.down, Ichigo::Internal::mouse.right_button.down);
+            ImGui::Text("Button 4: %u Button 5: %u", Ichigo::Internal::mouse.button4.down, Ichigo::Internal::mouse.button5.down);
+        }
+
         // ImGui::Checkbox("Wireframe", &do_wireframe);
 
         ImGui::End();

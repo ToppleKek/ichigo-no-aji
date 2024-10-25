@@ -21,11 +21,6 @@ struct KeyState {
 
 enum Keycode {
     IK_UNKNOWN,
-    IK_MOUSE_1,
-    IK_MOUSE_2,
-    IK_MOUSE_3,
-    IK_MOUSE_4,
-    IK_MOUSE_5,
     IK_BACKSPACE,
     IK_TAB,
     IK_ENTER,
@@ -120,6 +115,16 @@ struct Gamepad {
     Vec2<f32> stick_right;
 };
 
+struct Mouse {
+    Vec2<i32> pos;
+
+    KeyState left_button;
+    KeyState middle_button;
+    KeyState right_button;
+    KeyState button4;
+    KeyState button5;
+};
+
 
 enum DrawCommandType {
     SOLID_COLOUR_RECT
@@ -187,6 +192,7 @@ extern u32 current_tilemap_height;
 extern f32 dt;
 extern Ichigo::KeyState keyboard_state[Ichigo::Keycode::IK_ENUM_COUNT];
 extern Gamepad gamepad;
+extern Mouse mouse;
 
 void init();
 void do_frame();

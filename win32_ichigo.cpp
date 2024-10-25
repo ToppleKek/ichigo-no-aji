@@ -5,6 +5,7 @@
 
 #define UNICODE
 #include <windows.h>
+#include <windowsx.h>
 #include <dsound.h>
 #include <xinput.h>
 
@@ -16,8 +17,9 @@
 u32 Ichigo::Internal::window_width = 1920;
 u32 Ichigo::Internal::window_height = 1080;
 OpenGL Ichigo::Internal::gl{};
-Ichigo::KeyState Ichigo::Internal::keyboard_state[Ichigo::Keycode::IK_ENUM_COUNT] = {};
-Ichigo::Gamepad Ichigo::Internal::gamepad = {};
+Ichigo::KeyState Ichigo::Internal::keyboard_state[Ichigo::Keycode::IK_ENUM_COUNT]{};
+Ichigo::Gamepad Ichigo::Internal::gamepad{};
+Ichigo::Mouse Ichigo::Internal::mouse{};
 f32 Ichigo::Internal::dt = 0.0f;
 f32 Ichigo::Internal::dpi_scale = 0.0f;
 
@@ -25,8 +27,11 @@ static LPDIRECTSOUND8 direct_sound;
 static IDirectSoundBuffer8 *secondary_dsound_buffer = nullptr;
 static u8 audio_samples[AUDIO_SAMPLES_BUFFER_SIZE]{};
 static i64 last_write_cursor_position = -1;
+static bool is_buffer_playing = false;
+
 static i64 performance_frequency;
 static f64 last_frame_time;
+
 static HWND window_handle;
 static HDC hdc;
 static HGLRC wgl_context;
@@ -389,6 +394,70 @@ static LRESULT window_proc(HWND window, u32 msg, WPARAM wparam, LPARAM lparam) {
         return 0;
     } break;
 
+#define SET_MOUSE_BTN_DOWN(BTN)                      \
+{                                                    \
+Ichigo::Internal::mouse.BTN.down_this_frame = true;  \
+Ichigo::Internal::mouse.BTN.down            = true;  \
+Ichigo::Internal::mouse.BTN.up              = false; \
+Ichigo::Internal::mouse.BTN.up_this_frame   = false; \
+}
+
+#define SET_MOUSE_BTN_UP(BTN)                        \
+{                                                    \
+Ichigo::Internal::mouse.BTN.down_this_frame = false; \
+Ichigo::Internal::mouse.BTN.down            = false; \
+Ichigo::Internal::mouse.BTN.up              = true;  \
+Ichigo::Internal::mouse.BTN.up_this_frame   = true;  \
+}
+
+    case WM_MOUSEMOVE: {
+        Ichigo::Internal::mouse.pos.x = GET_X_LPARAM(lparam);
+        Ichigo::Internal::mouse.pos.y = GET_Y_LPARAM(lparam);
+        return 0;
+    } break;
+
+    case WM_LBUTTONDOWN: {
+        SET_MOUSE_BTN_DOWN(left_button);
+    } break;
+
+    case WM_RBUTTONDOWN: {
+        SET_MOUSE_BTN_DOWN(right_button);
+    } break;
+
+    case WM_MBUTTONDOWN: {
+        SET_MOUSE_BTN_DOWN(middle_button);
+    } break;
+
+    case WM_XBUTTONDOWN: {
+        if (wparam & MK_XBUTTON1)
+            SET_MOUSE_BTN_DOWN(button4);
+
+        if (wparam & MK_XBUTTON2)
+            SET_MOUSE_BTN_DOWN(button5);
+    } break;
+
+    case WM_LBUTTONUP: {
+        SET_MOUSE_BTN_UP(left_button);
+    } break;
+
+    case WM_RBUTTONUP: {
+        SET_MOUSE_BTN_UP(right_button);
+    } break;
+
+    case WM_MBUTTONUP: {
+        SET_MOUSE_BTN_UP(middle_button);
+    } break;
+
+    case WM_XBUTTONUP: {
+        if (!(wparam & MK_XBUTTON1))
+            SET_MOUSE_BTN_UP(button4);
+
+        if (!(wparam & MK_XBUTTON2))
+            SET_MOUSE_BTN_UP(button5);
+    } break;
+
+#undef SET_MOUSE_BTN_DOWN
+#undef SET_MOUSE_BTN_UP
     case WM_KEYDOWN:
     case WM_KEYUP: {
         u32 vk_code = (u32) wparam;
@@ -396,13 +465,27 @@ static LRESULT window_proc(HWND window, u32 msg, WPARAM wparam, LPARAM lparam) {
         bool is_down  = ((lparam & (1 << 31)) == 0);
         // ICHIGO_INFO("VK input: %u was_down: %u is_down %u", vk_code, was_down, is_down);
 
-#define SET_KEY_STATE(IK_KEY) {Ichigo::Internal::keyboard_state[IK_KEY].down = is_down; Ichigo::Internal::keyboard_state[IK_KEY].up = !is_down; Ichigo::Internal::keyboard_state[IK_KEY].down_this_frame = is_down && !was_down; Ichigo::Internal::keyboard_state[IK_KEY].up_this_frame = !is_down && was_down;}
+#define SET_KEY_STATE(IK_KEY)                                                    \
+{                                                                                \
+Ichigo::Internal::keyboard_state[IK_KEY].down = is_down;                         \
+Ichigo::Internal::keyboard_state[IK_KEY].up = !is_down;                          \
+Ichigo::Internal::keyboard_state[IK_KEY].down_this_frame = is_down && !was_down; \
+Ichigo::Internal::keyboard_state[IK_KEY].up_this_frame = !is_down && was_down;   \
+}
+#define SET_MOUSE_BTN_STATE(MOUSE_BUTTON)                                    \
+{                                                                            \
+Ichigo::Internal::mouse.MOUSE_BUTTON.down = is_down;                         \
+Ichigo::Internal::mouse.MOUSE_BUTTON.up = !is_down;                          \
+Ichigo::Internal::mouse.MOUSE_BUTTON.down_this_frame = is_down && !was_down; \
+Ichigo::Internal::mouse.MOUSE_BUTTON.up_this_frame = !is_down && was_down;   \
+}
+
         switch (vk_code) {
-            case VK_LBUTTON:  SET_KEY_STATE(Ichigo::IK_MOUSE_1);       break;
-            case VK_RBUTTON:  SET_KEY_STATE(Ichigo::IK_MOUSE_2);       break;
-            case VK_MBUTTON:  SET_KEY_STATE(Ichigo::IK_MOUSE_3);       break;
-            case VK_XBUTTON1: SET_KEY_STATE(Ichigo::IK_MOUSE_4);       break;
-            case VK_XBUTTON2: SET_KEY_STATE(Ichigo::IK_MOUSE_5);       break;
+            case VK_LBUTTON:  SET_MOUSE_BTN_STATE(left_button);        break;
+            case VK_RBUTTON:  SET_MOUSE_BTN_STATE(right_button);       break;
+            case VK_MBUTTON:  SET_MOUSE_BTN_STATE(middle_button);      break;
+            case VK_XBUTTON1: SET_MOUSE_BTN_STATE(button4);            break;
+            case VK_XBUTTON2: SET_MOUSE_BTN_STATE(button5);            break;
             case VK_BACK:     SET_KEY_STATE(Ichigo::IK_BACKSPACE);     break;
             case VK_TAB:      SET_KEY_STATE(Ichigo::IK_TAB);           break;
             case VK_RETURN:   SET_KEY_STATE(Ichigo::IK_ENTER);         break;
@@ -430,6 +513,7 @@ static LRESULT window_proc(HWND window, u32 msg, WPARAM wparam, LPARAM lparam) {
             SET_KEY_STATE(vk_code);
 
 #undef SET_KEY_STATE
+#undef SET_MOUSE_BTN_STATE
     } break;
 
     case WM_PAINT: {
@@ -647,6 +731,20 @@ assert(Ichigo::Internal::gl.FUNC_NAME != nullptr);                              
             Ichigo::Internal::keyboard_state[i].down_this_frame = false;
             Ichigo::Internal::keyboard_state[i].up_this_frame   = false;
         }
+
+#define RESET_MOUSE_BTN_STATE(BTN)                   \
+{                                                    \
+Ichigo::Internal::mouse.BTN.down_this_frame = false; \
+Ichigo::Internal::mouse.BTN.up_this_frame   = false; \
+}
+
+        RESET_MOUSE_BTN_STATE(left_button);
+        RESET_MOUSE_BTN_STATE(right_button);
+        RESET_MOUSE_BTN_STATE(middle_button);
+        RESET_MOUSE_BTN_STATE(button4);
+        RESET_MOUSE_BTN_STATE(button5);
+
+#undef RESET_MOUSE_BTN_STATE
 
         MSG message;
         while (PeekMessageA(&message, nullptr, 0, 0, PM_REMOVE)) {
