@@ -76,6 +76,8 @@ void Ichigo::Game::init() {
     player->collide_proc      = entity_collide_proc;
 
     Ichigo::game_state.player_entity_id = player->id;
+
+    Ichigo::Camera::mode = Ichigo::Camera::Mode::FOLLOW;
     Ichigo::Camera::follow(player->id);
 
     Ichigo::Entity *enemy = Ichigo::spawn_entity();

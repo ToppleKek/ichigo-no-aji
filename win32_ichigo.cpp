@@ -466,12 +466,12 @@ Ichigo::Internal::mouse.BTN.up_this_frame   = true;  \
         // ICHIGO_INFO("VK input: %u was_down: %u is_down %u", vk_code, was_down, is_down);
 
 #define SET_KEY_STATE(IK_KEY)                                                    \
-{                                                                                \
+do {                                                                             \
 Ichigo::Internal::keyboard_state[IK_KEY].down = is_down;                         \
 Ichigo::Internal::keyboard_state[IK_KEY].up = !is_down;                          \
 Ichigo::Internal::keyboard_state[IK_KEY].down_this_frame = is_down && !was_down; \
 Ichigo::Internal::keyboard_state[IK_KEY].up_this_frame = !is_down && was_down;   \
-}
+} while (0)
 #define SET_MOUSE_BTN_STATE(MOUSE_BUTTON)                                    \
 {                                                                            \
 Ichigo::Internal::mouse.MOUSE_BUTTON.down = is_down;                         \
@@ -479,7 +479,6 @@ Ichigo::Internal::mouse.MOUSE_BUTTON.up = !is_down;                          \
 Ichigo::Internal::mouse.MOUSE_BUTTON.down_this_frame = is_down && !was_down; \
 Ichigo::Internal::mouse.MOUSE_BUTTON.up_this_frame = !is_down && was_down;   \
 }
-
         switch (vk_code) {
             case VK_LBUTTON:  SET_MOUSE_BTN_STATE(left_button);        break;
             case VK_RBUTTON:  SET_MOUSE_BTN_STATE(right_button);       break;
@@ -489,10 +488,6 @@ Ichigo::Internal::mouse.MOUSE_BUTTON.up_this_frame = !is_down && was_down;   \
             case VK_BACK:     SET_KEY_STATE(Ichigo::IK_BACKSPACE);     break;
             case VK_TAB:      SET_KEY_STATE(Ichigo::IK_TAB);           break;
             case VK_RETURN:   SET_KEY_STATE(Ichigo::IK_ENTER);         break;
-            case VK_LSHIFT:   SET_KEY_STATE(Ichigo::IK_LEFT_SHIFT);    break;
-            case VK_LCONTROL: SET_KEY_STATE(Ichigo::IK_LEFT_CONTROL);  break;
-            case VK_RSHIFT:   SET_KEY_STATE(Ichigo::IK_RIGHT_SHIFT);   break;
-            case VK_RCONTROL: SET_KEY_STATE(Ichigo::IK_RIGHT_CONTROL); break;
             case VK_MENU:     SET_KEY_STATE(Ichigo::IK_ALT);           break;
             case VK_ESCAPE:   SET_KEY_STATE(Ichigo::IK_ESCAPE);        break;
             case VK_SPACE:    SET_KEY_STATE(Ichigo::IK_SPACE);         break;
@@ -507,6 +502,27 @@ Ichigo::Internal::mouse.MOUSE_BUTTON.up_this_frame = !is_down && was_down;   \
             case VK_SNAPSHOT: SET_KEY_STATE(Ichigo::IK_PRINT_SCREEN);  break;
             case VK_INSERT:   SET_KEY_STATE(Ichigo::IK_INSERT);        break;
             case VK_DELETE:   SET_KEY_STATE(Ichigo::IK_DELETE);        break;
+            case VK_F1:       SET_KEY_STATE(Ichigo::IK_F1);            break;
+            case VK_F2:       SET_KEY_STATE(Ichigo::IK_F2);            break;
+            case VK_F3:       SET_KEY_STATE(Ichigo::IK_F3);            break;
+            case VK_F4:       SET_KEY_STATE(Ichigo::IK_F4);            break;
+            case VK_F5:       SET_KEY_STATE(Ichigo::IK_F5);            break;
+            case VK_F6:       SET_KEY_STATE(Ichigo::IK_F6);            break;
+            case VK_F7:       SET_KEY_STATE(Ichigo::IK_F7);            break;
+            case VK_F8:       SET_KEY_STATE(Ichigo::IK_F8);            break;
+            case VK_F9:       SET_KEY_STATE(Ichigo::IK_F9);            break;
+            case VK_F10:      SET_KEY_STATE(Ichigo::IK_F10);           break;
+            case VK_F11:      SET_KEY_STATE(Ichigo::IK_F11);           break;
+            case VK_F12:      SET_KEY_STATE(Ichigo::IK_F12);           break;
+
+            case VK_SHIFT: {
+                if (lparam & (1 << 24)) SET_KEY_STATE(Ichigo::IK_RIGHT_SHIFT);
+                else                    SET_KEY_STATE(Ichigo::IK_LEFT_SHIFT);
+            } break;
+            case VK_CONTROL: {
+                if (lparam & (1 << 24)) SET_KEY_STATE(Ichigo::IK_RIGHT_CONTROL);
+                else                    SET_KEY_STATE(Ichigo::IK_LEFT_CONTROL);
+            } break;
         }
 
         if ((vk_code >= '0' && vk_code <= '9') || (vk_code >= 'A' && vk_code <= 'Z'))

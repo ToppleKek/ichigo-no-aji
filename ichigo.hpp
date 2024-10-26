@@ -42,6 +42,18 @@ enum Keycode {
     IK_PRINT_SCREEN,
     IK_INSERT,
     IK_DELETE,
+    IK_F1,
+    IK_F2,
+    IK_F3,
+    IK_F4,
+    IK_F5,
+    IK_F6,
+    IK_F7,
+    IK_F8,
+    IK_F9,
+    IK_F10,
+    IK_F11,
+    IK_F12,
 
     IK_0 = '0',
     IK_1,
@@ -193,6 +205,11 @@ extern f32 dt;
 extern Ichigo::KeyState keyboard_state[Ichigo::Keycode::IK_ENUM_COUNT];
 extern Gamepad gamepad;
 extern Mouse mouse;
+
+enum ProgramMode {
+    GAME,
+    EDITOR,
+};
 
 void init();
 void do_frame();
