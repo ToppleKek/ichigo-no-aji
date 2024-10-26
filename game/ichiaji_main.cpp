@@ -107,7 +107,7 @@ void Ichigo::Game::update_and_render() {
     Ichigo::DrawCommand test_draw_command;
     test_draw_command.type   = Ichigo::DrawCommandType::SOLID_COLOUR_RECT;
     test_draw_command.rect   = {{0.5f, 0.0f}, 0.1f, 0.1f};
-    test_draw_command.colour = {123, 43, 76, 255};
+    test_draw_command.colour = {0.2f, 0.3f, 0.5f, 1.0f};
     Ichigo::push_draw_command(test_draw_command);
 
     // ICHIGO_INFO("A button state: %d %d %d %d", Ichigo::Internal::gamepad.a.down, Ichigo::Internal::gamepad.a.up, Ichigo::Internal::gamepad.a.down_this_frame, Ichigo::Internal::gamepad.a.up_this_frame);

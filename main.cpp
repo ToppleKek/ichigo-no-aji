@@ -36,24 +36,23 @@ static ShaderProgram solid_colour_shader_program;
 static GLuint screenspace_solid_colour_rect_program;
 static GLuint screenspace_texture_rect_program;
 
-static u32 last_window_height;
-static u32 last_window_width;
-static u32 aspect_fit_width  = 0;
-static u32 aspect_fit_height = 0;
-static u16 *current_tilemap = nullptr;
+static u32 last_window_height                      = 0;
+static u32 last_window_width                       = 0;
+static u16 *current_tilemap                        = nullptr;
 static Ichigo::TextureID *current_tile_texture_map = nullptr;
-
+static Ichigo::Internal::ProgramMode program_mode  = Ichigo::Internal::ProgramMode::GAME;
 static Ichigo::TextureID invalid_tile_texture_id;
 
-static Ichigo::Internal::ProgramMode program_mode = Ichigo::Internal::ProgramMode::GAME;
+bool Ichigo::Internal::must_rebuild_swapchain = false;
+Ichigo::GameState Ichigo::game_state          = {};
+u32 Ichigo::Internal::current_tilemap_width   = 0;
+u32 Ichigo::Internal::current_tilemap_height  = 0;
+f32 Ichigo::Internal::target_frame_time       = 0.016f;
+u32 Ichigo::Internal::viewport_width          = 0;
+u32 Ichigo::Internal::viewport_height         = 0;
+Vec2<u32> Ichigo::Internal::viewport_origin   = {};
 
 static char string_buffer[1024];
-
-bool Ichigo::Internal::must_rebuild_swapchain = false;
-Ichigo::GameState Ichigo::game_state = {};
-u32 Ichigo::Internal::current_tilemap_width  = 0;
-u32 Ichigo::Internal::current_tilemap_height = 0;
-f32 Ichigo::Internal::target_frame_time = 0.016f;
 
 struct TexturedVertex {
     Vec3<f32> pos;
@@ -128,11 +127,11 @@ static void world_render_textured_rect(Rectangle rect, Ichigo::TextureID texture
 
 static void world_render_solid_colour_rect(Rectangle rect, Vec4<f32> colour) {
     Vec2<f32> draw_pos = { rect.pos.x, rect.pos.y };
-    TexturedVertex vertices[] = {
-        {{draw_pos.x, draw_pos.y, 0.0f}, {0.0f, 1.0f}},  // top left
-        {{draw_pos.x + rect.w, draw_pos.y, 0.0f}, {1.0f, 1.0f}}, // top right
-        {{draw_pos.x, draw_pos.y + rect.h, 0.0f}, {0.0f, 0.0f}}, // bottom left
-        {{draw_pos.x + rect.w, draw_pos.y + rect.h, 0.0f}, {1.0f, 0.0f}}, // bottom right
+    Vertex vertices[] = {
+        {draw_pos.x, draw_pos.y, 0.0f},  // top left
+        {draw_pos.x + rect.w, draw_pos.y, 0.0f}, // top right
+        {draw_pos.x, draw_pos.y + rect.h, 0.0f}, // bottom left
+        {draw_pos.x + rect.w, draw_pos.y + rect.h, 0.0f}, // bottom right
     };
 
     Ichigo::Internal::gl.glBindBuffer(GL_ARRAY_BUFFER, draw_data_solid_colour.vertex_buffer_id);
@@ -242,7 +241,7 @@ static void frame_render() {
     if (imgui_draw_data->DisplaySize.x <= 0.0f || imgui_draw_data->DisplaySize.y <= 0.0f)
         return;
 
-    Ichigo::Internal::gl.glViewport((Ichigo::Internal::window_width - aspect_fit_width) / 2, (Ichigo::Internal::window_height - aspect_fit_height) / 2, aspect_fit_width, aspect_fit_height);
+    Ichigo::Internal::gl.glViewport(Ichigo::Internal::viewport_origin.x, Ichigo::Internal::viewport_origin.y, Ichigo::Internal::viewport_width, Ichigo::Internal::viewport_height);
     Ichigo::Internal::gl.glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     Ichigo::Internal::gl.glClear(GL_COLOR_BUFFER_BIT);
 
@@ -261,10 +260,28 @@ static void frame_render() {
                 f32 beginning_of_first_texture_in_screen = bg.start_position.x + calculate_background_start_position(-get_translation2d(Ichigo::Camera::transform).x, width_metres, bg.scroll_speed.x);
                 f32 end_of_first_texture_in_screen = beginning_of_first_texture_in_screen + width_metres;
 
-                world_render_textured_rect({{beginning_of_first_texture_in_screen, bg.start_position.y + Ichigo::Camera::offset.y * bg.scroll_speed.y}, width_metres, pixels_to_metres(bg_texture.height)}, bg.texture_id);
-                world_render_textured_rect({{end_of_first_texture_in_screen, bg.start_position.y + Ichigo::Camera::offset.y * bg.scroll_speed.y}, width_metres, pixels_to_metres(bg_texture.height)}, bg.texture_id);
+                world_render_textured_rect(
+                    {
+                        {beginning_of_first_texture_in_screen, bg.start_position.y + Ichigo::Camera::offset.y * bg.scroll_speed.y},
+                        width_metres, pixels_to_metres(bg_texture.height)
+                    },
+                    bg.texture_id
+                );
+                world_render_textured_rect(
+                    {
+                        {end_of_first_texture_in_screen, bg.start_position.y + Ichigo::Camera::offset.y * bg.scroll_speed.y},
+                        width_metres, pixels_to_metres(bg_texture.height)
+                    },
+                    bg.texture_id
+                );
             } else {
-                world_render_textured_rect({{bg.start_position.x, bg.start_position.y}, pixels_to_metres(bg_texture.width), pixels_to_metres(bg_texture.height)}, bg.texture_id);
+                world_render_textured_rect(
+                    {
+                        {bg.start_position.x, bg.start_position.y},
+                        pixels_to_metres(bg_texture.width), pixels_to_metres(bg_texture.height)
+                    },
+                    bg.texture_id
+                );
             }
         }
     }
@@ -273,6 +290,26 @@ static void frame_render() {
         for (i64 col = (i64) Ichigo::Camera::offset.x; col < Ichigo::Camera::offset.x + SCREEN_TILE_WIDTH + 1; ++col) {
             render_tile({(u32) clamp(col, (i64) 0, (i64) UINT32_MAX), (u32) clamp(row, (i64) 0, (i64) UINT32_MAX)});
         }
+    }
+
+    if (Ichigo::Camera::offset.x < 0.0f) {
+        world_render_solid_colour_rect(
+            {
+                {Ichigo::Camera::offset.x, Ichigo::Camera::offset.y},
+                std::fabsf(Ichigo::Camera::offset.x), SCREEN_TILE_HEIGHT
+            },
+            {0.0f, 0.0f, 0.0f, 0.5f}
+        );
+    }
+
+    if (Ichigo::Camera::offset.y < 0.0f) {
+        world_render_solid_colour_rect(
+            {
+                {Ichigo::Camera::offset.x < 0.0f ? 0.0f : Ichigo::Camera::offset.x, Ichigo::Camera::offset.y},
+                SCREEN_TILE_WIDTH, std::fabsf(Ichigo::Camera::offset.y)
+            },
+            {0.0f, 0.0f, 0.0f, 0.5f}
+        );
     }
 
     for (u32 i = 1; i < Ichigo::Internal::entities.size; ++i) {
@@ -297,7 +334,7 @@ static void frame_render() {
         Ichigo::DrawCommand &cmd = Ichigo::game_state.this_frame_data.draw_commands[i];
         switch (cmd.type) {
             case Ichigo::DrawCommandType::SOLID_COLOUR_RECT: {
-                // ICHIGO_INFO("TODO: Implement SOLID_COLOUR_RECT draw command!");
+                world_render_solid_colour_rect(cmd.rect, cmd.colour);
             } break;
             default: {
                 ICHIGO_ERROR("Invalid draw command type: %u", cmd.type);
@@ -322,14 +359,19 @@ void Ichigo::Internal::do_frame() {
     Ichigo::Game::frame_begin();
 
     if (Ichigo::Internal::window_height != last_window_height || Ichigo::Internal::window_width != last_window_width) {
-        last_window_height = Ichigo::Internal::window_height;
-        last_window_width  = Ichigo::Internal::window_width;
-        u32 height_factor  = Ichigo::Internal::window_height / 9;
-        u32 width_factor   = Ichigo::Internal::window_width  / 16;
-        aspect_fit_height  = MIN(height_factor, width_factor) * 9;
-        aspect_fit_width   = MIN(height_factor, width_factor) * 16;
+        last_window_height                 = Ichigo::Internal::window_height;
+        last_window_width                  = Ichigo::Internal::window_width;
+        u32 height_factor                  = Ichigo::Internal::window_height / 9;
+        u32 width_factor                   = Ichigo::Internal::window_width  / 16;
+        Ichigo::Internal::viewport_height  = MIN(height_factor, width_factor) * 9;
+        Ichigo::Internal::viewport_width   = MIN(height_factor, width_factor) * 16;
 
-        ICHIGO_INFO("Window resize to: %ux%u Aspect fix to: %ux%u", Ichigo::Internal::window_width, Ichigo::Internal::window_height, aspect_fit_width, aspect_fit_height);
+        Ichigo::Internal::viewport_origin = {
+            (Ichigo::Internal::window_width - Ichigo::Internal::viewport_width) / 2,
+            (Ichigo::Internal::window_height - Ichigo::Internal::viewport_height) / 2
+        };
+
+        ICHIGO_INFO("Window resize to: %ux%u Aspect fix to: %ux%u", Ichigo::Internal::window_width, Ichigo::Internal::window_height, Ichigo::Internal::viewport_width, Ichigo::Internal::viewport_height);
     }
 
     if (dpi_scale != scale) {
@@ -365,7 +407,7 @@ void Ichigo::Internal::do_frame() {
             // ImGui::SeparatorText("Performance");
             ImGui::Text("FPS: %f", ImGui::GetIO().Framerate);
             ImGui::SliderFloat("Target SPF", &Ichigo::Internal::target_frame_time, 0.0f, 0.1f, "%fs");
-            ImGui::Text("Resolution: %ux%u (%ux%u)", window_width, window_height, aspect_fit_width, aspect_fit_height);
+            ImGui::Text("Resolution: %ux%u (%ux%u)", window_width, window_height, Ichigo::Internal::viewport_width, Ichigo::Internal::viewport_height);
 
             if (ImGui::Button("120fps"))
                 Ichigo::Internal::target_frame_time = 0.0083f;

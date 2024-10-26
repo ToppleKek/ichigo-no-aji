@@ -135,6 +135,33 @@ struct Vec4 {
     };
 };
 
+template<typename T, typename U>
+inline Vec2<T> vector_cast(const Vec2<U> &v) {
+    return {
+        (T) v.x,
+        (T) v.y,
+    };
+}
+
+template<typename T, typename U>
+inline Vec3<T> vector_cast(const Vec3<U> &v) {
+    return {
+        (T) v.x,
+        (T) v.y,
+        (T) v.z,
+    };
+}
+
+template<typename T, typename U>
+inline Vec4<T> vector_cast(const Vec4<U> &v) {
+    return {
+        (T) v.x,
+        (T) v.y,
+        (T) v.z,
+        (T) v.w,
+    };
+}
+
 template<typename T>
 struct Mat4 {
     Vec4<T> a;

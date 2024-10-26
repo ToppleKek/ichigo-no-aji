@@ -145,7 +145,7 @@ enum DrawCommandType {
 struct DrawCommand {
     DrawCommandType type;
     Rectangle rect;
-    Vec4<u8> colour;
+    Vec4<f32> colour;
 };
 
 using BackgroundFlags = u32;
@@ -195,6 +195,9 @@ extern OpenGL gl;
 extern bool must_rebuild_swapchain;
 extern u32 window_width;
 extern u32 window_height;
+extern u32 viewport_width;
+extern u32 viewport_height;
+extern Vec2<u32> viewport_origin;
 extern f32 target_frame_time;
 extern f32 dpi_scale;
 extern u32 current_tilemap_width;
