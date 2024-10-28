@@ -189,9 +189,11 @@ i32 main() {
             Ichigo::Internal::mouse.MOUSE_BUTTON.up_this_frame   = !(mouse_button_state & SDL_BUTTON(SDL_BUTTON_CODE)) && Ichigo::Internal::mouse.MOUSE_BUTTON.down;   \
         } while (0)
 
-        SET_MOUSE_BTN_STATE(left_button, 1);
-        SET_MOUSE_BTN_STATE(middle_button, 2);
-        SET_MOUSE_BTN_STATE(right_button, 3);
+        if (!ImGui::GetIO().WantCaptureMouse) {
+            SET_MOUSE_BTN_STATE(left_button, 1);
+            SET_MOUSE_BTN_STATE(middle_button, 2);
+            SET_MOUSE_BTN_STATE(right_button, 3);
+        }
 #undef SET_MOUSE_BTN_STATE
 
         i32 sdl_keycount;
@@ -199,9 +201,14 @@ i32 main() {
 
 
 #define SET_KEY_STATE(IK_KEY) Ichigo::Internal::keyboard_state[IK_KEY].down_this_frame = Ichigo::Internal::keyboard_state[IK_KEY].up && keystate[i] ? 1 : 0; Ichigo::Internal::keyboard_state[IK_KEY].down = keystate[i] == 1; Ichigo::Internal::keyboard_state[IK_KEY].up = keystate[i] == 0
-        for (i32 i = 0; i < sdl_keycount; ++i) {
+        if (!ImGui::GetIO().WantCaptureKeyboard) {
+            for (i32 i = 0; i < sdl_keycount; ++i) {
                 if (i >= SDL_SCANCODE_A && i <= SDL_SCANCODE_Z) {
                     SET_KEY_STATE(i + Ichigo::IK_A - SDL_SCANCODE_A);
+                }
+
+                if (i >= SDL_SCANCODE_0 && i <= SDL_SCANCODE_9) {
+                    SET_KEY_STATE(i + Ichigo::IK_0 - SDL_SCANCODE_0);
                 }
 
                 switch (i) {
@@ -239,10 +246,8 @@ i32 main() {
                     case SDL_SCANCODE_F11:         SET_KEY_STATE(Ichigo::IK_F11);           break;
                     case SDL_SCANCODE_F12:         SET_KEY_STATE(Ichigo::IK_F12);           break;
                 }
-            // if ((vk_code >= '0' && vk_code <= '9') || (vk_code >= 'A' && vk_code <= 'Z'))
-                // SET_KEY_STATE(vk_code);
+            }
         }
-
 
         f64 new_tick_time = Ichigo::Internal::platform_get_current_time();
         f64 delta = new_tick_time - last_tick_time;
