@@ -19,6 +19,8 @@ OpenGL Ichigo::Internal::gl{};
 Ichigo::KeyState Ichigo::Internal::keyboard_state[Ichigo::Keycode::IK_ENUM_COUNT] = {};
 f32 Ichigo::Internal::dt = 0.0f;
 f32 Ichigo::Internal::dpi_scale = 0.0f;
+Ichigo::Gamepad Ichigo::Internal::gamepad{};
+Ichigo::Mouse Ichigo::Internal::mouse{};
 
 static SDL_Window *window;
 static SDL_GLContext gl_context;
@@ -48,11 +50,13 @@ f64 Ichigo::Internal::platform_get_current_time() {
     return ts.tv_sec + (ts.tv_nsec / (f64) 1e9);
 }
 
-// static void platform_do_frame() {
-//     ImGui_ImplSDL2_NewFrame();
-//     Ichigo::do_frame(1.0, 0.0, keyboard_state);
-//     // SwapBuffers(hdc);
-// }
+void Ichigo::Internal::platform_pause_audio() {
+    ICHIGO_INFO("platform_pause_audio: audio not implemented on linux!");
+}
+
+void Ichigo::Internal::platform_resume_audio() {
+    ICHIGO_INFO("platform_resume_audio: audio not implemented on linux!");
+}
 
 i32 main() {
     assert(SDL_Init(SDL_INIT_VIDEO) >= 0);
@@ -175,18 +179,32 @@ i32 main() {
         ImGui_ImplSDL2_NewFrame();
 
         // SDL_PumpEvents();
+        u32 mouse_button_state = SDL_GetMouseState(&Ichigo::Internal::mouse.pos.x, &Ichigo::Internal::mouse.pos.y);
+
+#define SET_MOUSE_BTN_STATE(MOUSE_BUTTON, SDL_BUTTON_CODE)                                                                                                             \
+        do {                                                                                                                                                           \
+            Ichigo::Internal::mouse.MOUSE_BUTTON.down_this_frame = (mouse_button_state  & SDL_BUTTON(SDL_BUTTON_CODE)) && !Ichigo::Internal::mouse.MOUSE_BUTTON.down;  \
+            Ichigo::Internal::mouse.MOUSE_BUTTON.down            = mouse_button_state   & SDL_BUTTON(SDL_BUTTON_CODE);                                                 \
+            Ichigo::Internal::mouse.MOUSE_BUTTON.up              = !(mouse_button_state & SDL_BUTTON(SDL_BUTTON_CODE));                                                \
+            Ichigo::Internal::mouse.MOUSE_BUTTON.up_this_frame   = !(mouse_button_state & SDL_BUTTON(SDL_BUTTON_CODE)) && Ichigo::Internal::mouse.MOUSE_BUTTON.down;   \
+        } while (0)
+
+        SET_MOUSE_BTN_STATE(left_button, 1);
+        SET_MOUSE_BTN_STATE(middle_button, 2);
+        SET_MOUSE_BTN_STATE(right_button, 3);
+#undef SET_MOUSE_BTN_STATE
+
         i32 sdl_keycount;
         const u8 *keystate = SDL_GetKeyboardState(&sdl_keycount);
 
 
 #define SET_KEY_STATE(IK_KEY) Ichigo::Internal::keyboard_state[IK_KEY].down_this_frame = Ichigo::Internal::keyboard_state[IK_KEY].up && keystate[i] ? 1 : 0; Ichigo::Internal::keyboard_state[IK_KEY].down = keystate[i] == 1; Ichigo::Internal::keyboard_state[IK_KEY].up = keystate[i] == 0
         for (i32 i = 0; i < sdl_keycount; ++i) {
+                if (i >= SDL_SCANCODE_A && i <= SDL_SCANCODE_Z) {
+                    SET_KEY_STATE(i + Ichigo::IK_A - SDL_SCANCODE_A);
+                }
+
                 switch (i) {
-                    // case VK_LBUTTON:  SET_KEY_STATE(Ichigo::IK_MOUSE_1);       break;
-                    // case VK_RBUTTON:  SET_KEY_STATE(Ichigo::IK_MOUSE_2);       break;
-                    // case VK_MBUTTON:  SET_KEY_STATE(Ichigo::IK_MOUSE_3);       break;
-                    // case VK_XBUTTON1: SET_KEY_STATE(Ichigo::IK_MOUSE_4);       break;
-                    // case VK_XBUTTON2: SET_KEY_STATE(Ichigo::IK_MOUSE_5);       break;
                     case SDL_SCANCODE_BACKSPACE:   SET_KEY_STATE(Ichigo::IK_BACKSPACE);     break;
                     case SDL_SCANCODE_TAB:         SET_KEY_STATE(Ichigo::IK_TAB);           break;
                     case SDL_SCANCODE_RETURN:      SET_KEY_STATE(Ichigo::IK_ENTER);         break;
@@ -208,6 +226,18 @@ i32 main() {
                     case SDL_SCANCODE_PRINTSCREEN: SET_KEY_STATE(Ichigo::IK_PRINT_SCREEN);  break;
                     case SDL_SCANCODE_INSERT:      SET_KEY_STATE(Ichigo::IK_INSERT);        break;
                     case SDL_SCANCODE_DELETE:      SET_KEY_STATE(Ichigo::IK_DELETE);        break;
+                    case SDL_SCANCODE_F1:          SET_KEY_STATE(Ichigo::IK_F1);            break;
+                    case SDL_SCANCODE_F2:          SET_KEY_STATE(Ichigo::IK_F2);            break;
+                    case SDL_SCANCODE_F3:          SET_KEY_STATE(Ichigo::IK_F3);            break;
+                    case SDL_SCANCODE_F4:          SET_KEY_STATE(Ichigo::IK_F4);            break;
+                    case SDL_SCANCODE_F5:          SET_KEY_STATE(Ichigo::IK_F5);            break;
+                    case SDL_SCANCODE_F6:          SET_KEY_STATE(Ichigo::IK_F6);            break;
+                    case SDL_SCANCODE_F7:          SET_KEY_STATE(Ichigo::IK_F7);            break;
+                    case SDL_SCANCODE_F8:          SET_KEY_STATE(Ichigo::IK_F8);            break;
+                    case SDL_SCANCODE_F9:          SET_KEY_STATE(Ichigo::IK_F9);            break;
+                    case SDL_SCANCODE_F10:         SET_KEY_STATE(Ichigo::IK_F10);           break;
+                    case SDL_SCANCODE_F11:         SET_KEY_STATE(Ichigo::IK_F11);           break;
+                    case SDL_SCANCODE_F12:         SET_KEY_STATE(Ichigo::IK_F12);           break;
                 }
             // if ((vk_code >= '0' && vk_code <= '9') || (vk_code >= 'A' && vk_code <= 'Z'))
                 // SET_KEY_STATE(vk_code);
