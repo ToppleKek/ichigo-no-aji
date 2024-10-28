@@ -5,19 +5,64 @@
 static bool tile_selected      = false;
 static Vec2<u32> selected_tile = {};
 
+static void resize_tilemap(u16 new_width, u16 new_height) {
+    ICHIGO_INFO("New tilemap size: %ux%u (%u)", new_width, new_height, new_width * new_height);
+}
+
 void Ichigo::Editor::render_ui() {
     static char tilemap_w_text[16];
     static char tilemap_h_text[16];
+    static u16 new_tilemap_width  = 0;
+    static u16 new_tilemap_height = 0;
     ImGui::SetNextWindowPos({Ichigo::Internal::window_width * 0.8f, 0.0f});
     ImGui::SetNextWindowSize({Ichigo::Internal::window_width * 0.2f, (f32) Ichigo::Internal::window_height});
     ImGui::Begin("Editor", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse);
+
     if (ImGui::CollapsingHeader("Tilemap", ImGuiTreeNodeFlags_DefaultOpen)) {
         ImGui::Text("Current size: %ux%u", Internal::current_tilemap.width, Internal::current_tilemap.height);
         ImGui::InputText("width", tilemap_w_text, ARRAY_LEN(tilemap_w_text), ImGuiInputTextFlags_CharsDecimal);
         ImGui::InputText("height", tilemap_h_text, ARRAY_LEN(tilemap_h_text), ImGuiInputTextFlags_CharsDecimal);
         if (ImGui::Button("Resize tilemap")) {
-            // TODO: Resize tilemap
+            new_tilemap_width  = std::atoi(tilemap_w_text);
+            new_tilemap_height = std::atoi(tilemap_h_text);
+
+            if (new_tilemap_width == 0 || new_tilemap_height == 0 || new_tilemap_width * new_tilemap_height > ICHIGO_MAX_TILEMAP_SIZE)
+                ImGui::OpenPopup("Invalid size");
+            else if (new_tilemap_width < Internal::current_tilemap.width || new_tilemap_height < Internal::current_tilemap.height)
+                ImGui::OpenPopup("Dangerous resize");
+            else
+                resize_tilemap(new_tilemap_width, new_tilemap_height);
         }
+    }
+
+    if (ImGui::BeginPopupModal("Invalid size", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+        ImGui::Text("Cannot resize tilemap to %ux%u as the total tilemap area (%u) is too large or invalid.", new_tilemap_width, new_tilemap_height, new_tilemap_width * new_tilemap_height);
+        if (ImGui::Button("OK"))
+            ImGui::CloseCurrentPopup();
+
+        ImGui::EndPopup();
+    }
+
+    if (ImGui::BeginPopupModal("Dangerous resize", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+        ImGui::Text(
+            "Resizing the tilemap to %ux%u is smaller in at least one dimention (current size is %ux%u). This will destroy data!",
+            new_tilemap_width,
+            new_tilemap_height,
+            Internal::current_tilemap.width,
+            Internal::current_tilemap.height
+        );
+
+        if (ImGui::Button("OK")) {
+            resize_tilemap(new_tilemap_width, new_tilemap_height);
+            ImGui::CloseCurrentPopup();
+        }
+
+        ImGui::SameLine();
+
+        if (ImGui::Button("Cancel"))
+            ImGui::CloseCurrentPopup();
+
+        ImGui::EndPopup();
     }
 
     if (tile_selected) {

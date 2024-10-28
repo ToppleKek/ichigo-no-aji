@@ -170,7 +170,10 @@ void Ichigo::set_tilemap(Tilemap *tilemap) {
     Internal::current_tilemap.width           = tilemap->width;
     Internal::current_tilemap.height          = tilemap->height;
     Internal::current_tilemap.tile_info_count = tilemap->tile_info_count;
+
     // TODO: Maybe add a using Tile = u16 for the tile type?
+    std::memset(Internal::current_tilemap.tiles, 0, tilemap->width * tilemap->height * sizeof(u16));
+    std::memset(Internal::current_tilemap.tile_info, 0, tilemap->tile_info_count * sizeof(TileInfo));
     std::memcpy(Internal::current_tilemap.tiles, tilemap->tiles, tilemap->width * tilemap->height * sizeof(u16));
     std::memcpy(Internal::current_tilemap.tile_info, tilemap->tile_info, tilemap->tile_info_count * sizeof(TileInfo));
 }
