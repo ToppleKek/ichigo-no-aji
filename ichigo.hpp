@@ -10,6 +10,8 @@
 #include "math.hpp"
 
 #define ICHIGO_MAX_BACKGROUNDS 16
+#define ICHIGO_MAX_TILEMAP_SIZE (4096 * 4096)
+#define ICHIGO_MAX_UNIQUE_TILES 1024
 
 namespace Ichigo {
 struct KeyState {
@@ -162,6 +164,26 @@ struct Background {
     Vec2<f32> scroll_speed;
 };
 
+using TileFlags = u32;
+
+enum TileFlag {
+    TANGIBLE = 1 << 0,
+};
+
+struct TileInfo {
+    TextureID texture_id;
+    TileFlags flags;
+    f32 friction;
+};
+
+struct Tilemap {
+    u16 *tiles;
+    u32 width;
+    u32 height;
+    TileInfo *tile_info;
+    u32 tile_info_count;
+};
+
 struct FrameData {
     // Util::IchigoVector<DrawCommand> draw_commands;
     DrawCommand *draw_commands;
@@ -179,7 +201,7 @@ struct GameState {
 
 extern GameState game_state;
 
-void set_tilemap(u32 tilemap_width, u32 tilemap_height, u16 *tilemap, TextureID *tile_texture_map);
+void set_tilemap(Tilemap *tilemap);
 u16 tile_at(Vec2<u32> tile_coord);
 void push_draw_command(DrawCommand draw_command);
 
@@ -200,8 +222,7 @@ extern u32 viewport_height;
 extern Vec2<u32> viewport_origin;
 extern f32 target_frame_time;
 extern f32 dpi_scale;
-extern u32 current_tilemap_width;
-extern u32 current_tilemap_height;
+extern Tilemap current_tilemap;
 
 // TODO: Move these out of internal?
 extern f32 dt;

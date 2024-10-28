@@ -38,19 +38,16 @@ static GLuint screenspace_texture_rect_program;
 
 static u32 last_window_height                      = 0;
 static u32 last_window_width                       = 0;
-static u16 *current_tilemap                        = nullptr;
-static Ichigo::TextureID *current_tile_texture_map = nullptr;
 static Ichigo::Internal::ProgramMode program_mode  = Ichigo::Internal::ProgramMode::GAME;
 static Ichigo::TextureID invalid_tile_texture_id;
 
-bool Ichigo::Internal::must_rebuild_swapchain = false;
-Ichigo::GameState Ichigo::game_state          = {};
-u32 Ichigo::Internal::current_tilemap_width   = 0;
-u32 Ichigo::Internal::current_tilemap_height  = 0;
-f32 Ichigo::Internal::target_frame_time       = 0.016f;
-u32 Ichigo::Internal::viewport_width          = 0;
-u32 Ichigo::Internal::viewport_height         = 0;
-Vec2<u32> Ichigo::Internal::viewport_origin   = {};
+bool Ichigo::Internal::must_rebuild_swapchain     = false;
+Ichigo::GameState Ichigo::game_state              = {};
+Ichigo::Tilemap Ichigo::Internal::current_tilemap = {};
+f32 Ichigo::Internal::target_frame_time           = 0.016f;
+u32 Ichigo::Internal::viewport_width              = 0;
+u32 Ichigo::Internal::viewport_height             = 0;
+Vec2<u32> Ichigo::Internal::viewport_origin       = {};
 
 static char string_buffer[1024];
 
@@ -168,16 +165,27 @@ void default_entity_render_proc(Ichigo::Entity *entity) {
     Ichigo::Internal::gl.glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 }
 
+void Ichigo::set_tilemap(Tilemap *tilemap) {
+    assert(tilemap->width > 0 && tilemap->height > 0 && tilemap->width * tilemap->height < ICHIGO_MAX_TILEMAP_SIZE && tilemap->tile_info_count < ICHIGO_MAX_UNIQUE_TILES);
+    Internal::current_tilemap.width           = tilemap->width;
+    Internal::current_tilemap.height          = tilemap->height;
+    Internal::current_tilemap.tile_info_count = tilemap->tile_info_count;
+    // TODO: Maybe add a using Tile = u16 for the tile type?
+    std::memcpy(Internal::current_tilemap.tiles, tilemap->tiles, tilemap->width * tilemap->height * sizeof(u16));
+    std::memcpy(Internal::current_tilemap.tile_info, tilemap->tile_info, tilemap->tile_info_count * sizeof(TileInfo));
+}
+
 #define INVALID_TILE UINT16_MAX
 u16 Ichigo::tile_at(Vec2<u32> tile_coord) {
-    if (!current_tilemap || tile_coord.x >= Ichigo::Internal::current_tilemap_width || tile_coord.x < 0 || tile_coord.y >= Ichigo::Internal::current_tilemap_height || tile_coord.y < 0)
+    if (!Internal::current_tilemap.tiles || tile_coord.x >= Internal::current_tilemap.width || tile_coord.x < 0 || tile_coord.y >= Internal::current_tilemap.height || tile_coord.y < 0)
         return INVALID_TILE;
 
-    return current_tilemap[tile_coord.y * Ichigo::Internal::current_tilemap_width + tile_coord.x];
+    return Internal::current_tilemap.tiles[tile_coord.y * Internal::current_tilemap.width + tile_coord.x];
 }
 
 static void render_tile(Vec2<u32> tile_pos) {
     u16 tile = Ichigo::tile_at(tile_pos);
+    const Ichigo::TileInfo &tile_info = Ichigo::Internal::current_tilemap.tile_info[tile];
     Vec2<f32> draw_pos = { (f32) tile_pos.x, (f32) tile_pos.y };
     TexturedVertex vertices[] = {
         {{draw_pos.x, draw_pos.y, 0.0f}, {0.0f, 1.0f}},  // top left
@@ -192,9 +200,9 @@ static void render_tile(Vec2<u32> tile_pos) {
 
     if (tile == INVALID_TILE) {
         world_render_textured_rect({{(f32) tile_pos.x, (f32) tile_pos.y}, 1.0f, 1.0f}, invalid_tile_texture_id);
-    } else if (tile != 0) {
+    } else if (tile_info.texture_id != 0) {
         Ichigo::Internal::gl.glUseProgram(texture_shader_program.program_id);
-        Ichigo::Internal::gl.glBindTexture(GL_TEXTURE_2D, Ichigo::Internal::textures.at(current_tile_texture_map[tile]).id);
+        Ichigo::Internal::gl.glBindTexture(GL_TEXTURE_2D, Ichigo::Internal::textures.at(tile_info.texture_id).id);
 
         i32 texture_uniform = Ichigo::Internal::gl.glGetUniformLocation(texture_shader_program.program_id, "entity_texture");
         i32 camera_uniform  = Ichigo::Internal::gl.glGetUniformLocation(texture_shader_program.program_id, "camera_transform");
@@ -574,18 +582,6 @@ void Ichigo::Internal::do_frame() {
     Ichigo::Game::frame_end();
 }
 
-void Ichigo::set_tilemap(u32 tilemap_width, u32 tilemap_height, u16 *tilemap, Ichigo::TextureID *tile_texture_map) {
-    assert(tilemap_width > 0);
-    assert(tilemap_height > 0);
-    assert(tilemap);
-    assert(tile_texture_map);
-
-    Ichigo::Internal::current_tilemap_width  = tilemap_width;
-    Ichigo::Internal::current_tilemap_height = tilemap_height;
-    current_tilemap          = tilemap;
-    current_tile_texture_map = tile_texture_map;
-}
-
 static void compile_shader(u32 shader_id, const GLchar *shader_source, i32 shader_source_len) {
     Ichigo::Internal::gl.glShaderSource(shader_id, 1, &shader_source, &shader_source_len);
     Ichigo::Internal::gl.glCompileShader(shader_id);
@@ -629,6 +625,9 @@ void Ichigo::Internal::init() {
     Ichigo::game_state.permanent_storage_arena.pointer  = 0;
     Ichigo::game_state.permanent_storage_arena.capacity = MEGABYTES(256);
     Ichigo::game_state.permanent_storage_arena.data     = (u8 *) malloc(Ichigo::game_state.permanent_storage_arena.capacity);
+
+    Ichigo::Internal::current_tilemap.tiles     = PUSH_ARRAY(&Ichigo::game_state.permanent_storage_arena, u16, ICHIGO_MAX_TILEMAP_SIZE);
+    Ichigo::Internal::current_tilemap.tile_info = PUSH_ARRAY(&Ichigo::game_state.permanent_storage_arena, TileInfo, ICHIGO_MAX_UNIQUE_TILES);
 
     font_config.FontDataOwnedByAtlas = false;
     font_config.OversampleH = 2;

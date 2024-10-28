@@ -12,7 +12,7 @@ void Ichigo::Editor::render_ui() {
     ImGui::SetNextWindowSize({Ichigo::Internal::window_width * 0.2f, (f32) Ichigo::Internal::window_height});
     ImGui::Begin("Editor", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse);
     if (ImGui::CollapsingHeader("Tilemap", ImGuiTreeNodeFlags_DefaultOpen)) {
-        ImGui::Text("Current size: %ux%u", Ichigo::Internal::current_tilemap_width, Ichigo::Internal::current_tilemap_height);
+        ImGui::Text("Current size: %ux%u", Internal::current_tilemap.width, Internal::current_tilemap.height);
         ImGui::InputText("width", tilemap_w_text, ARRAY_LEN(tilemap_w_text), ImGuiInputTextFlags_CharsDecimal);
         ImGui::InputText("height", tilemap_h_text, ARRAY_LEN(tilemap_h_text), ImGuiInputTextFlags_CharsDecimal);
         if (ImGui::Button("Resize tilemap")) {
@@ -67,7 +67,7 @@ void Ichigo::Editor::update() {
         if (t.has_value) {
             Vec2<u32> tile = t.value;
             ICHIGO_INFO("Tile clicked: %u,%u", tile.x, tile.y);
-            if (tile.x < Ichigo::Internal::current_tilemap_width && tile.y < Ichigo::Internal::current_tilemap_height) {
+            if (tile.x < Internal::current_tilemap.width && tile.y < Internal::current_tilemap.height) {
                 tile_selected = true;
                 selected_tile = tile;
             } else {

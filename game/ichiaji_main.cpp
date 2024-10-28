@@ -16,7 +16,7 @@ static Ichigo::AudioID   test_music_id      = 0;
 #define TILEMAP_WIDTH SCREEN_TILE_WIDTH * 4
 #define TILEMAP_HEIGHT SCREEN_TILE_HEIGHT * 2
 
-static u16 tilemap[TILEMAP_HEIGHT][TILEMAP_WIDTH] = {
+static u16 tiles[TILEMAP_HEIGHT][TILEMAP_WIDTH] = {
     {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
     {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
     {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
@@ -37,7 +37,15 @@ static u16 tilemap[TILEMAP_HEIGHT][TILEMAP_WIDTH] = {
     {1, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
 };
 
-static Ichigo::TextureID tile_texture_map[2]{};
+static Ichigo::TileInfo tile_info_map[2]{};
+
+static Ichigo::Tilemap tilemap = {
+    (u16 *) tiles,
+    TILEMAP_WIDTH,
+    TILEMAP_HEIGHT,
+    tile_info_map,
+    2
+};
 
 static void entity_collide_proc(Ichigo::Entity *entity, Ichigo::Entity *other_entity) {
     ICHIGO_INFO("I (%s) just collided with %s!", entity->name, other_entity->name);
@@ -56,9 +64,11 @@ void Ichigo::Game::init() {
     Ichigo::game_state.background_layers[0].start_position = {0.0f, 0.0f};
     Ichigo::game_state.background_layers[0].scroll_speed   = {0.5f, 0.6f};
 
-    tile_texture_map[1] = grass_texture_id;
+    tile_info_map[1].texture_id = grass_texture_id;
+    tile_info_map[1].friction   = 8.0f;
+    SET_FLAG(tile_info_map[1].flags, TileFlag::TANGIBLE);
 
-    Ichigo::set_tilemap(TILEMAP_WIDTH, TILEMAP_HEIGHT, (u16 *) tilemap, tile_texture_map);
+    Ichigo::set_tilemap(&tilemap);
     Ichigo::Entity *player = Ichigo::spawn_entity();
 
     std::strcpy(player->name, "player");
