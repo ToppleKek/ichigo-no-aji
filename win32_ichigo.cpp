@@ -183,10 +183,12 @@ f64 Ichigo::Internal::platform_get_current_time() {
 }
 
 void Ichigo::Internal::platform_pause_audio() {
+    is_buffer_playing = false;
     secondary_dsound_buffer->Stop();
 }
 
 void Ichigo::Internal::platform_resume_audio() {
+    is_buffer_playing = true;
     secondary_dsound_buffer->Play(0, 0, DSBPLAY_LOOPING);
 }
 
@@ -367,13 +369,17 @@ static LRESULT window_proc(HWND window, u32 msg, WPARAM wparam, LPARAM lparam) {
     switch (msg) {
     case WM_ENTERSIZEMOVE: {
         ICHIGO_INFO("WM_ENTERSIZEMOVE");
-        Ichigo::Internal::platform_pause_audio();
+        if (is_buffer_playing)
+            Ichigo::Internal::platform_pause_audio();
+
         in_sizing_loop = true;
     } break;
 
     case WM_EXITSIZEMOVE: {
         ICHIGO_INFO("WM_EXITSIZEMOVE");
-        Ichigo::Internal::platform_resume_audio();
+        if (is_buffer_playing)
+            Ichigo::Internal::platform_resume_audio();
+
         in_sizing_loop = false;
     } break;
 
