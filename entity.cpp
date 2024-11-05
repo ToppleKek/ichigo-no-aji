@@ -72,7 +72,7 @@ static inline Vec2<f32> calculate_projected_next_position(Ichigo::Entity *entity
 
 void Ichigo::move_entity_in_world(Ichigo::Entity *entity) {
     Vec2<f32> entity_delta = 0.5f * entity->acceleration * (Ichigo::Internal::dt * Ichigo::Internal::dt) + entity->velocity * Ichigo::Internal::dt;
-    Rectangle potential_next_col = entity->col;
+    Rect<f32> potential_next_col = entity->col;
     potential_next_col.pos = entity_delta + entity->col.pos;
 
     entity->velocity += entity->acceleration * Ichigo::Internal::dt;

@@ -28,7 +28,7 @@ enum EntityFlag {
 struct Entity {
     char name[8];
     EntityID id;
-    Rectangle col;
+    Rect<f32> col;
     Vec2<u32> left_standing_tile;
     Vec2<u32> right_standing_tile;
     Vec2<f32> velocity;

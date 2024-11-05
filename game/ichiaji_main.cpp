@@ -70,14 +70,18 @@ void Ichigo::Game::init() {
     Ichigo::game_state.background_layers[0].start_position = {0.0f, 0.0f};
     Ichigo::game_state.background_layers[0].scroll_speed   = {0.5f, 0.6f};
 
+    std::strcpy(tile_info_map[0].name, "air");
+    std::strcpy(tile_info_map[1].name, "grass");
     tile_info_map[1].texture_id = grass_texture_id;
     tile_info_map[1].friction   = 8.0f;
     SET_FLAG(tile_info_map[1].flags, TileFlag::TANGIBLE);
 
+    std::strcpy(tile_info_map[2].name, "2tile");
     tile_info_map[2].texture_id = other_tile_texture_id;
     tile_info_map[2].friction   = 8.0f;
     SET_FLAG(tile_info_map[2].flags, TileFlag::TANGIBLE);
 
+    std::strcpy(tile_info_map[3].name, "3tile");
     tile_info_map[3].texture_id = three_tile_texture_id;
     tile_info_map[3].friction   = 8.0f;
     SET_FLAG(tile_info_map[3].flags, TileFlag::TANGIBLE);

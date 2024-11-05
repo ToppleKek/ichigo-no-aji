@@ -170,10 +170,11 @@ struct Mat4 {
     Vec4<T> d;
 };
 
-struct Rectangle {
-    Vec2<f32> pos;
-    f32 w;
-    f32 h;
+template <typename T>
+struct Rect {
+    Vec2<T> pos;
+    T w;
+    T h;
 };
 
 inline Mat4<f32> m4identity() {
@@ -209,7 +210,7 @@ inline Vec2<f32> get_translation2d(Mat4<f32> m) {
 //     return ret;
 // }
 
-inline bool rectangles_intersect(Rectangle rect1, Rectangle rect2) {
+inline bool rectangles_intersect(Rect<f32> rect1, Rect<f32> rect2) {
     return ((rect1.pos.x > rect2.pos.x && rect1.pos.x < rect2.pos.x + rect2.w) || (rect2.pos.x > rect1.pos.x && rect2.pos.x < rect1.pos.x + rect1.w)) &&
            ((rect1.pos.y > rect2.pos.y && rect1.pos.y < rect2.pos.y + rect2.h) || (rect2.pos.y > rect1.pos.y && rect2.pos.y < rect1.pos.y + rect1.h));
 }
@@ -235,4 +236,8 @@ inline T clamp(T value, T min, T max) {
     if (value < min) return min;
     if (value > max) return max;
     return value;
+}
+
+inline f32 lerp(f32 a, f32 t, f32 b) {
+    return a + t * (b - a);
 }

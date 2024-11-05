@@ -52,11 +52,11 @@ static inline void free_wide_char_conversion(wchar_t *buf) {
     delete[] buf;
 }
 
-static inline void free_wide_char_conversion(char *buf) {
+[[maybe_unused]] static inline void free_wide_char_conversion(char *buf) {
     delete[] buf;
 }
 
-static char *from_wide_char(const wchar_t *str) {
+[[maybe_unused]] static char *from_wide_char(const wchar_t *str) {
     i32 u8_buf_size = WideCharToMultiByte(CP_UTF8, 0, str, -1, nullptr, 0, nullptr, nullptr);
     assert(u8_buf_size > 0);
     char *u8_bytes = new char[u8_buf_size]();
@@ -70,7 +70,7 @@ static i64 win32_get_timestamp() {
     return i.QuadPart;
 }
 
-static i64 win32_get_time_ms() {
+[[maybe_unused]] static i64 win32_get_time_ms() {
     return win32_get_timestamp() * 1000 / performance_frequency;
 }
 

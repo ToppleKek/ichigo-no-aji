@@ -146,7 +146,7 @@ enum DrawCommandType {
 
 struct DrawCommand {
     DrawCommandType type;
-    Rectangle rect;
+    Rect<f32> rect;
     Vec4<f32> colour;
 };
 
@@ -171,6 +171,7 @@ enum TileFlag {
 };
 
 struct TileInfo {
+    char name[8];
     TextureID texture_id;
     TileFlags flags;
     f32 friction;

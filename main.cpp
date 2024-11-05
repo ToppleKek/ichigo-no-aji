@@ -34,7 +34,6 @@ static bool show_debug_menu = true;
 static ShaderProgram texture_shader_program;
 static ShaderProgram solid_colour_shader_program;
 static GLuint screenspace_solid_colour_rect_program;
-static GLuint screenspace_texture_rect_program;
 
 static u32 last_window_height                      = 0;
 static u32 last_window_width                       = 0;
@@ -67,7 +66,7 @@ struct DrawData {
 static DrawData draw_data_textured{};
 static DrawData draw_data_solid_colour{};
 
-static void screen_render_solid_colour_rect(Rectangle rect, Vec4<f32> colour) {
+static void screen_render_solid_colour_rect(Rect<f32> rect, Vec4<f32> colour) {
     Vertex vertices[] = {
         {rect.pos.x, rect.pos.y, 0.0f},  // top left
         {rect.pos.x + rect.w, rect.pos.y, 0.0f}, // top right
@@ -101,7 +100,7 @@ static void screen_render_solid_colour_rect(Rectangle rect, Vec4<f32> colour) {
 //     Ichigo::Internal::gl.glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 // }
 
-static void world_render_textured_rect(Rectangle rect, Ichigo::TextureID texture_id) {
+static void world_render_textured_rect(Rect<f32> rect, Ichigo::TextureID texture_id) {
     Vec2<f32> draw_pos = { rect.pos.x, rect.pos.y };
     TexturedVertex vertices[] = {
         {{draw_pos.x, draw_pos.y, 0.0f}, {0.0f, 1.0f}},  // top left
@@ -122,7 +121,7 @@ static void world_render_textured_rect(Rectangle rect, Ichigo::TextureID texture
     Ichigo::Internal::gl.glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 }
 
-static void world_render_solid_colour_rect(Rectangle rect, Vec4<f32> colour) {
+static void world_render_solid_colour_rect(Rect<f32> rect, Vec4<f32> colour) {
     Vec2<f32> draw_pos = { rect.pos.x, rect.pos.y };
     Vertex vertices[] = {
         {draw_pos.x, draw_pos.y, 0.0f},  // top left
