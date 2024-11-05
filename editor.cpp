@@ -7,14 +7,30 @@ static Vec2<u32> selected_tile = {};
 
 static void resize_tilemap(u16 new_width, u16 new_height) {
     ICHIGO_INFO("New tilemap size: %ux%u (%u)", new_width, new_height, new_width * new_height);
-    u32 width_delta = DISTANCE(Ichigo::Internal::current_tilemap.width, new_width) * sizeof(u16);
-    auto *p = &Ichigo::Internal::current_tilemap.tiles[Ichigo::Internal::current_tilemap.width];
-    ICHIGO_INFO("init Should be 2: %u Should be 3: %u", *p, *(p - 1));
-    for (u32 i = 1; i < Ichigo::Internal::current_tilemap.height; ++i) {
-        std::memmove(p + width_delta, p, (Ichigo::Internal::current_tilemap.height - i) * Ichigo::Internal::current_tilemap.width * sizeof(u16));
-        std::memset(p, 0, width_delta);
-        p += width_delta + Ichigo::Internal::current_tilemap.width * sizeof(u16);
-        ICHIGO_INFO("i=%u Should be 2: %u Should be 3: %u", i, *p, *(p - 1));
+
+    if (new_width != Ichigo::Internal::current_tilemap.width) {
+        if (new_width > Ichigo::Internal::current_tilemap.width) {
+            u32 width_delta = new_width - Ichigo::Internal::current_tilemap.width;
+
+            auto *p = &Ichigo::Internal::current_tilemap.tiles[Ichigo::Internal::current_tilemap.width];
+            for (u32 i = 1; i < Ichigo::Internal::current_tilemap.height; ++i) {
+                std::memmove(p + width_delta, p, (Ichigo::Internal::current_tilemap.height - i) * Ichigo::Internal::current_tilemap.width * sizeof(u16));
+                std::memset(p, 0, width_delta * sizeof(u16));
+                p += width_delta + Ichigo::Internal::current_tilemap.width;
+            }
+        } else {
+            u32 width_delta = Ichigo::Internal::current_tilemap.width - new_width;
+
+            auto *p = &Ichigo::Internal::current_tilemap.tiles[(Ichigo::Internal::current_tilemap.height - 1) * Ichigo::Internal::current_tilemap.width];
+            for (u32 i = 1; i < Ichigo::Internal::current_tilemap.height; ++i) {
+                std::memmove(p - width_delta, p, i * new_width * sizeof(u16));
+                p = &Ichigo::Internal::current_tilemap.tiles[(Ichigo::Internal::current_tilemap.height - (i + 1)) * Ichigo::Internal::current_tilemap.width];
+            }
+        }
+    }
+
+    if (new_height < Ichigo::Internal::current_tilemap.height) {
+        std::memset(&Ichigo::Internal::current_tilemap.tiles[new_width * new_height], 0, new_width * Ichigo::Internal::current_tilemap.height - new_height * sizeof(u16));
     }
 
     Ichigo::Internal::current_tilemap.width  = new_width;
