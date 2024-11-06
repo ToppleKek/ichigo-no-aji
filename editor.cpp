@@ -2,9 +2,9 @@
 #include "ichigo.hpp"
 #include "thirdparty/imgui/imgui.h"
 
-static bool tiles_selected       = false;
-static Rect<i32> selected_region = {};
-static Ichigo::TileID brush      = 0;
+static bool tiles_selected                = false;
+static Rect<i32> selected_region          = {};
+static Ichigo::TileID selected_brush_tile = 0;
 
 static void resize_tilemap(u16 new_width, u16 new_height) {
     ICHIGO_INFO("New tilemap size: %ux%u (%u)", new_width, new_height, new_width * new_height);
@@ -42,14 +42,14 @@ static void resize_tilemap(u16 new_width, u16 new_height) {
     Ichigo::Internal::current_tilemap.height = new_height;
 }
 
-static void fill_selected_region() {
+static void fill_selected_region(Ichigo::TileID brush) {
     if (!tiles_selected) {
         // Ichigo::show_info("Nothing selected.");
         ICHIGO_INFO("Nothing selected for fill");
     } else {
         for (i32 y = selected_region.pos.y; y < selected_region.pos.y + selected_region.h; ++y) {
             for (i32 x = selected_region.pos.x; x < selected_region.pos.x + selected_region.w; ++x) {
-                Internal::current_tilemap.tiles[y * Internal::current_tilemap.width + x] = brush;
+                Ichigo::Internal::current_tilemap.tiles[y * Ichigo::Internal::current_tilemap.width + x] = brush;
             }
         }
     }
@@ -112,23 +112,27 @@ void Ichigo::Editor::render_ui() {
     }
 
     if (ImGui::CollapsingHeader("Build", ImGuiTreeNodeFlags_DefaultOpen)) {
-        if (ImGui::BeginCombo("Select tile", Internal::current_tilemap.tile_info[brush].name)) {
+        if (ImGui::BeginCombo("Select tile", Internal::current_tilemap.tile_info[selected_brush_tile].name)) {
             for (u32 i = 0; i < Internal::current_tilemap.tile_info_count; ++i) {
-                if (i == brush) {
+                if (i == selected_brush_tile) {
                     ImGui::SetItemDefaultFocus();
                 }
 
-                if (ImGui::Selectable(Internal::current_tilemap.tile_info[i].name, i == brush)) {
-                    brush = i;
+                if (ImGui::Selectable(Internal::current_tilemap.tile_info[i].name, i == selected_brush_tile)) {
+                    selected_brush_tile = i;
                 }
             }
 
             ImGui::EndCombo();
         }
 
-        ImGui::Text("Brush tile: %u", brush);
-        if (ImGui::Button("Fill region")) {
-            fill_selected_region();
+        ImGui::Text("Brush tile: %u", selected_brush_tile);
+        if (ImGui::Button("Fill region (f)")) {
+            fill_selected_region(selected_brush_tile);
+        }
+
+        if (ImGui::Button("Erase (e)")) {
+            fill_selected_region(ICHIGO_AIR_TILE);
         }
     }
 
@@ -216,9 +220,12 @@ void Ichigo::Editor::update() {
         Ichigo::Camera::manual_focus_point.x += camera_speed * Ichigo::Internal::dt;
 
     if (Internal::keyboard_state[IK_F].down_this_frame) {
-        fill_selected_region();
+        fill_selected_region(selected_brush_tile);
     }
 
+    if (Internal::keyboard_state[IK_E].down_this_frame) {
+        fill_selected_region(ICHIGO_AIR_TILE);
+    }
 
     static Vec2<f32> pan_start_pos;
     static Vec2<f32> saved_focus_point;

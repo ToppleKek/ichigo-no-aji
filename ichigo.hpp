@@ -13,6 +13,9 @@
 #define ICHIGO_MAX_TILEMAP_SIZE (4096 * 4096)
 #define ICHIGO_MAX_UNIQUE_TILES 1024
 
+// TODO: Replace all the places that we use a literal 0
+#define ICHIGO_AIR_TILE 0
+
 namespace Ichigo {
 struct KeyState {
     bool down_this_frame;
