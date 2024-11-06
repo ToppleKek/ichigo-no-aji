@@ -135,6 +135,36 @@ struct Vec4 {
     };
 };
 
+template<typename T>
+bool operator==(const Vec2<T> &lhs, const Vec2<T> &rhs) {
+    return lhs.x == rhs.x && lhs.y == rhs.y;
+}
+
+template<typename T>
+bool operator==(const Vec3<T> &lhs, const Vec3<T> &rhs) {
+    return lhs.x == rhs.x && lhs.y == rhs.y && lhs.z == rhs.z;
+}
+
+template<typename T>
+bool operator==(const Vec4<T> &lhs, const Vec4<T> &rhs) {
+    return lhs.x == rhs.x && lhs.y == rhs.y && lhs.z == rhs.z && lhs.w == rhs.w;
+}
+
+template<typename T>
+bool operator!=(const Vec2<T> &lhs, const Vec2<T> &rhs) {
+    return !(lhs == rhs);
+}
+
+template<typename T>
+bool operator!=(const Vec3<T> &lhs, const Vec3<T> &rhs) {
+    return !(lhs == rhs);
+}
+
+template<typename T>
+bool operator!=(const Vec4<T> &lhs, const Vec4<T> &rhs) {
+    return !(lhs == rhs);
+}
+
 template<typename T, typename U>
 inline Vec2<T> vector_cast(const Vec2<U> &v) {
     return {

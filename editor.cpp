@@ -116,29 +116,54 @@ void Ichigo::Editor::render_ui() {
     ImGui::End();
 }
 
-static Util::Optional<Vec2<u32>> tile_at_mouse_coordinate(Vec2<i32> mouse_coord) {
-    Vec2<i32> viewport_pos = mouse_coord - vector_cast<i32>(Ichigo::Internal::viewport_origin);
-    if (viewport_pos.x < 0 || viewport_pos.y < 0)
+static Util::Optional<Vec2<f32>> screen_space_to_camera_space(Vec2<i32> screen_space_coord) {
+    Vec2<i32> viewport_pos = screen_space_coord - vector_cast<i32>(Ichigo::Internal::viewport_origin);
+    if (viewport_pos.x < 0 || viewport_pos.y < 0) {
         return {};
+    }
 
     Vec2<f32> camera_space = {
         (f32) (SCREEN_TILE_WIDTH  * viewport_pos.x) / Ichigo::Internal::viewport_width,
         (f32) (SCREEN_TILE_HEIGHT * viewport_pos.y) / Ichigo::Internal::viewport_height,
     };
 
-    Vec2<f32> world_space = camera_space + (-1.0f * get_translation2d(Ichigo::Camera::transform));
+    return {true, camera_space};
+}
 
-    if (world_space.x < 0.0f || world_space.y < 0.0f)
+static Util::Optional<Vec2<f32>> screen_space_to_world_space(Vec2<i32> screen_space_coord) {
+    auto cs = screen_space_to_camera_space(screen_space_coord);
+    if (!cs.has_value) {
         return {};
+    }
 
-    return {true, vector_cast<u32>(world_space)};
+    Vec2<f32> camera_space = cs.value;
+    Vec2<f32> world_space  = camera_space + (-1.0f * get_translation2d(Ichigo::Camera::transform));
+
+    if (world_space.x < 0.0f || world_space.y < 0.0f) {
+        return {};
+    }
+
+    return {true, world_space};
+}
+
+static Util::Optional<Vec2<u32>> tile_at_mouse_coordinate(Vec2<i32> mouse_coord) {
+    auto ws = screen_space_to_world_space(mouse_coord);
+
+    if (ws.has_value) {
+        Vec2<f32> world_space = ws.value;
+
+        // The tile coord is just the world space coord of the mouse truncated towards 0
+        return {true, vector_cast<u32>(world_space)};
+    }
+
+    return {};
 }
 
 #define BASE_CAMERA_SPEED 10.0f
 void Ichigo::Editor::update() {
     f32 camera_speed = BASE_CAMERA_SPEED;
     if (Internal::keyboard_state[IK_LEFT_SHIFT].down)
-        camera_speed *= 2.0f;
+        camera_speed *= 3.0f;
 
     if (Internal::keyboard_state[IK_W].down)
         Ichigo::Camera::manual_focus_point.y -= camera_speed * Ichigo::Internal::dt;
@@ -148,6 +173,24 @@ void Ichigo::Editor::update() {
         Ichigo::Camera::manual_focus_point.x -= camera_speed * Ichigo::Internal::dt;
     if (Internal::keyboard_state[IK_D].down)
         Ichigo::Camera::manual_focus_point.x += camera_speed * Ichigo::Internal::dt;
+
+    static Vec2<f32> pan_start_pos;
+    static Vec2<f32> saved_focus_point;
+    if (Internal::mouse.middle_button.down_this_frame) {
+        auto cs = screen_space_to_camera_space(Internal::mouse.pos);
+        if (cs.has_value) {
+            pan_start_pos     = cs.value;
+            saved_focus_point = Camera::manual_focus_point;
+        }
+    }
+
+    if (Internal::mouse.middle_button.down) {
+        auto cs = screen_space_to_camera_space(Internal::mouse.pos);
+        if (cs.has_value) {
+            Vec2<f32> mouse_camera_space = cs.value;
+            Camera::manual_focus_point   = saved_focus_point - (mouse_camera_space - pan_start_pos);
+        }
+    }
 
     static Vec2<u32> mouse_down_tile;
     if (Internal::mouse.left_button.down_this_frame) {
