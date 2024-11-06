@@ -4,6 +4,7 @@
 
 static bool tiles_selected       = false;
 static Rect<i32> selected_region = {};
+static Ichigo::TileID brush      = 0;
 
 static void resize_tilemap(u16 new_width, u16 new_height) {
     ICHIGO_INFO("New tilemap size: %ux%u (%u)", new_width, new_height, new_width * new_height);
@@ -14,8 +15,8 @@ static void resize_tilemap(u16 new_width, u16 new_height) {
 
             auto *p = &Ichigo::Internal::current_tilemap.tiles[Ichigo::Internal::current_tilemap.width];
             for (u32 i = 1; i < Ichigo::Internal::current_tilemap.height; ++i) {
-                std::memmove(p + width_delta, p, (Ichigo::Internal::current_tilemap.height - i) * Ichigo::Internal::current_tilemap.width * sizeof(u16));
-                std::memset(p, 0, width_delta * sizeof(u16));
+                std::memmove(p + width_delta, p, (Ichigo::Internal::current_tilemap.height - i) * Ichigo::Internal::current_tilemap.width * sizeof(Ichigo::TileID));
+                std::memset(p, 0, width_delta * sizeof(Ichigo::TileID));
                 p += width_delta + Ichigo::Internal::current_tilemap.width;
             }
         } else {
@@ -23,14 +24,18 @@ static void resize_tilemap(u16 new_width, u16 new_height) {
 
             auto *p = &Ichigo::Internal::current_tilemap.tiles[(Ichigo::Internal::current_tilemap.height - 1) * Ichigo::Internal::current_tilemap.width];
             for (u32 i = 1; i < Ichigo::Internal::current_tilemap.height; ++i) {
-                std::memmove(p - width_delta, p, i * new_width * sizeof(u16));
+                std::memmove(p - width_delta, p, i * new_width * sizeof(Ichigo::TileID));
                 p = &Ichigo::Internal::current_tilemap.tiles[(Ichigo::Internal::current_tilemap.height - (i + 1)) * Ichigo::Internal::current_tilemap.width];
             }
         }
     }
 
     if (new_height < Ichigo::Internal::current_tilemap.height) {
-        std::memset(&Ichigo::Internal::current_tilemap.tiles[new_width * new_height], 0, new_width * Ichigo::Internal::current_tilemap.height - new_height * sizeof(u16));
+        std::memset(
+            &Ichigo::Internal::current_tilemap.tiles[new_width * new_height],
+            0,
+            new_width * Ichigo::Internal::current_tilemap.height - new_height * sizeof(Ichigo::TileID)
+        );
     }
 
     Ichigo::Internal::current_tilemap.width  = new_width;
@@ -97,7 +102,7 @@ void Ichigo::Editor::render_ui() {
         if (selected_region.w == 1 && selected_region.h == 1) {
             if (ImGui::CollapsingHeader("Selected Tile", ImGuiTreeNodeFlags_DefaultOpen)) {
                 Vec2<i32> selected_tile   = selected_region.pos;
-                u16 tile                  = Ichigo::tile_at(vector_cast<u32>(selected_tile));
+                TileID tile               = Ichigo::tile_at(vector_cast<u32>(selected_tile));
                 const TileInfo &tile_info = Internal::current_tilemap.tile_info[tile];
 
                 ImGui::Text("%u, %u",            selected_tile.x, selected_tile.y);

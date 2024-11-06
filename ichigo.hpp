@@ -177,8 +177,10 @@ struct TileInfo {
     f32 friction;
 };
 
+using TileID = u16;
+
 struct Tilemap {
-    u16 *tiles;
+    TileID *tiles;
     u32 width;
     u32 height;
     TileInfo *tile_info;

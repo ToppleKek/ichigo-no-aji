@@ -170,15 +170,14 @@ void Ichigo::set_tilemap(Tilemap *tilemap) {
     Internal::current_tilemap.height          = tilemap->height;
     Internal::current_tilemap.tile_info_count = tilemap->tile_info_count;
 
-    // TODO: Maybe add a using Tile = u16 for the tile type?
-    std::memset(Internal::current_tilemap.tiles, 0, tilemap->width * tilemap->height * sizeof(u16));
+    std::memset(Internal::current_tilemap.tiles, 0, tilemap->width * tilemap->height * sizeof(TileID));
     std::memset(Internal::current_tilemap.tile_info, 0, tilemap->tile_info_count * sizeof(TileInfo));
-    std::memcpy(Internal::current_tilemap.tiles, tilemap->tiles, tilemap->width * tilemap->height * sizeof(u16));
+    std::memcpy(Internal::current_tilemap.tiles, tilemap->tiles, tilemap->width * tilemap->height * sizeof(TileID));
     std::memcpy(Internal::current_tilemap.tile_info, tilemap->tile_info, tilemap->tile_info_count * sizeof(TileInfo));
 }
 
 #define INVALID_TILE UINT16_MAX
-u16 Ichigo::tile_at(Vec2<u32> tile_coord) {
+Ichigo::TileID Ichigo::tile_at(Vec2<u32> tile_coord) {
     if (!Internal::current_tilemap.tiles || tile_coord.x >= Internal::current_tilemap.width || tile_coord.x < 0 || tile_coord.y >= Internal::current_tilemap.height || tile_coord.y < 0)
         return INVALID_TILE;
 
@@ -186,7 +185,7 @@ u16 Ichigo::tile_at(Vec2<u32> tile_coord) {
 }
 
 static void render_tile(Vec2<u32> tile_pos) {
-    u16 tile = Ichigo::tile_at(tile_pos);
+    Ichigo::TileID tile = Ichigo::tile_at(tile_pos);
     const Ichigo::TileInfo &tile_info = Ichigo::Internal::current_tilemap.tile_info[tile];
     Vec2<f32> draw_pos = { (f32) tile_pos.x, (f32) tile_pos.y };
     TexturedVertex vertices[] = {
@@ -628,7 +627,7 @@ void Ichigo::Internal::init() {
     Ichigo::game_state.permanent_storage_arena.capacity = MEGABYTES(256);
     Ichigo::game_state.permanent_storage_arena.data     = (u8 *) malloc(Ichigo::game_state.permanent_storage_arena.capacity);
 
-    Ichigo::Internal::current_tilemap.tiles     = PUSH_ARRAY(&Ichigo::game_state.permanent_storage_arena, u16, ICHIGO_MAX_TILEMAP_SIZE);
+    Ichigo::Internal::current_tilemap.tiles     = PUSH_ARRAY(&Ichigo::game_state.permanent_storage_arena, TileID, ICHIGO_MAX_TILEMAP_SIZE);
     Ichigo::Internal::current_tilemap.tile_info = PUSH_ARRAY(&Ichigo::game_state.permanent_storage_arena, TileInfo, ICHIGO_MAX_UNIQUE_TILES);
 
     font_config.FontDataOwnedByAtlas = false;
