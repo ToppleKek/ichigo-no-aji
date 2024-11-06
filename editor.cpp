@@ -42,6 +42,19 @@ static void resize_tilemap(u16 new_width, u16 new_height) {
     Ichigo::Internal::current_tilemap.height = new_height;
 }
 
+static void fill_selected_region() {
+    if (!tiles_selected) {
+        // Ichigo::show_info("Nothing selected.");
+        ICHIGO_INFO("Nothing selected for fill");
+    } else {
+        for (i32 y = selected_region.pos.y; y < selected_region.pos.y + selected_region.h; ++y) {
+            for (i32 x = selected_region.pos.x; x < selected_region.pos.x + selected_region.w; ++x) {
+                Internal::current_tilemap.tiles[y * Internal::current_tilemap.width + x] = brush;
+            }
+        }
+    }
+}
+
 void Ichigo::Editor::render_ui() {
     static char tilemap_w_text[16];
     static char tilemap_h_text[16];
@@ -98,6 +111,27 @@ void Ichigo::Editor::render_ui() {
         ImGui::EndPopup();
     }
 
+    if (ImGui::CollapsingHeader("Build", ImGuiTreeNodeFlags_DefaultOpen)) {
+        if (ImGui::BeginCombo("Select tile", Internal::current_tilemap.tile_info[brush].name)) {
+            for (u32 i = 0; i < Internal::current_tilemap.tile_info_count; ++i) {
+                if (i == brush) {
+                    ImGui::SetItemDefaultFocus();
+                }
+
+                if (ImGui::Selectable(Internal::current_tilemap.tile_info[i].name, i == brush)) {
+                    brush = i;
+                }
+            }
+
+            ImGui::EndCombo();
+        }
+
+        ImGui::Text("Brush tile: %u", brush);
+        if (ImGui::Button("Fill region")) {
+            fill_selected_region();
+        }
+    }
+
     if (tiles_selected) {
         if (selected_region.w == 1 && selected_region.h == 1) {
             if (ImGui::CollapsingHeader("Selected Tile", ImGuiTreeNodeFlags_DefaultOpen)) {
@@ -118,6 +152,7 @@ void Ichigo::Editor::render_ui() {
             }
         }
     }
+
     ImGui::End();
 }
 
@@ -167,8 +202,9 @@ static Util::Optional<Vec2<u32>> tile_at_mouse_coordinate(Vec2<i32> mouse_coord)
 #define BASE_CAMERA_SPEED 10.0f
 void Ichigo::Editor::update() {
     f32 camera_speed = BASE_CAMERA_SPEED;
-    if (Internal::keyboard_state[IK_LEFT_SHIFT].down)
+    if (Internal::keyboard_state[IK_LEFT_SHIFT].down) {
         camera_speed *= 3.0f;
+    }
 
     if (Internal::keyboard_state[IK_W].down)
         Ichigo::Camera::manual_focus_point.y -= camera_speed * Ichigo::Internal::dt;
@@ -178,6 +214,11 @@ void Ichigo::Editor::update() {
         Ichigo::Camera::manual_focus_point.x -= camera_speed * Ichigo::Internal::dt;
     if (Internal::keyboard_state[IK_D].down)
         Ichigo::Camera::manual_focus_point.x += camera_speed * Ichigo::Internal::dt;
+
+    if (Internal::keyboard_state[IK_F].down_this_frame) {
+        fill_selected_region();
+    }
+
 
     static Vec2<f32> pan_start_pos;
     static Vec2<f32> saved_focus_point;
@@ -237,7 +278,7 @@ void Ichigo::Editor::update() {
         t *= t;
         t = 0.5f + 0.5f * t;
 
-        c.colour = {lerp(0.3f, t, 0.8f), 0.0f, 0.0f, 0.5f};
+        c.colour = {ichigo_lerp(0.3f, t, 0.8f), 0.0f, 0.0f, 0.5f};
         Ichigo::push_draw_command(c);
     }
 }

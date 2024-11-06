@@ -31,12 +31,12 @@ std::FILE *Ichigo::Internal::platform_open_file(const std::string &path, const s
 }
 
 // TODO: Implement
-bool Ichigo::Internal::platform_file_exists(const char *path) {
+[[maybe_unused]] bool Ichigo::Internal::platform_file_exists([[maybe_unused]] const char *path) {
     return true;
 }
 
 // TODO: Implement
-Util::IchigoVector<std::string> Ichigo::Internal::platform_recurse_directory(const std::string &path, const char **extension_filter, const u16 extension_filter_count) {
+[[maybe_unused]] Util::IchigoVector<std::string> Ichigo::Internal::platform_recurse_directory([[maybe_unused]] const std::string &path, [[maybe_unused]] const char **extension_filter, [[maybe_unused]] const u16 extension_filter_count) {
     return {};
 }
 
@@ -207,10 +207,6 @@ i32 main() {
                     SET_KEY_STATE(i + Ichigo::IK_A - SDL_SCANCODE_A);
                 }
 
-                if (i >= SDL_SCANCODE_0 && i <= SDL_SCANCODE_9) {
-                    SET_KEY_STATE(i + Ichigo::IK_0 - SDL_SCANCODE_0);
-                }
-
                 switch (i) {
                     case SDL_SCANCODE_BACKSPACE:   SET_KEY_STATE(Ichigo::IK_BACKSPACE);     break;
                     case SDL_SCANCODE_TAB:         SET_KEY_STATE(Ichigo::IK_TAB);           break;
@@ -233,6 +229,16 @@ i32 main() {
                     case SDL_SCANCODE_PRINTSCREEN: SET_KEY_STATE(Ichigo::IK_PRINT_SCREEN);  break;
                     case SDL_SCANCODE_INSERT:      SET_KEY_STATE(Ichigo::IK_INSERT);        break;
                     case SDL_SCANCODE_DELETE:      SET_KEY_STATE(Ichigo::IK_DELETE);        break;
+                    case SDL_SCANCODE_0:           SET_KEY_STATE(Ichigo::IK_0);             break;
+                    case SDL_SCANCODE_1:           SET_KEY_STATE(Ichigo::IK_1);             break;
+                    case SDL_SCANCODE_2:           SET_KEY_STATE(Ichigo::IK_2);             break;
+                    case SDL_SCANCODE_3:           SET_KEY_STATE(Ichigo::IK_3);             break;
+                    case SDL_SCANCODE_4:           SET_KEY_STATE(Ichigo::IK_4);             break;
+                    case SDL_SCANCODE_5:           SET_KEY_STATE(Ichigo::IK_5);             break;
+                    case SDL_SCANCODE_6:           SET_KEY_STATE(Ichigo::IK_6);             break;
+                    case SDL_SCANCODE_7:           SET_KEY_STATE(Ichigo::IK_7);             break;
+                    case SDL_SCANCODE_8:           SET_KEY_STATE(Ichigo::IK_8);             break;
+                    case SDL_SCANCODE_9:           SET_KEY_STATE(Ichigo::IK_9);             break;
                     case SDL_SCANCODE_F1:          SET_KEY_STATE(Ichigo::IK_F1);            break;
                     case SDL_SCANCODE_F2:          SET_KEY_STATE(Ichigo::IK_F2);            break;
                     case SDL_SCANCODE_F3:          SET_KEY_STATE(Ichigo::IK_F3);            break;

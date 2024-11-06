@@ -268,6 +268,6 @@ inline T clamp(T value, T min, T max) {
     return value;
 }
 
-inline f32 lerp(f32 a, f32 t, f32 b) {
+inline f32 ichigo_lerp(f32 a, f32 t, f32 b) {
     return a + t * (b - a);
 }

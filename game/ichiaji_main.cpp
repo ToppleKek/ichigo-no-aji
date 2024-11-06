@@ -20,7 +20,7 @@ static Ichigo::AudioID   test_music_id      = 0;
 #define TILEMAP_WIDTH SCREEN_TILE_WIDTH * 4
 #define TILEMAP_HEIGHT SCREEN_TILE_HEIGHT * 2
 
-static u16 tiles[TILEMAP_HEIGHT][TILEMAP_WIDTH] = {
+static Ichigo::TileID tiles[TILEMAP_HEIGHT][TILEMAP_WIDTH] = {
     {2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3},
     {2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3},
     {2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3},
@@ -44,11 +44,11 @@ static u16 tiles[TILEMAP_HEIGHT][TILEMAP_WIDTH] = {
 static Ichigo::TileInfo tile_info_map[4]{};
 
 static Ichigo::Tilemap tilemap = {
-    (u16 *) tiles,
+    (Ichigo::TileID *) tiles,
     TILEMAP_WIDTH,
     TILEMAP_HEIGHT,
     tile_info_map,
-    4
+    ARRAY_LEN(tile_info_map)
 };
 
 static void entity_collide_proc(Ichigo::Entity *entity, Ichigo::Entity *other_entity) {
@@ -56,13 +56,13 @@ static void entity_collide_proc(Ichigo::Entity *entity, Ichigo::Entity *other_en
 }
 
 void Ichigo::Game::init() {
-    test_bg_texture_id = Ichigo::load_texture(test_bg, test_bg_len);
-    player_texture_id  = Ichigo::load_texture(test_png_image, test_png_image_len);
-    enemy_texture_id   = Ichigo::load_texture(enemy_png, enemy_png_len);
-    grass_texture_id   = Ichigo::load_texture(grass_tile_png, grass_tile_png_len);
+    test_bg_texture_id    = Ichigo::load_texture(test_bg, test_bg_len);
+    player_texture_id     = Ichigo::load_texture(test_png_image, test_png_image_len);
+    enemy_texture_id      = Ichigo::load_texture(enemy_png, enemy_png_len);
+    grass_texture_id      = Ichigo::load_texture(grass_tile_png, grass_tile_png_len);
     other_tile_texture_id = Ichigo::load_texture(other_tile_png, other_tile_png_len);
     three_tile_texture_id = Ichigo::load_texture(three_tile_png, three_tile_png_len);
-    test_music_id      = Ichigo::load_audio(test_song, test_song_len);
+    test_music_id         = Ichigo::load_audio(test_song, test_song_len);
 
     Ichigo::game_state.background_colour = {0.54f, 0.84f, 1.0f, 1.0f};
     Ichigo::game_state.background_layers[0].texture_id     = test_bg_texture_id;
