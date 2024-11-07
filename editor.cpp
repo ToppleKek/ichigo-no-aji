@@ -16,9 +16,58 @@ struct EditorAction {
     };
 };
 
-#define UNDO_STACK_SIZE 4
-static EditorAction undo_stack_memory[UNDO_STACK_SIZE] = {};
-static Util::IchigoCircularStack undo_stack(UNDO_STACK_SIZE, undo_stack_memory);
+struct UndoStack {
+    UndoStack(u64 initial_capacity) :
+        top(0),
+        redo_max_point(0),
+        size(0),
+        capacity(initial_capacity),
+        data((EditorAction *) std::malloc(initial_capacity * sizeof(EditorAction))) {}
+
+    ~UndoStack() { std::free(data); }
+
+    void push(EditorAction value) {
+        maybe_resize();
+        data[top]      = value;
+        redo_max_point = top;
+        ++top;
+        ++size;
+    }
+
+    Util::Optional<EditorAction> redo() {
+        if (top < redo_max_point) {
+            return {true, data[top++]};
+        }
+
+        return {};
+    }
+
+    EditorAction pop() {
+        assert(size != 0);
+        --size;
+        return data[--top];
+    }
+
+    u64 top;
+    u64 redo_max_point;
+    u64 size;
+    u64 capacity;
+    EditorAction *data;
+
+private:
+    void maybe_resize() {
+        if (size == capacity) {
+            // TODO: Better allocation strategy?
+            capacity *= 2;
+            data = (EditorAction *) std::realloc(data, capacity);
+        }
+    }
+};
+
+// #define UNDO_STACK_SIZE 4
+// static EditorAction undo_stack_memory[UNDO_STACK_SIZE] = {};
+// static Util::IchigoCircularStack undo_stack(UNDO_STACK_SIZE, undo_stack_memory);
+static UndoStack undo_stack(512);
 static Ichigo::TileID tiles_working_copy[ICHIGO_MAX_TILEMAP_SIZE] = {};
 static Ichigo::Tilemap saved_tilemap;
 static Ichigo::Tilemap tilemap_working_copy = {
@@ -56,7 +105,7 @@ static void rebuild_tilemap() {
     tilemap_working_copy.tile_info_count = saved_tilemap.tile_info_count;
     std::memcpy(tilemap_working_copy.tiles, saved_tilemap.tiles, saved_tilemap.width * saved_tilemap.height * sizeof(Ichigo::TileID));
 
-    for (u64 i = undo_stack.bottom; i != undo_stack.top; i = (i + 1) % undo_stack.capacity) {
+    for (u64 i = 0; i < undo_stack.top; ++i) {
         apply_action(undo_stack.data[i]);
     }
 }
@@ -285,9 +334,16 @@ void Ichigo::Editor::update() {
         fill_selected_region(ICHIGO_AIR_TILE);
     }
 
-    if (Internal::keyboard_state[IK_LEFT_CONTROL].down && Internal::keyboard_state[IK_Z].down_this_frame && undo_stack.count != 0) {
+    if (Internal::keyboard_state[IK_LEFT_CONTROL].down && Internal::keyboard_state[IK_Z].down_this_frame && undo_stack.size != 0) {
         undo_stack.pop();
         rebuild_tilemap();
+    }
+
+    if (Internal::keyboard_state[IK_LEFT_CONTROL].down && Internal::keyboard_state[IK_LEFT_SHIFT].down && Internal::keyboard_state[IK_Z].down_this_frame) {
+        auto ra = undo_stack.redo();
+        if (ra.has_value) {
+            apply_action(ra.value);
+        }
     }
 
     static Vec2<f32> pan_start_pos;
