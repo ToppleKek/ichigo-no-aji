@@ -189,15 +189,18 @@ private:
 };
 
 template<typename T>
-struct IchigoStack {
-    IchigoStack(u64 capacity, T *memory) : top(0), count(0), capacity(capacity), data(memory) {}
+struct IchigoCircularStack {
+    IchigoCircularStack(u64 capacity, T *memory) : top(0), bottom(0), count(0), capacity(capacity), data(memory) {}
 
     void push(T value) {
         data[top] = value;
         top       = (top + 1) % capacity;
 
-        if (count != capacity)
+        if (count != capacity) {
             ++count;
+        } else {
+            bottom = (bottom + 1) % capacity;
+        }
     }
 
     T pop() {
@@ -216,6 +219,7 @@ struct IchigoStack {
     }
 
     u64 top;
+    u64 bottom;
     u64 count;
     u64 capacity;
     T *data;

@@ -557,14 +557,17 @@ void Ichigo::Internal::do_frame() {
         }
 
         if (Ichigo::Internal::keyboard_state[IK_F1].down_this_frame) {
-            Ichigo::Camera::mode = Ichigo::Camera::Mode::MANUAL;
+        Ichigo::Camera::mode = Ichigo::Camera::Mode::MANUAL;
             Ichigo::Camera::manual_focus_point = Ichigo::Camera::offset;
+
+            Ichigo::Editor::before_open();
             program_mode = Ichigo::Internal::ProgramMode::EDITOR;
         }
     } else if (program_mode == Ichigo::Internal::ProgramMode::EDITOR) {
         Ichigo::Editor::update();
 
         if (Ichigo::Internal::keyboard_state[IK_F1].down_this_frame) {
+            Ichigo::Editor::before_close();
             Ichigo::Camera::mode = Ichigo::Camera::Mode::FOLLOW;
             program_mode = Ichigo::Internal::ProgramMode::GAME;
         }

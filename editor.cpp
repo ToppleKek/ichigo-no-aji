@@ -7,7 +7,7 @@ enum ActionType {
 };
 
 struct EditorAction {
-    AcitonType type;
+    ActionType type;
     union {
         struct {
             Rect<i32> region;
@@ -16,12 +16,50 @@ struct EditorAction {
     };
 };
 
-#define UNDO_STACK_SIZE 128
-static EditorAction stack_memory[UNDO_STACK_SIZE];
-static Util::IchigoStack undo_stack(UNDO_STACK_SIZE, stack_memory);
+#define UNDO_STACK_SIZE 4
+static EditorAction undo_stack_memory[UNDO_STACK_SIZE] = {};
+static Util::IchigoCircularStack undo_stack(UNDO_STACK_SIZE, undo_stack_memory);
+static Ichigo::TileID tiles_working_copy[ICHIGO_MAX_TILEMAP_SIZE] = {};
+static Ichigo::Tilemap saved_tilemap;
+static Ichigo::Tilemap tilemap_working_copy = {
+    tiles_working_copy,
+    0,
+    0,
+    nullptr,
+    0
+};
+
 static bool tiles_selected                = false;
 static Rect<i32> selected_region          = {};
 static Ichigo::TileID selected_brush_tile = 0;
+
+static void apply_action(EditorAction action) {
+    switch (action.type) {
+        case FILL: {
+            for (i32 y = action.region.pos.y; y < action.region.pos.y + action.region.h; ++y) {
+                for (i32 x = action.region.pos.x; x < action.region.pos.x + action.region.w; ++x) {
+                    tilemap_working_copy.tiles[y * tilemap_working_copy.width + x] = action.tile_brush;
+                }
+            }
+        } break;
+
+        default: {
+            ICHIGO_ERROR("Undefined editor action in undo stack!");
+        }
+    }
+}
+
+static void rebuild_tilemap() {
+    tilemap_working_copy.width           = saved_tilemap.width;
+    tilemap_working_copy.height          = saved_tilemap.height;
+    tilemap_working_copy.tile_info       = saved_tilemap.tile_info;
+    tilemap_working_copy.tile_info_count = saved_tilemap.tile_info_count;
+    std::memcpy(tilemap_working_copy.tiles, saved_tilemap.tiles, saved_tilemap.width * saved_tilemap.height * sizeof(Ichigo::TileID));
+
+    for (u64 i = undo_stack.bottom; i != undo_stack.top; i = (i + 1) % undo_stack.capacity) {
+        apply_action(undo_stack.data[i]);
+    }
+}
 
 static void resize_tilemap(u16 new_width, u16 new_height) {
     ICHIGO_INFO("New tilemap size: %ux%u (%u)", new_width, new_height, new_width * new_height);
@@ -64,11 +102,14 @@ static void fill_selected_region(Ichigo::TileID brush) {
         // Ichigo::show_info("Nothing selected.");
         ICHIGO_INFO("Nothing selected for fill");
     } else {
-        for (i32 y = selected_region.pos.y; y < selected_region.pos.y + selected_region.h; ++y) {
-            for (i32 x = selected_region.pos.x; x < selected_region.pos.x + selected_region.w; ++x) {
-                Ichigo::Internal::current_tilemap.tiles[y * Ichigo::Internal::current_tilemap.width + x] = brush;
-            }
-        }
+        EditorAction action = {
+            FILL,
+            selected_region,
+            brush
+        };
+
+        undo_stack.push(action);
+        apply_action(action);
     }
 }
 
@@ -146,26 +187,10 @@ void Ichigo::Editor::render_ui() {
         ImGui::Text("Brush tile: %u", selected_brush_tile);
         if (ImGui::Button("Fill region (f)")) {
             fill_selected_region(selected_brush_tile);
-
-            EditorAction action = {
-                FILL,
-                selected_region,
-                tile_brush
-            };
-
-            undo_stack.push(action);
         }
 
         if (ImGui::Button("Erase (e)")) {
             fill_selected_region(ICHIGO_AIR_TILE);
-
-            EditorAction action = {
-                FILL,
-                selected_region,
-                ICHIGO_AIR_BRUSH
-            };
-
-            undo_stack.push(action);
         }
     }
 
@@ -254,37 +279,15 @@ void Ichigo::Editor::update() {
 
     if (Internal::keyboard_state[IK_F].down_this_frame) {
         fill_selected_region(selected_brush_tile);
-        EditorAction action = {
-            FILL,
-            selected_region,
-            tile_brush
-        };
-
-        undo_stack.push(action);
     }
 
     if (Internal::keyboard_state[IK_E].down_this_frame) {
         fill_selected_region(ICHIGO_AIR_TILE);
-        EditorAction action = {
-            FILL,
-            selected_region,
-            ICHIGO_AIR_TILE
-        };
-
-        undo_stack.push(action);
     }
 
-    if (Internal::keyboard_state[IK_LCTRL].down && Internal::keyboard_state[IK_Z].down_this_frame) {
-        EditorAction action = undo_stack.pop();
-        switch (action.type) {
-            case FILL: {
-
-            } break;
-
-            default: {
-                ICHIGO_ERROR("Unknown action type in undo stack!");
-            } break;
-        }
+    if (Internal::keyboard_state[IK_LEFT_CONTROL].down && Internal::keyboard_state[IK_Z].down_this_frame && undo_stack.count != 0) {
+        undo_stack.pop();
+        rebuild_tilemap();
     }
 
     static Vec2<f32> pan_start_pos;
@@ -348,4 +351,28 @@ void Ichigo::Editor::update() {
         c.colour = {ichigo_lerp(0.3f, t, 0.8f), 0.0f, 0.0f, 0.5f};
         Ichigo::push_draw_command(c);
     }
+}
+
+// TODO: We can use this to clear all changes as well. It is just used to restore the original current_tilemap tiles pointer.
+void Ichigo::Editor::before_open() {
+    std::memcpy(&saved_tilemap, &Internal::current_tilemap, sizeof(Tilemap));
+
+    tilemap_working_copy.width           = Internal::current_tilemap.width;
+    tilemap_working_copy.height          = Internal::current_tilemap.height;
+    tilemap_working_copy.tile_info       = Internal::current_tilemap.tile_info;
+    tilemap_working_copy.tile_info_count = Internal::current_tilemap.tile_info_count;
+    std::memcpy(tilemap_working_copy.tiles, Internal::current_tilemap.tiles, Internal::current_tilemap.width * Internal::current_tilemap.height * sizeof(TileID));
+
+    // TODO: This is kind of a hack. We do this so that the renderer shows the modified tilemap while we are editing it.
+    Internal::current_tilemap.tiles = tilemap_working_copy.tiles;
+}
+
+void Ichigo::Editor::before_close() {
+    Internal::current_tilemap.width           = tilemap_working_copy.width;
+    Internal::current_tilemap.height          = tilemap_working_copy.height;
+    Internal::current_tilemap.tile_info       = tilemap_working_copy.tile_info;
+    Internal::current_tilemap.tile_info_count = tilemap_working_copy.tile_info_count;
+
+    Internal::current_tilemap.tiles = saved_tilemap.tiles;
+    std::memcpy(Internal::current_tilemap.tiles, tilemap_working_copy.tiles, tilemap_working_copy.width * tilemap_working_copy.height * sizeof(TileID));
 }
