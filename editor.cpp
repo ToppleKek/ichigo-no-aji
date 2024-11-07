@@ -35,7 +35,8 @@ struct UndoStack {
     }
 
     Util::Optional<EditorAction> redo() {
-        if (top < redo_max_point) {
+        if (top <= redo_max_point) {
+            ++size;
             return {true, data[top++]};
         }
 
@@ -334,16 +335,14 @@ void Ichigo::Editor::update() {
         fill_selected_region(ICHIGO_AIR_TILE);
     }
 
-    if (Internal::keyboard_state[IK_LEFT_CONTROL].down && Internal::keyboard_state[IK_Z].down_this_frame && undo_stack.size != 0) {
-        undo_stack.pop();
-        rebuild_tilemap();
-    }
-
     if (Internal::keyboard_state[IK_LEFT_CONTROL].down && Internal::keyboard_state[IK_LEFT_SHIFT].down && Internal::keyboard_state[IK_Z].down_this_frame) {
         auto ra = undo_stack.redo();
         if (ra.has_value) {
             apply_action(ra.value);
         }
+    } else if (Internal::keyboard_state[IK_LEFT_CONTROL].down && Internal::keyboard_state[IK_Z].down_this_frame && undo_stack.size != 0) {
+        undo_stack.pop();
+        rebuild_tilemap();
     }
 
     static Vec2<f32> pan_start_pos;
