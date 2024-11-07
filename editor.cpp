@@ -2,6 +2,23 @@
 #include "ichigo.hpp"
 #include "thirdparty/imgui/imgui.h"
 
+enum ActionType {
+    FILL,
+};
+
+struct EditorAction {
+    AcitonType type;
+    union {
+        struct {
+            Rect<i32> region;
+            Ichigo::TileID tile_brush;
+        };
+    };
+};
+
+#define UNDO_STACK_SIZE 128
+static EditorAction stack_memory[UNDO_STACK_SIZE];
+static Util::IchigoStack undo_stack(UNDO_STACK_SIZE, stack_memory);
 static bool tiles_selected                = false;
 static Rect<i32> selected_region          = {};
 static Ichigo::TileID selected_brush_tile = 0;
@@ -129,10 +146,26 @@ void Ichigo::Editor::render_ui() {
         ImGui::Text("Brush tile: %u", selected_brush_tile);
         if (ImGui::Button("Fill region (f)")) {
             fill_selected_region(selected_brush_tile);
+
+            EditorAction action = {
+                FILL,
+                selected_region,
+                tile_brush
+            };
+
+            undo_stack.push(action);
         }
 
         if (ImGui::Button("Erase (e)")) {
             fill_selected_region(ICHIGO_AIR_TILE);
+
+            EditorAction action = {
+                FILL,
+                selected_region,
+                ICHIGO_AIR_BRUSH
+            };
+
+            undo_stack.push(action);
         }
     }
 
@@ -221,10 +254,37 @@ void Ichigo::Editor::update() {
 
     if (Internal::keyboard_state[IK_F].down_this_frame) {
         fill_selected_region(selected_brush_tile);
+        EditorAction action = {
+            FILL,
+            selected_region,
+            tile_brush
+        };
+
+        undo_stack.push(action);
     }
 
     if (Internal::keyboard_state[IK_E].down_this_frame) {
         fill_selected_region(ICHIGO_AIR_TILE);
+        EditorAction action = {
+            FILL,
+            selected_region,
+            ICHIGO_AIR_TILE
+        };
+
+        undo_stack.push(action);
+    }
+
+    if (Internal::keyboard_state[IK_LCTRL].down && Internal::keyboard_state[IK_Z].down_this_frame) {
+        EditorAction action = undo_stack.pop();
+        switch (action.type) {
+            case FILL: {
+
+            } break;
+
+            default: {
+                ICHIGO_ERROR("Unknown action type in undo stack!");
+            } break;
+        }
     }
 
     static Vec2<f32> pan_start_pos;

@@ -362,7 +362,7 @@ void Ichigo::Internal::do_frame() {
     RESET_ARENA(Ichigo::game_state.transient_storage_arena);
 
     // TODO: Use an arena for this??
-    Ichigo::game_state.this_frame_data.draw_commands      = PUSH_ARRAY(&Ichigo::game_state.transient_storage_arena, DrawCommand, MAX_DRAW_COMMANDS);
+    Ichigo::game_state.this_frame_data.draw_commands      = PUSH_ARRAY(Ichigo::game_state.transient_storage_arena, DrawCommand, MAX_DRAW_COMMANDS);
     Ichigo::game_state.this_frame_data.draw_command_count = 0;
 
     Ichigo::Game::frame_begin();
@@ -627,8 +627,8 @@ void Ichigo::Internal::init() {
     Ichigo::game_state.permanent_storage_arena.capacity = MEGABYTES(256);
     Ichigo::game_state.permanent_storage_arena.data     = (u8 *) malloc(Ichigo::game_state.permanent_storage_arena.capacity);
 
-    Ichigo::Internal::current_tilemap.tiles     = PUSH_ARRAY(&Ichigo::game_state.permanent_storage_arena, TileID, ICHIGO_MAX_TILEMAP_SIZE);
-    Ichigo::Internal::current_tilemap.tile_info = PUSH_ARRAY(&Ichigo::game_state.permanent_storage_arena, TileInfo, ICHIGO_MAX_UNIQUE_TILES);
+    Ichigo::Internal::current_tilemap.tiles     = PUSH_ARRAY(Ichigo::game_state.permanent_storage_arena, TileID, ICHIGO_MAX_TILEMAP_SIZE);
+    Ichigo::Internal::current_tilemap.tile_info = PUSH_ARRAY(Ichigo::game_state.permanent_storage_arena, TileInfo, ICHIGO_MAX_UNIQUE_TILES);
 
     font_config.FontDataOwnedByAtlas = false;
     font_config.OversampleH = 2;

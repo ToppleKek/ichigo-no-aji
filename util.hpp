@@ -18,8 +18,8 @@ struct Arena {
     u8    *data;
 };
 
-#define PUSH_STRUCT(ARENA, S) Util::push_struct(ARENA, &S, sizeof(S))
-#define PUSH_ARRAY(ARENA, TYPE, COUNT) (TYPE *) Util::push_array(ARENA, sizeof(TYPE), COUNT)
+#define PUSH_STRUCT(ARENA, S) Util::push_struct(&ARENA, &S, sizeof(S))
+#define PUSH_ARRAY(ARENA, TYPE, COUNT) (TYPE *) Util::push_array(&ARENA, sizeof(TYPE), COUNT)
 #define BEGIN_LIST(ARENA, TYPE) (TYPE *) (&ARENA.data[ARENA.pointer])
 #define RESET_ARENA(ARENA) ARENA.pointer = 0
 void *push_array(Arena *arena, usize size, usize count);
@@ -186,6 +186,39 @@ private:
             string = reinterpret_cast<char *>(std::realloc(string, capacity));
         }
     }
+};
+
+template<typename T>
+struct IchigoStack {
+    IchigoStack(u64 capacity, T *memory) : top(0), count(0), capacity(capacity), data(memory) {}
+
+    void push(T value) {
+        data[top] = value;
+        top       = (top + 1) % capacity;
+
+        if (count != capacity)
+            ++count;
+    }
+
+    T pop() {
+        assert(count != 0);
+        --count;
+
+        if (top == 0) top = capacity - 1;
+        else          --top;
+
+        return data[top];
+    }
+
+    T peek() {
+        assert(count != 0);
+        return data[top - 1];
+    }
+
+    u64 top;
+    u64 count;
+    u64 capacity;
+    T *data;
 };
 
 template<typename T>

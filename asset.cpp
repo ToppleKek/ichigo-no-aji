@@ -38,7 +38,7 @@ Ichigo::AudioID Ichigo::load_audio(const u8 *mp3_data, usize mp3_data_size) {
     drmp3_init_memory(&mp3, mp3_data, mp3_data_size, nullptr);
     u64 frame_count     = drmp3_get_pcm_frame_count(&mp3);
     audio.size_in_bytes = frame_count * mp3.channels * sizeof(i16);
-    audio.frames        = PUSH_ARRAY(&Ichigo::game_state.permanent_storage_arena, Ichigo::AudioFrame2ChI16LE, frame_count * mp3.channels);
+    audio.frames        = PUSH_ARRAY(Ichigo::game_state.permanent_storage_arena, Ichigo::AudioFrame2ChI16LE, frame_count * mp3.channels);
     u64 frames_read     = drmp3_read_pcm_frames_s16(&mp3, frame_count, (i16 *) audio.frames);
     ICHIGO_INFO("Frames read from mp3: %llu frames requested from mp3: %llu", frames_read, frame_count);
 
