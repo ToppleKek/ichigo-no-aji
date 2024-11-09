@@ -138,6 +138,13 @@ void Ichigo::Game::update_and_render() {
     test_draw_command.colour = {0.2f, 0.3f, 0.5f, 1.0f};
     Ichigo::push_draw_command(test_draw_command);
 
+    Ichigo::DrawCommand test_draw_command2;
+    test_draw_command2.type   = Ichigo::DrawCommandType::TEXT;
+    test_draw_command2.string   = "tachibana";
+    test_draw_command2.string_length   = std::strlen("tachibana");
+    test_draw_command2.string_pos   = {0.0f, 0.0f};
+    Ichigo::push_draw_command(test_draw_command2);
+
     // ICHIGO_INFO("A button state: %d %d %d %d", Ichigo::Internal::gamepad.a.down, Ichigo::Internal::gamepad.a.up, Ichigo::Internal::gamepad.a.down_this_frame, Ichigo::Internal::gamepad.a.up_this_frame);
     // ICHIGO_INFO("LT: %f RT: %f", Ichigo::Internal::gamepad.lt, Ichigo::Internal::gamepad.rt);
     // ICHIGO_INFO("left stick: %f,%f", Ichigo::Internal::gamepad.stick_left.x, Ichigo::Internal::gamepad.stick_left.y);

@@ -369,7 +369,6 @@ void Ichigo::Editor::update() {
         if (t.has_value) {
             Vec2<u32> tile_coord = t.value;
             mouse_down_tile = tile_coord;
-            ICHIGO_INFO("Tile clicked: %u,%u", tile_coord.x, tile_coord.y);
             if (tile_coord.x < Internal::current_tilemap.width && tile_coord.y < Internal::current_tilemap.height) {
                 tiles_selected  = true;
                 selected_region = {vector_cast<i32>(tile_coord), 1, 1};

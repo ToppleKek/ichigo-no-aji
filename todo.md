@@ -34,10 +34,10 @@
 - - ~~Check for collisions between every active entity (maybe only ones within a certain distance from the player)~~
 - - ~~Resolve collisions by calling a collision handler on each entity~~
 - ~~Audio setup (DirectSound? XAudio?)~~
-- Audio mixer
-- Ichigo::push_render_command for allowing the game to draw the UI
-- Controller input (DirectInput? XInput?)
-- Tilemap editor
+- ~~Audio mixer~~
+- ~~Ichigo::push_render_command for allowing the game to draw the UI~~
+- ~~Controller input (DirectInput? XInput?)~~
+-~~ Tilemap editor~~
 - - It will allow you to "create a new tile" where you assign a texture that you load into the editor
 - - The tilemap editor will export (compressed?) tilemap files
 - - It will also export a hpp file that you can include in the game code
@@ -47,14 +47,20 @@
 - Basic pathfinding/AI
 - - Uses the "Ichigo::EntityControllers" setup
 - 2D Rigid body physics?
-- Black bar/windowing of aspect ratios out of range
-- Linux platform layer: fill out remaining key input
-- All platforms: support mouse input
+- ~~Black bar/windowing of aspect ratios out of range~~
+- ~~Linux platform layer: fill out remaining key input~~
+- ~~All platforms: support mouse input~~
 - Render order?
 - Animations?
 - Better asset system? I.e. tie multiple sprites to one asset, entity has "texture asset" or something so you can have multiple sprites make up one entity
 - Just like there is a tile texture map, there needs to be a way for the game to specify tile properties
 - - Set certain tiles to be intangible, etc.
+
+## The actual TODO for things that need to be done to ship
+- Text rendering (ASCII and hiragana/katakana, maybe some kanji?)
+- SIMDify mixer
+- Animation "system"
+- Particle system
 
 ## Wishlist
 - Fixed number of timesteps? (fixed ~200hz physics?)
@@ -84,7 +90,7 @@
 - git (source control)
 - clang (compiler)
 - RemedyBG (debugger)
-- VSCode (editor)
+- Focus (editor)
 - RenderDoc (Graphics debugger)
 - NVIDIA Nsight graphics (Graphics debugger)
 - Ctime (Compile time analysis tool)

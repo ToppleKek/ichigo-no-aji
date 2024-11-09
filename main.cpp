@@ -14,6 +14,9 @@
 
 #include <stb_image.h>
 
+#define STB_TRUETYPE_IMPLEMENTATION
+#include <stb_truetype.h>
+
 EMBED("noto.ttf", noto_font)
 EMBED("shaders/opengl/frag.glsl", fragment_shader_source)
 EMBED("shaders/opengl/solid_colour.glsl", solid_colour_fragment_shader_source)
@@ -31,14 +34,17 @@ static ImGuiStyle initial_style;
 static ImFontConfig font_config;
 static bool show_debug_menu = true;
 
-static ShaderProgram texture_shader_program;
-static ShaderProgram solid_colour_shader_program;
+static GLuint texture_shader_program;
+static GLuint solid_colour_shader_program;
 static GLuint screenspace_solid_colour_rect_program;
+static GLuint screenspace_texture_program;
+static GLuint font_atlas_texture_id;
 
 static u32 last_window_height                      = 0;
 static u32 last_window_width                       = 0;
 static Ichigo::Internal::ProgramMode program_mode  = Ichigo::Internal::ProgramMode::GAME;
 static Ichigo::TextureID invalid_tile_texture_id;
+static stbtt_packedchar *lc_packed_char_data;
 
 bool Ichigo::Internal::must_rebuild_swapchain     = false;
 Ichigo::GameState Ichigo::game_state              = {};
@@ -112,10 +118,10 @@ static void world_render_textured_rect(Rect<f32> rect, Ichigo::TextureID texture
     Ichigo::Internal::gl.glBindBuffer(GL_ARRAY_BUFFER, draw_data_textured.vertex_buffer_id);
     Ichigo::Internal::gl.glBindVertexArray(draw_data_textured.vertex_array_id);
     Ichigo::Internal::gl.glBindTexture(GL_TEXTURE_2D, Ichigo::Internal::textures.at(texture_id).id);
-    Ichigo::Internal::gl.glUseProgram(texture_shader_program.program_id);
+    Ichigo::Internal::gl.glUseProgram(texture_shader_program);
     Ichigo::Internal::gl.glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-    i32 texture_uniform = Ichigo::Internal::gl.glGetUniformLocation(texture_shader_program.program_id, "entity_texture");
-    i32 camera_uniform  = Ichigo::Internal::gl.glGetUniformLocation(texture_shader_program.program_id, "camera_transform");
+    i32 texture_uniform = Ichigo::Internal::gl.glGetUniformLocation(texture_shader_program, "entity_texture");
+    i32 camera_uniform  = Ichigo::Internal::gl.glGetUniformLocation(texture_shader_program, "camera_transform");
     Ichigo::Internal::gl.glUniformMatrix4fv(camera_uniform, 1, GL_TRUE, (GLfloat *) &Ichigo::Camera::transform);
     Ichigo::Internal::gl.glUniform1i(texture_uniform, 0);
     Ichigo::Internal::gl.glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
@@ -132,10 +138,10 @@ static void world_render_solid_colour_rect(Rect<f32> rect, Vec4<f32> colour) {
 
     Ichigo::Internal::gl.glBindBuffer(GL_ARRAY_BUFFER, draw_data_solid_colour.vertex_buffer_id);
     Ichigo::Internal::gl.glBindVertexArray(draw_data_solid_colour.vertex_array_id);
-    Ichigo::Internal::gl.glUseProgram(solid_colour_shader_program.program_id);
+    Ichigo::Internal::gl.glUseProgram(solid_colour_shader_program);
     Ichigo::Internal::gl.glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-    i32 colour_uniform = Ichigo::Internal::gl.glGetUniformLocation(solid_colour_shader_program.program_id, "colour");
-    i32 camera_uniform = Ichigo::Internal::gl.glGetUniformLocation(solid_colour_shader_program.program_id, "camera_transform");
+    i32 colour_uniform = Ichigo::Internal::gl.glGetUniformLocation(solid_colour_shader_program, "colour");
+    i32 camera_uniform = Ichigo::Internal::gl.glGetUniformLocation(solid_colour_shader_program, "camera_transform");
     Ichigo::Internal::gl.glUniformMatrix4fv(camera_uniform, 1, GL_TRUE, (GLfloat *) &Ichigo::Camera::transform);
     Ichigo::Internal::gl.glUniform4f(colour_uniform, colour.r, colour.g, colour.b, colour.a);
     Ichigo::Internal::gl.glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
@@ -144,7 +150,7 @@ static void world_render_solid_colour_rect(Rect<f32> rect, Vec4<f32> colour) {
 void default_entity_render_proc(Ichigo::Entity *entity) {
     Ichigo::Internal::gl.glBindBuffer(GL_ARRAY_BUFFER, draw_data_textured.vertex_buffer_id);
     Ichigo::Internal::gl.glBindVertexArray(draw_data_textured.vertex_array_id);
-    Ichigo::Internal::gl.glUseProgram(texture_shader_program.program_id);
+    Ichigo::Internal::gl.glUseProgram(texture_shader_program);
     Ichigo::Internal::gl.glBindTexture(GL_TEXTURE_2D, Ichigo::Internal::textures.at(entity->texture_id).id);
 
     Vec2<f32> draw_pos = { entity->col.pos.x + entity->sprite_pos_offset.x, entity->col.pos.y + entity->sprite_pos_offset.y };
@@ -157,8 +163,8 @@ void default_entity_render_proc(Ichigo::Entity *entity) {
 
     Ichigo::Internal::gl.glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
-    i32 texture_uniform = Ichigo::Internal::gl.glGetUniformLocation(texture_shader_program.program_id, "entity_texture");
-    i32 camera_uniform  = Ichigo::Internal::gl.glGetUniformLocation(texture_shader_program.program_id, "camera_transform");
+    i32 texture_uniform = Ichigo::Internal::gl.glGetUniformLocation(texture_shader_program, "entity_texture");
+    i32 camera_uniform  = Ichigo::Internal::gl.glGetUniformLocation(texture_shader_program, "camera_transform");
     Ichigo::Internal::gl.glUniformMatrix4fv(camera_uniform, 1, GL_TRUE, (GLfloat *) &Ichigo::Camera::transform);
     Ichigo::Internal::gl.glUniform1i(texture_uniform, 0);
     Ichigo::Internal::gl.glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
@@ -202,11 +208,11 @@ static void render_tile(Vec2<u32> tile_pos) {
     if (tile == INVALID_TILE) {
         world_render_textured_rect({{(f32) tile_pos.x, (f32) tile_pos.y}, 1.0f, 1.0f}, invalid_tile_texture_id);
     } else if (tile_info.texture_id != 0) {
-        Ichigo::Internal::gl.glUseProgram(texture_shader_program.program_id);
+        Ichigo::Internal::gl.glUseProgram(texture_shader_program);
         Ichigo::Internal::gl.glBindTexture(GL_TEXTURE_2D, Ichigo::Internal::textures.at(tile_info.texture_id).id);
 
-        i32 texture_uniform = Ichigo::Internal::gl.glGetUniformLocation(texture_shader_program.program_id, "entity_texture");
-        i32 camera_uniform  = Ichigo::Internal::gl.glGetUniformLocation(texture_shader_program.program_id, "camera_transform");
+        i32 texture_uniform = Ichigo::Internal::gl.glGetUniformLocation(texture_shader_program, "entity_texture");
+        i32 camera_uniform  = Ichigo::Internal::gl.glGetUniformLocation(texture_shader_program, "camera_transform");
         Ichigo::Internal::gl.glUniformMatrix4fv(camera_uniform, 1, GL_TRUE, (GLfloat *) &Ichigo::Camera::transform);
         Ichigo::Internal::gl.glUniform1i(texture_uniform, 0);
         Ichigo::Internal::gl.glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
@@ -215,9 +221,9 @@ static void render_tile(Vec2<u32> tile_pos) {
     Ichigo::Entity *player_entity = Ichigo::get_entity(Ichigo::game_state.player_entity_id);
     assert(player_entity);
     if (((tile_pos.x == player_entity->left_standing_tile.x && tile_pos.y == player_entity->left_standing_tile.y) || (tile_pos.x == player_entity->right_standing_tile.x && tile_pos.y == player_entity->right_standing_tile.y)) && FLAG_IS_SET(player_entity->flags, Ichigo::EntityFlag::EF_ON_GROUND)) {
-        Ichigo::Internal::gl.glUseProgram(solid_colour_shader_program.program_id);
-        i32 colour_uniform = Ichigo::Internal::gl.glGetUniformLocation(solid_colour_shader_program.program_id, "colour");
-        i32 camera_uniform  = Ichigo::Internal::gl.glGetUniformLocation(texture_shader_program.program_id, "camera_transform");
+        Ichigo::Internal::gl.glUseProgram(solid_colour_shader_program);
+        i32 colour_uniform = Ichigo::Internal::gl.glGetUniformLocation(solid_colour_shader_program, "colour");
+        i32 camera_uniform  = Ichigo::Internal::gl.glGetUniformLocation(texture_shader_program, "camera_transform");
         Ichigo::Internal::gl.glUniformMatrix4fv(camera_uniform, 1, GL_TRUE, (GLfloat *) &Ichigo::Camera::transform);
         Ichigo::Internal::gl.glUniform4f(colour_uniform, 1.0f, 0.4f, tile_pos.x == player_entity->right_standing_tile.x ? 0.4f : 0.8f, 1.0f);
         Ichigo::Internal::gl.glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
@@ -345,6 +351,44 @@ static void frame_render() {
             case Ichigo::DrawCommandType::SOLID_COLOUR_RECT: {
                 world_render_solid_colour_rect(cmd.rect, cmd.colour);
             } break;
+
+            case Ichigo::DrawCommandType::TEXT: {
+                Ichigo::Internal::gl.glUseProgram(screenspace_texture_program);
+                Ichigo::Internal::gl.glBindBuffer(GL_ARRAY_BUFFER, draw_data_textured.vertex_buffer_id);
+                Ichigo::Internal::gl.glBindVertexArray(draw_data_textured.vertex_array_id);
+                Ichigo::Internal::gl.glBindTexture(GL_TEXTURE_2D, font_atlas_texture_id);
+                // Ichigo::Internal::gl.glBindTexture(GL_TEXTURE_2D, Ichigo::Internal::textures.at(3).id);
+
+                f32 x = 100.0f;
+                f32 y = 100.0f;
+                for (u32 i = 0; i < cmd.string_length; ++i) {
+                    stbtt_aligned_quad q;
+                    stbtt_GetPackedQuad(lc_packed_char_data, 2048, 2048, cmd.string[i] - 'a', &x, &y, &q, true);
+                    // ICHIGO_INFO("x0=%f y0=%f s0=%f t0=%f x1=%f y1=%f s1=%f t1=%f", q.x0, q.y0, q.s0, q.t0, q.x1, q.y1, q.s1, q.t1);
+
+                    // Vec2<f32> draw_pos = { (f32) tile_pos.x, (f32) tile_pos.y };
+
+                    TexturedVertex vertices[] = {
+                        // {{draw_pos.x, draw_pos.y, 0.0f}, {0.0f, 1.0f}},  // top left
+                        // {{draw_pos.x + 1, draw_pos.y, 0.0f}, {1.0f, 1.0f}}, // top right
+                        // {{draw_pos.x, draw_pos.y + 1, 0.0f}, {0.0f, 0.0f}}, // bottom left
+                        // {{draw_pos.x + 1, draw_pos.y + 1, 0.0f}, {1.0f, 0.0f}}, // bottom right
+                        {{q.x0 / Ichigo::Internal::viewport_width * SCREEN_TILE_WIDTH, q.y0 / Ichigo::Internal::viewport_height * SCREEN_TILE_HEIGHT, 0.0f}, {q.s0, q.t0}},  // top left
+                        {{q.x1 / Ichigo::Internal::viewport_width * SCREEN_TILE_WIDTH, q.y0 / Ichigo::Internal::viewport_height * SCREEN_TILE_HEIGHT, 0.0f}, {q.s1, q.t0}}, // top right
+                        {{q.x0 / Ichigo::Internal::viewport_width * SCREEN_TILE_WIDTH, q.y1 / Ichigo::Internal::viewport_height * SCREEN_TILE_HEIGHT, 0.0f}, {q.s0, q.t1}}, // bottom left
+                        {{q.x1 / Ichigo::Internal::viewport_width * SCREEN_TILE_WIDTH, q.y1 / Ichigo::Internal::viewport_height * SCREEN_TILE_HEIGHT, 0.0f}, {q.s1, q.t1}}, // bottom right
+                    };
+
+                    Ichigo::Internal::gl.glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+                    i32 camera_uniform  = Ichigo::Internal::gl.glGetUniformLocation(texture_shader_program, "camera_transform");
+                    i32 texture_uniform = Ichigo::Internal::gl.glGetUniformLocation(texture_shader_program, "entity_texture");
+                    Ichigo::Internal::gl.glUniform1i(texture_uniform, 0);
+                    Ichigo::Internal::gl.glUniformMatrix4fv(camera_uniform, 1, GL_TRUE, (GLfloat *) &Ichigo::Camera::transform);
+
+                    Ichigo::Internal::gl.glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+                }
+            } break;
+
             default: {
                 ICHIGO_ERROR("Invalid draw command type: %u", cmd.type);
             }
@@ -650,33 +694,52 @@ void Ichigo::Internal::init() {
     auto io = ImGui::GetIO();
     io.Fonts->AddFontFromMemoryTTF((void *) noto_font, noto_font_len, 18, &font_config, io.Fonts->GetGlyphRangesJapanese());
 
+    u8 *font_bitmap     = PUSH_ARRAY(Ichigo::game_state.transient_storage_arena, u8, 2048 * 2048);
+    lc_packed_char_data = PUSH_ARRAY(Ichigo::game_state.permanent_storage_arena, stbtt_packedchar, 26);
+    // stbtt_BakeFontBitmap(noto_font, 0, 64.0f, font_bitmap, 2048, 2048, 32, 96, cdata);
+
+    stbtt_pack_context spc = {};
+    stbtt_PackBegin(&spc, font_bitmap, 2048, 2048, 0, 1, nullptr);
+    stbtt_PackSetOversampling(&spc, 2, 2);
+    stbtt_PackFontRange(&spc, noto_font, 0, 40, 'a', 26, lc_packed_char_data);
+    stbtt_PackEnd(&spc);
+
+    Ichigo::Internal::gl.glGenTextures(1, &font_atlas_texture_id);
+    Ichigo::Internal::gl.glBindTexture(GL_TEXTURE_2D, font_atlas_texture_id);
+    // Ichigo::Internal::gl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    // Ichigo::Internal::gl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    // Ichigo::Internal::gl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_NEAREST);
+    // Ichigo::Internal::gl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    Ichigo::Internal::gl.glTexImage2D(GL_TEXTURE_2D, 0, GL_ALPHA, 2048, 2048, 0, GL_ALPHA, GL_UNSIGNED_BYTE, font_bitmap);
+    Ichigo::Internal::gl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    Ichigo::Internal::gl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    // Ichigo::Internal::gl.glGenerateMipmap(GL_TEXTURE_2D);
+
+
     ICHIGO_INFO("GL_VERSION=%s", Ichigo::Internal::gl.glGetString(GL_VERSION));
 
     Ichigo::Internal::gl.glEnable(GL_BLEND);
     Ichigo::Internal::gl.glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-    GLuint screenspace_vertex_shader_id = Ichigo::Internal::gl.glCreateShader(GL_VERTEX_SHADER);
-    compile_shader(screenspace_vertex_shader_id, (const GLchar *) screenspace_vertex_shader_source, screenspace_vertex_shader_source_len);
+    GLuint screenspace_vertex_shader    = Ichigo::Internal::gl.glCreateShader(GL_VERTEX_SHADER);
+    GLuint worldspace_vertex_shader     = Ichigo::Internal::gl.glCreateShader(GL_VERTEX_SHADER);
+    GLuint texture_fragment_shader      = Ichigo::Internal::gl.glCreateShader(GL_FRAGMENT_SHADER);
+    GLuint solid_colour_fragment_shader = Ichigo::Internal::gl.glCreateShader(GL_FRAGMENT_SHADER);
 
-    texture_shader_program.vertex_shader_id      = Ichigo::Internal::gl.glCreateShader(GL_VERTEX_SHADER);
-    solid_colour_shader_program.vertex_shader_id = texture_shader_program.vertex_shader_id;
+    compile_shader(screenspace_vertex_shader, (const GLchar *) screenspace_vertex_shader_source, screenspace_vertex_shader_source_len);
+    compile_shader(worldspace_vertex_shader, (const GLchar *) vertex_shader_source, vertex_shader_source_len);
+    compile_shader(texture_fragment_shader, (const GLchar *) fragment_shader_source, fragment_shader_source_len);
+    compile_shader(solid_colour_fragment_shader, (const GLchar *) solid_colour_fragment_shader_source, solid_colour_fragment_shader_source_len);
 
-    compile_shader(texture_shader_program.vertex_shader_id, (const GLchar *) vertex_shader_source, vertex_shader_source_len);
+    texture_shader_program                = link_program(worldspace_vertex_shader, texture_fragment_shader);
+    solid_colour_shader_program           = link_program(worldspace_vertex_shader, solid_colour_fragment_shader);
+    screenspace_solid_colour_rect_program = link_program(screenspace_vertex_shader, solid_colour_fragment_shader);
+    screenspace_texture_program           = link_program(worldspace_vertex_shader, texture_fragment_shader);
 
-    texture_shader_program.fragment_shader_id      = Ichigo::Internal::gl.glCreateShader(GL_FRAGMENT_SHADER);
-    solid_colour_shader_program.fragment_shader_id = Ichigo::Internal::gl.glCreateShader(GL_FRAGMENT_SHADER);
-
-    compile_shader(texture_shader_program.fragment_shader_id, (const GLchar *) fragment_shader_source, fragment_shader_source_len);
-    compile_shader(solid_colour_shader_program.fragment_shader_id, (const GLchar *) solid_colour_fragment_shader_source, solid_colour_fragment_shader_source_len);
-
-    texture_shader_program.program_id      = link_program(texture_shader_program.vertex_shader_id, texture_shader_program.fragment_shader_id);
-    solid_colour_shader_program.program_id = link_program(solid_colour_shader_program.vertex_shader_id, solid_colour_shader_program.fragment_shader_id);
-    screenspace_solid_colour_rect_program  = link_program(screenspace_vertex_shader_id, solid_colour_shader_program.fragment_shader_id);
-
-    Ichigo::Internal::gl.glDeleteShader(texture_shader_program.vertex_shader_id);
-    Ichigo::Internal::gl.glDeleteShader(texture_shader_program.fragment_shader_id);
-    Ichigo::Internal::gl.glDeleteShader(solid_colour_shader_program.fragment_shader_id);
-    Ichigo::Internal::gl.glDeleteShader(screenspace_vertex_shader_id);
+    Ichigo::Internal::gl.glDeleteShader(screenspace_vertex_shader);
+    Ichigo::Internal::gl.glDeleteShader(worldspace_vertex_shader);
+    Ichigo::Internal::gl.glDeleteShader(texture_fragment_shader);
+    Ichigo::Internal::gl.glDeleteShader(solid_colour_fragment_shader);
 
     // Textured vertices
     Ichigo::Internal::gl.glGenVertexArrays(1, &draw_data_textured.vertex_array_id);

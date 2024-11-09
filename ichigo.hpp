@@ -144,13 +144,27 @@ struct Mouse {
 
 
 enum DrawCommandType {
-    SOLID_COLOUR_RECT
+    SOLID_COLOUR_RECT,
+    TEXT
 };
 
 struct DrawCommand {
     DrawCommandType type;
-    Rect<f32> rect;
-    Vec4<f32> colour;
+    union {
+        // SOLID_COLOUR_RECT
+        struct {
+            Rect<f32> rect;
+            Vec4<f32> colour;
+        };
+
+        // TEXT
+        struct {
+            char *string;
+            usize string_length;
+            u32 pt_size;
+            Vec2<f32> string_pos;
+        };
+    };
 };
 
 using BackgroundFlags = u32;
