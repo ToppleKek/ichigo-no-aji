@@ -55,6 +55,8 @@ static void entity_collide_proc(Ichigo::Entity *entity, Ichigo::Entity *other_en
     ICHIGO_INFO("I (%s) just collided with %s!", entity->name, other_entity->name);
 }
 
+static Ichigo::EntityID gert_id;
+
 void Ichigo::Game::init() {
     test_bg_texture_id    = Ichigo::load_texture(test_bg, test_bg_len);
     player_texture_id     = Ichigo::load_texture(test_png_image, test_png_image_len);
@@ -109,7 +111,7 @@ void Ichigo::Game::init() {
     Ichigo::Camera::follow(player->id);
 
     Ichigo::Entity *enemy = Ichigo::spawn_entity();
-
+    gert_id = enemy->id;
     std::strcpy(enemy->name, "gert");
     enemy->col            = {{9.0f, 2.0f}, 0.5f, 0.5f};
     enemy->sprite_w       = 0.5f;
@@ -138,12 +140,16 @@ void Ichigo::Game::update_and_render() {
     test_draw_command.colour = {0.2f, 0.3f, 0.5f, 1.0f};
     Ichigo::push_draw_command(test_draw_command);
 
-    Ichigo::DrawCommand test_draw_command2;
-    test_draw_command2.type   = Ichigo::DrawCommandType::TEXT;
-    test_draw_command2.string   = "tachibana";
-    test_draw_command2.string_length   = std::strlen("tachibana");
-    test_draw_command2.string_pos   = {0.0f, 0.0f};
-    Ichigo::push_draw_command(test_draw_command2);
+    Ichigo::Entity *gert = Ichigo::get_entity(gert_id);
+    if (gert) {
+        Ichigo::DrawCommand test_draw_command2;
+        test_draw_command2.type          = Ichigo::DrawCommandType::TEXT;
+        test_draw_command2.string        = "gert";
+        test_draw_command2.string_length = 4;
+        test_draw_command2.text_scale    = 0.2f;
+        test_draw_command2.string_pos    = gert->col.pos;
+        Ichigo::push_draw_command(test_draw_command2);
+    }
 
     // ICHIGO_INFO("A button state: %d %d %d %d", Ichigo::Internal::gamepad.a.down, Ichigo::Internal::gamepad.a.up, Ichigo::Internal::gamepad.a.down_this_frame, Ichigo::Internal::gamepad.a.up_this_frame);
     // ICHIGO_INFO("LT: %f RT: %f", Ichigo::Internal::gamepad.lt, Ichigo::Internal::gamepad.rt);

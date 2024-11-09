@@ -9,6 +9,7 @@
 #include "opengl.hpp"
 #include "math.hpp"
 
+#define ICHIGO_FONT_ATLAS_DIM 2048
 #define ICHIGO_MAX_BACKGROUNDS 16
 #define ICHIGO_MAX_TILEMAP_SIZE (4096 * 4096)
 #define ICHIGO_MAX_UNIQUE_TILES 1024
@@ -161,8 +162,8 @@ struct DrawCommand {
         struct {
             char *string;
             usize string_length;
-            u32 pt_size;
             Vec2<f32> string_pos;
+            f32 text_scale;
         };
     };
 };
