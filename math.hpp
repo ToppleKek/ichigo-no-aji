@@ -198,6 +198,16 @@ struct Mat4 {
     Vec4<T> b;
     Vec4<T> c;
     Vec4<T> d;
+
+
+    Mat4<T> operator*(const Mat4<T> rhs) {
+        return {
+            {dot(a, {rhs.a.x, rhs.b.x, rhs.c.x, rhs.d.x}), dot(a, {rhs.a.y, rhs.b.y, rhs.c.y, rhs.d.y}), dot(a, {rhs.a.z, rhs.b.z, rhs.c.z, rhs.d.z}), dot(a, {rhs.a.w, rhs.b.w, rhs.c.w, rhs.d.w})},
+            {dot(b, {rhs.a.x, rhs.b.x, rhs.c.x, rhs.d.x}), dot(b, {rhs.a.y, rhs.b.y, rhs.c.y, rhs.d.y}), dot(b, {rhs.a.z, rhs.b.z, rhs.c.z, rhs.d.z}), dot(b, {rhs.a.w, rhs.b.w, rhs.c.w, rhs.d.w})},
+            {dot(c, {rhs.a.x, rhs.b.x, rhs.c.x, rhs.d.x}), dot(c, {rhs.a.y, rhs.b.y, rhs.c.y, rhs.d.y}), dot(c, {rhs.a.z, rhs.b.z, rhs.c.z, rhs.d.z}), dot(c, {rhs.a.w, rhs.b.w, rhs.c.w, rhs.d.w})},
+            {dot(d, {rhs.a.x, rhs.b.x, rhs.c.x, rhs.d.x}), dot(d, {rhs.a.y, rhs.b.y, rhs.c.y, rhs.d.y}), dot(d, {rhs.a.z, rhs.b.z, rhs.c.z, rhs.d.z}), dot(d, {rhs.a.w, rhs.b.w, rhs.c.w, rhs.d.w})}
+        };
+    }
 };
 
 template <typename T>
@@ -222,6 +232,15 @@ inline Mat4<f32> translate2d(Vec2<f32> t) {
         {0, 1, 0, t.y},
         {0, 0, 1, 0},
         {0, 0, 0, 1},
+    };
+}
+
+inline Mat4<f32> scale2d(Vec2<f32> s) {
+    return {
+        {s.x, 0,   0, 0},
+        {0,   s.y, 0, 0},
+        {0,   0,   1, 0},
+        {0,   0,   0, 1},
     };
 }
 
@@ -252,6 +271,11 @@ inline f32 pixels_to_metres(f32 pixels) {
 template<typename T>
 inline T dot(Vec2<T> lhs, Vec2<T> rhs) {
     return lhs.x * rhs.x + lhs.y * rhs.y;
+}
+
+template<typename T>
+inline T dot(Vec4<T> lhs, Vec4<T> rhs) {
+    return lhs.x * rhs.x + lhs.y * rhs.y + lhs.z * rhs.z + lhs.w * rhs.w;
 }
 
 inline f32 safe_ratio_1(f32 dividend, f32 divisor) {

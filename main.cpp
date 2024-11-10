@@ -56,6 +56,7 @@ static Ichigo::Internal::ProgramMode program_mode  = Ichigo::Internal::ProgramMo
 static Ichigo::TextureID invalid_tile_texture_id;
 static stbtt_packedchar *printable_ascii_pack_data;
 static stbtt_packedchar *cjk_pack_data;
+static Mat4<f32> identity_mat4;
 
 bool Ichigo::Internal::must_rebuild_swapchain     = false;
 Ichigo::GameState Ichigo::game_state              = {};
@@ -91,15 +92,39 @@ static void screen_render_solid_colour_rect(Rect<f32> rect, Vec4<f32> colour) {
         {rect.pos.x + rect.w, rect.pos.y + rect.h, 0.0f}, // bottom right
     };
 
+    Ichigo::Internal::gl.glUseProgram(screenspace_solid_colour_rect_program);
+
     Ichigo::Internal::gl.glBindBuffer(GL_ARRAY_BUFFER, draw_data_solid_colour.vertex_buffer_id);
     Ichigo::Internal::gl.glBindVertexArray(draw_data_solid_colour.vertex_array_id);
-    Ichigo::Internal::gl.glUseProgram(screenspace_solid_colour_rect_program);
 
     Ichigo::Internal::gl.glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
     Ichigo::Internal::gl.glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(rectangle_indices), rectangle_indices, GL_STATIC_DRAW);
 
     i32 colour_uniform = Ichigo::Internal::gl.glGetUniformLocation(screenspace_solid_colour_rect_program, "colour");
     Ichigo::Internal::gl.glUniform4f(colour_uniform, colour.r, colour.g, colour.b, colour.a);
+    Ichigo::Internal::gl.glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+}
+
+static void screen_render_textured_rect(Rect<f32> rect, Ichigo::TextureID texture_id) {
+    Vec2<f32> draw_pos = { rect.pos.x, rect.pos.y };
+    TexturedVertex vertices[] = {
+        {{draw_pos.x, draw_pos.y, 0.0f}, {0.0f, 1.0f}},  // top left
+        {{draw_pos.x + rect.w, draw_pos.y, 0.0f}, {1.0f, 1.0f}}, // top right
+        {{draw_pos.x, draw_pos.y + rect.h, 0.0f}, {0.0f, 0.0f}}, // bottom left
+        {{draw_pos.x + rect.w, draw_pos.y + rect.h, 0.0f}, {1.0f, 0.0f}}, // bottom right
+    };
+
+    Ichigo::Internal::gl.glUseProgram(screenspace_texture_program);
+
+    Ichigo::Internal::gl.glBindBuffer(GL_ARRAY_BUFFER, draw_data_textured.vertex_buffer_id);
+    Ichigo::Internal::gl.glBindVertexArray(draw_data_textured.vertex_array_id);
+    Ichigo::Internal::gl.glBindTexture(GL_TEXTURE_2D, Ichigo::Internal::textures.at(texture_id).id);
+
+    Ichigo::Internal::gl.glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+    Ichigo::Internal::gl.glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(rectangle_indices), rectangle_indices, GL_STATIC_DRAW);
+
+    i32 texture_uniform = Ichigo::Internal::gl.glGetUniformLocation(texture_shader_program, "entity_texture");
+    Ichigo::Internal::gl.glUniform1i(texture_uniform, 0);
     Ichigo::Internal::gl.glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 }
 
@@ -129,17 +154,16 @@ static void world_render_textured_rect(Rect<f32> rect, Ichigo::TextureID texture
         {{draw_pos.x + rect.w, draw_pos.y + rect.h, 0.0f}, {1.0f, 0.0f}}, // bottom right
     };
 
+    Ichigo::Internal::gl.glUseProgram(texture_shader_program);
+
     Ichigo::Internal::gl.glBindBuffer(GL_ARRAY_BUFFER, draw_data_textured.vertex_buffer_id);
     Ichigo::Internal::gl.glBindVertexArray(draw_data_textured.vertex_array_id);
     Ichigo::Internal::gl.glBindTexture(GL_TEXTURE_2D, Ichigo::Internal::textures.at(texture_id).id);
-    Ichigo::Internal::gl.glUseProgram(texture_shader_program);
 
     Ichigo::Internal::gl.glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
     Ichigo::Internal::gl.glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(rectangle_indices), rectangle_indices, GL_STATIC_DRAW);
 
     i32 texture_uniform = Ichigo::Internal::gl.glGetUniformLocation(texture_shader_program, "entity_texture");
-    i32 camera_uniform  = Ichigo::Internal::gl.glGetUniformLocation(texture_shader_program, "camera_transform");
-    Ichigo::Internal::gl.glUniformMatrix4fv(camera_uniform, 1, GL_TRUE, (GLfloat *) &Ichigo::Camera::transform);
     Ichigo::Internal::gl.glUniform1i(texture_uniform, 0);
     Ichigo::Internal::gl.glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 }
@@ -153,18 +177,142 @@ static void world_render_solid_colour_rect(Rect<f32> rect, Vec4<f32> colour) {
         {draw_pos.x + rect.w, draw_pos.y + rect.h, 0.0f}, // bottom right
     };
 
+    Ichigo::Internal::gl.glUseProgram(solid_colour_shader_program);
+
     Ichigo::Internal::gl.glBindBuffer(GL_ARRAY_BUFFER, draw_data_solid_colour.vertex_buffer_id);
     Ichigo::Internal::gl.glBindVertexArray(draw_data_solid_colour.vertex_array_id);
-    Ichigo::Internal::gl.glUseProgram(solid_colour_shader_program);
 
     Ichigo::Internal::gl.glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
     Ichigo::Internal::gl.glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(rectangle_indices), rectangle_indices, GL_STATIC_DRAW);
 
     i32 colour_uniform = Ichigo::Internal::gl.glGetUniformLocation(solid_colour_shader_program, "colour");
-    i32 camera_uniform = Ichigo::Internal::gl.glGetUniformLocation(solid_colour_shader_program, "camera_transform");
-    Ichigo::Internal::gl.glUniformMatrix4fv(camera_uniform, 1, GL_TRUE, (GLfloat *) &Ichigo::Camera::transform);
     Ichigo::Internal::gl.glUniform4f(colour_uniform, colour.r, colour.g, colour.b, colour.a);
     Ichigo::Internal::gl.glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+}
+
+static void render_text(Vec2<f32> pos, const char *str, usize length, f32 scale, Ichigo::CoordinateSystem coordinate_system) {
+    assert(Util::utf8_char_count(str, length) < MAX_TEXT_STRING_LENGTH);
+
+    stbtt_fontinfo font;
+    stbtt_InitFont(&font, noto_font, 0);
+
+    uptr            temp_ptr      = BEGIN_TEMP_MEMORY(Ichigo::game_state.transient_storage_arena);
+    TexturedVertex *vertex_buffer = PUSH_ARRAY(Ichigo::game_state.transient_storage_arena, TexturedVertex, MAX_TEXT_STRING_LENGTH * 4);
+    u32            *index_buffer  = PUSH_ARRAY(Ichigo::game_state.transient_storage_arena, u32, MAX_TEXT_STRING_LENGTH * 6);
+    // Vec2<f32>       current_pos   = pos;
+    Vec2<f32>       current_pos   = {0.0f, 0.0f};
+
+    Util::BufferBuilder<TexturedVertex> vertices(vertex_buffer, MAX_TEXT_STRING_LENGTH * 4);
+    Util::BufferBuilder<u32>            indices(index_buffer, MAX_TEXT_STRING_LENGTH * 6);
+
+    // f32 (*pixel_converter)(f32);
+    // if      (coordinate_system == WORLD)  pixel_converter = pixels_to_metres;
+    // else if (coordinate_system == SCREEN) pixel_converter = pixels_to_screenspace;
+
+    for (u32 i = 0; i < length; ++i) {
+        if (str[i] == ' ') {
+            current_pos.x += 10.0f * scale;
+            continue;
+        }
+
+        stbtt_packedchar pc;
+        if ((u32) str[i] >= character_ranges[0].first_codepoint && (u32) str[i] <= character_ranges[0].first_codepoint + character_ranges[0].length) {
+            pc = printable_ascii_pack_data[str[i] - character_ranges[0].first_codepoint];
+        } else if ((str[i] & 0b11100000) >> 4 == 0b1110) {
+            u32 codepoint = ((str[i] & 0b00001111) << 12) | ((str[i + 1] & 0b00111111) << 6) | ((str[i + 2] & 0b00111111));
+            if (codepoint >= character_ranges[1].first_codepoint && codepoint <= character_ranges[1].first_codepoint + character_ranges[1].length) {
+                pc = cjk_pack_data[codepoint - character_ranges[1].first_codepoint];
+            }
+
+            i += 2;
+        } else {
+            // This characer is not in the font atlas.
+            continue;
+        }
+
+        f32 u0 = pc.x0 / (f32) ICHIGO_FONT_ATLAS_DIM;
+        f32 u1 = pc.x1 / (f32) ICHIGO_FONT_ATLAS_DIM;
+        f32 v0 = pc.y0 / (f32) ICHIGO_FONT_ATLAS_DIM;
+        f32 v1 = pc.y1 / (f32) ICHIGO_FONT_ATLAS_DIM;
+
+        f32 x0_pixels = pc.xoff;
+        f32 x1_pixels = pc.xoff2;
+        f32 y0_pixels = pc.yoff;
+        f32 y1_pixels = pc.yoff2;
+
+        f32 x0 = x0_pixels * scale + current_pos.x;
+        f32 x1 = x1_pixels * scale + current_pos.x;
+        f32 y0 = y0_pixels * scale + current_pos.y;
+        f32 y1 = y1_pixels * scale + current_pos.y;
+
+        // 0, 1, 2,
+        // 1, 2, 3
+        u32 in[] = {
+            (u32) vertices.size,     (u32) vertices.size + 1, (u32) vertices.size + 2,
+            (u32) vertices.size + 1, (u32) vertices.size + 2, (u32) vertices.size + 3
+        };
+
+        indices.append(in, ARRAY_LEN(in));
+
+        TexturedVertex vtx[] = {
+            {{x0, y0, 0.0f}, {u0, v0}}, // top left
+            {{x1, y0, 0.0f}, {u1, v0}}, // top right
+            {{x0, y1, 0.0f}, {u0, v1}}, // bottom left
+            {{x1, y1, 0.0f}, {u1, v1}}  // bottom right
+        };
+
+        vertices.append(vtx, ARRAY_LEN(vtx));
+        current_pos.x += pc.xadvance * scale;
+    }
+
+    switch (coordinate_system) {
+        case Ichigo::CoordinateSystem::CAMERA:
+        case Ichigo::CoordinateSystem::WORLD: {
+            Ichigo::Internal::gl.glUseProgram(texture_shader_program);
+            Ichigo::Internal::gl.glBindBuffer(GL_ARRAY_BUFFER, draw_data_textured.vertex_buffer_id);
+            Ichigo::Internal::gl.glBindVertexArray(draw_data_textured.vertex_array_id);
+            Ichigo::Internal::gl.glBindTexture(GL_TEXTURE_2D, font_atlas_texture_id);
+
+            Ichigo::Internal::gl.glBufferData(GL_ARRAY_BUFFER, vertices.size * sizeof(TexturedVertex), vertices.data, GL_STATIC_DRAW);
+            Ichigo::Internal::gl.glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size * sizeof(u32), indices.data, GL_STATIC_DRAW);
+
+            Vec2<f32> translation = coordinate_system == Ichigo::CoordinateSystem::CAMERA ? pos - get_translation2d(Ichigo::Camera::transform) : pos;
+
+            i32 object_uniform       = Ichigo::Internal::gl.glGetUniformLocation(texture_shader_program, "object_transform");
+            Mat4<f32> text_transform = translate2d(translation) * scale2d({pixels_to_metres(0.2f), pixels_to_metres(0.2f)});
+
+            Ichigo::Internal::gl.glUniformMatrix4fv(object_uniform, 1, GL_TRUE, (GLfloat *) &text_transform);
+        } break;
+
+        case Ichigo::CoordinateSystem::SCREEN: {
+            Ichigo::Internal::gl.glUseProgram(screenspace_texture_program);
+            Ichigo::Internal::gl.glBindBuffer(GL_ARRAY_BUFFER, draw_data_textured.vertex_buffer_id);
+            Ichigo::Internal::gl.glBindVertexArray(draw_data_textured.vertex_array_id);
+            Ichigo::Internal::gl.glBindTexture(GL_TEXTURE_2D, font_atlas_texture_id);
+
+            Ichigo::Internal::gl.glBufferData(GL_ARRAY_BUFFER, vertices.size * sizeof(TexturedVertex), vertices.data, GL_STATIC_DRAW);
+            Ichigo::Internal::gl.glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size * sizeof(u32), indices.data, GL_STATIC_DRAW);
+
+            i32 object_uniform       = Ichigo::Internal::gl.glGetUniformLocation(screenspace_texture_program, "object_transform");
+            Mat4<f32> text_transform = translate2d(pos) * scale2d({1.0f / Ichigo::Internal::viewport_width, 1.0f / Ichigo::Internal::viewport_height});
+
+            Ichigo::Internal::gl.glUniformMatrix4fv(object_uniform, 1, GL_TRUE, (GLfloat *) &text_transform);
+        } break;
+
+        default: {
+            ICHIGO_ERROR("Invalid coordinate system specified for text rendering!");
+            return;
+        }
+    }
+
+    i32 texture_uniform = Ichigo::Internal::gl.glGetUniformLocation(texture_shader_program, "entity_texture");
+
+    Ichigo::Internal::gl.glUniform1i(texture_uniform, 0);
+    Ichigo::Internal::gl.glDrawElements(GL_TRIANGLES, indices.size, GL_UNSIGNED_INT, 0);
+
+    // FIXME: This is dumb
+    // Ichigo::Internal::gl.glUniformMatrix4fv(object_uniform, 1, GL_TRUE, (GLfloat *) &identity_mat4);
+    END_TEMP_MEMORY(Ichigo::game_state.transient_storage_arena, temp_ptr);
 }
 
 void default_entity_render_proc(Ichigo::Entity *entity) {
@@ -185,8 +333,6 @@ void default_entity_render_proc(Ichigo::Entity *entity) {
     Ichigo::Internal::gl.glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(rectangle_indices), rectangle_indices, GL_STATIC_DRAW);
 
     i32 texture_uniform = Ichigo::Internal::gl.glGetUniformLocation(texture_shader_program, "entity_texture");
-    i32 camera_uniform  = Ichigo::Internal::gl.glGetUniformLocation(texture_shader_program, "camera_transform");
-    Ichigo::Internal::gl.glUniformMatrix4fv(camera_uniform, 1, GL_TRUE, (GLfloat *) &Ichigo::Camera::transform);
     Ichigo::Internal::gl.glUniform1i(texture_uniform, 0);
     Ichigo::Internal::gl.glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 }
@@ -213,7 +359,18 @@ Ichigo::TileID Ichigo::tile_at(Vec2<u32> tile_coord) {
 
 static void render_tile(Vec2<u32> tile_pos) {
     Ichigo::TileID tile = Ichigo::tile_at(tile_pos);
+
+    if (tile == INVALID_TILE) {
+        world_render_textured_rect({{(f32) tile_pos.x, (f32) tile_pos.y}, 1.0f, 1.0f}, invalid_tile_texture_id);
+        return;
+    }
+
     const Ichigo::TileInfo &tile_info = Ichigo::Internal::current_tilemap.tile_info[tile];
+
+    if (tile_info.texture_id == 0) {
+        return;
+    }
+
     Vec2<f32> draw_pos = { (f32) tile_pos.x, (f32) tile_pos.y };
     TexturedVertex vertices[] = {
         {{draw_pos.x, draw_pos.y, 0.0f}, {0.0f, 1.0f}},  // top left
@@ -222,24 +379,18 @@ static void render_tile(Vec2<u32> tile_pos) {
         {{draw_pos.x + 1, draw_pos.y + 1, 0.0f}, {1.0f, 0.0f}}, // bottom right
     };
 
+    Ichigo::Internal::gl.glUseProgram(texture_shader_program);
+    Ichigo::Internal::gl.glBindTexture(GL_TEXTURE_2D, Ichigo::Internal::textures.at(tile_info.texture_id).id);
+
     Ichigo::Internal::gl.glBindBuffer(GL_ARRAY_BUFFER, draw_data_textured.vertex_buffer_id);
     Ichigo::Internal::gl.glBindVertexArray(draw_data_textured.vertex_array_id);
 
     Ichigo::Internal::gl.glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
     Ichigo::Internal::gl.glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(rectangle_indices), rectangle_indices, GL_STATIC_DRAW);
 
-    if (tile == INVALID_TILE) {
-        world_render_textured_rect({{(f32) tile_pos.x, (f32) tile_pos.y}, 1.0f, 1.0f}, invalid_tile_texture_id);
-    } else if (tile_info.texture_id != 0) {
-        Ichigo::Internal::gl.glUseProgram(texture_shader_program);
-        Ichigo::Internal::gl.glBindTexture(GL_TEXTURE_2D, Ichigo::Internal::textures.at(tile_info.texture_id).id);
-
-        i32 texture_uniform = Ichigo::Internal::gl.glGetUniformLocation(texture_shader_program, "entity_texture");
-        i32 camera_uniform  = Ichigo::Internal::gl.glGetUniformLocation(texture_shader_program, "camera_transform");
-        Ichigo::Internal::gl.glUniformMatrix4fv(camera_uniform, 1, GL_TRUE, (GLfloat *) &Ichigo::Camera::transform);
-        Ichigo::Internal::gl.glUniform1i(texture_uniform, 0);
-        Ichigo::Internal::gl.glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-    }
+    i32 texture_uniform = Ichigo::Internal::gl.glGetUniformLocation(texture_shader_program, "entity_texture");
+    Ichigo::Internal::gl.glUniform1i(texture_uniform, 0);
+    Ichigo::Internal::gl.glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 }
 
 void Ichigo::push_draw_command(DrawCommand draw_command) {
@@ -271,6 +422,33 @@ static void frame_render() {
     Ichigo::Internal::gl.glViewport(Ichigo::Internal::viewport_origin.x, Ichigo::Internal::viewport_origin.y, Ichigo::Internal::viewport_width, Ichigo::Internal::viewport_height);
     Ichigo::Internal::gl.glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     Ichigo::Internal::gl.glClear(GL_COLOR_BUFFER_BIT);
+
+    // Reset uniforms
+    Ichigo::Internal::gl.glUseProgram(texture_shader_program);
+
+    i32 camera_uniform  = Ichigo::Internal::gl.glGetUniformLocation(texture_shader_program, "camera_transform");
+    Ichigo::Internal::gl.glUniformMatrix4fv(camera_uniform, 1, GL_TRUE, (GLfloat *) &Ichigo::Camera::transform);
+
+    i32 object_uniform  = Ichigo::Internal::gl.glGetUniformLocation(texture_shader_program, "object_transform");
+    Ichigo::Internal::gl.glUniformMatrix4fv(object_uniform, 1, GL_TRUE, (GLfloat *) &identity_mat4);
+
+    Ichigo::Internal::gl.glUseProgram(solid_colour_shader_program);
+
+    camera_uniform = Ichigo::Internal::gl.glGetUniformLocation(solid_colour_shader_program, "camera_transform");
+    Ichigo::Internal::gl.glUniformMatrix4fv(camera_uniform, 1, GL_TRUE, (GLfloat *) &Ichigo::Camera::transform);
+
+    object_uniform  = Ichigo::Internal::gl.glGetUniformLocation(solid_colour_shader_program, "object_transform");
+    Ichigo::Internal::gl.glUniformMatrix4fv(object_uniform, 1, GL_TRUE, (GLfloat *) &identity_mat4);
+
+    Ichigo::Internal::gl.glUseProgram(screenspace_solid_colour_rect_program);
+
+    object_uniform  = Ichigo::Internal::gl.glGetUniformLocation(screenspace_solid_colour_rect_program, "object_transform");
+    Ichigo::Internal::gl.glUniformMatrix4fv(object_uniform, 1, GL_TRUE, (GLfloat *) &identity_mat4);
+
+    Ichigo::Internal::gl.glUseProgram(screenspace_texture_program);
+
+    object_uniform  = Ichigo::Internal::gl.glGetUniformLocation(screenspace_texture_program, "object_transform");
+    Ichigo::Internal::gl.glUniformMatrix4fv(object_uniform, 1, GL_TRUE, (GLfloat *) &identity_mat4);
 
     // Background colour
     screen_render_solid_colour_rect({{0.0f, 0.0f}, 1.0f, 1.0f}, Ichigo::game_state.background_colour);
@@ -361,95 +539,12 @@ static void frame_render() {
         Ichigo::DrawCommand &cmd = Ichigo::game_state.this_frame_data.draw_commands[i];
         switch (cmd.type) {
             case Ichigo::DrawCommandType::SOLID_COLOUR_RECT: {
-                world_render_solid_colour_rect(cmd.rect, cmd.colour);
+                if      (cmd.coordinate_system == Ichigo::WORLD)  world_render_solid_colour_rect(cmd.rect, cmd.colour);
+                else if (cmd.coordinate_system == Ichigo::SCREEN) screen_render_solid_colour_rect(cmd.rect, cmd.colour);
             } break;
 
             case Ichigo::DrawCommandType::TEXT: {
-                assert(Util::utf8_char_count(cmd.string, cmd.string_length) < MAX_TEXT_STRING_LENGTH);
-
-                stbtt_fontinfo font;
-                stbtt_InitFont(&font, noto_font, 0);
-
-                Ichigo::Internal::gl.glUseProgram(screenspace_texture_program);
-                Ichigo::Internal::gl.glBindBuffer(GL_ARRAY_BUFFER, draw_data_textured.vertex_buffer_id);
-                Ichigo::Internal::gl.glBindVertexArray(draw_data_textured.vertex_array_id);
-                Ichigo::Internal::gl.glBindTexture(GL_TEXTURE_2D, font_atlas_texture_id);
-
-                uptr            temp_ptr      = BEGIN_TEMP_MEMORY(Ichigo::game_state.transient_storage_arena);
-                TexturedVertex *vertex_buffer = PUSH_ARRAY(Ichigo::game_state.transient_storage_arena, TexturedVertex, MAX_TEXT_STRING_LENGTH * 4);
-                u32            *index_buffer  = PUSH_ARRAY(Ichigo::game_state.transient_storage_arena, u32, MAX_TEXT_STRING_LENGTH * 6);
-                Vec2<f32>       current_pos   = cmd.string_pos;
-
-                Util::BufferBuilder<TexturedVertex> vertices(vertex_buffer, MAX_TEXT_STRING_LENGTH * 4);
-                Util::BufferBuilder<u32>            indices(index_buffer, MAX_TEXT_STRING_LENGTH * 6);
-
-                for (u32 i = 0; i < cmd.string_length; ++i) {
-                    if (cmd.string[i] == ' ') {
-                        current_pos.x += pixels_to_metres(10.0f) * cmd.text_scale;
-                        continue;
-                    }
-
-                    stbtt_packedchar pc;
-                    if ((u32) cmd.string[i] >= character_ranges[0].first_codepoint && (u32) cmd.string[i] <= character_ranges[0].first_codepoint + character_ranges[0].length) {
-                        pc = printable_ascii_pack_data[cmd.string[i] - character_ranges[0].first_codepoint];
-                    } else if ((cmd.string[i] & 0b11100000) >> 4 == 0b1110) {
-                        u32 codepoint = ((cmd.string[i] & 0b00001111) << 12) | ((cmd.string[i + 1] & 0b00111111) << 6) | ((cmd.string[i + 2] & 0b00111111));
-                        if (codepoint >= character_ranges[1].first_codepoint && codepoint <= character_ranges[1].first_codepoint + character_ranges[1].length) {
-                            pc = cjk_pack_data[codepoint - character_ranges[1].first_codepoint];
-                        }
-
-                        i += 2;
-                    } else {
-                        // This characer is not in the font atlas.
-                        continue;
-                    }
-
-                    f32 u0 = pc.x0 / (f32) ICHIGO_FONT_ATLAS_DIM;
-                    f32 u1 = pc.x1 / (f32) ICHIGO_FONT_ATLAS_DIM;
-                    f32 v0 = pc.y0 / (f32) ICHIGO_FONT_ATLAS_DIM;
-                    f32 v1 = pc.y1 / (f32) ICHIGO_FONT_ATLAS_DIM;
-
-                    f32 x0_pixels = pc.xoff;
-                    f32 x1_pixels = pc.xoff2;
-                    f32 y0_pixels = pc.yoff;
-                    f32 y1_pixels = pc.yoff2;
-
-                    f32 x0 = pixels_to_metres(x0_pixels) * cmd.text_scale + current_pos.x;
-                    f32 x1 = pixels_to_metres(x1_pixels) * cmd.text_scale + current_pos.x;
-                    f32 y0 = pixels_to_metres(y0_pixels) * cmd.text_scale + current_pos.y;
-                    f32 y1 = pixels_to_metres(y1_pixels) * cmd.text_scale + current_pos.y;
-
-                    // 0, 1, 2,
-                    // 1, 2, 3
-                    u32 in[] = {
-                        (u32) vertices.size,     (u32) vertices.size + 1, (u32) vertices.size + 2,
-                        (u32) vertices.size + 1, (u32) vertices.size + 2, (u32) vertices.size + 3
-                    };
-
-                    indices.append(in, ARRAY_LEN(in));
-
-                    TexturedVertex vtx[] = {
-                        {{x0, y0, 0.0f}, {u0, v0}}, // top left
-                        {{x1, y0, 0.0f}, {u1, v0}}, // top right
-                        {{x0, y1, 0.0f}, {u0, v1}}, // bottom left
-                        {{x1, y1, 0.0f}, {u1, v1}}  // bottom right
-                    };
-
-                    vertices.append(vtx, ARRAY_LEN(vtx));
-                    current_pos.x += pixels_to_metres(pc.xadvance) * cmd.text_scale;
-                }
-
-                Ichigo::Internal::gl.glBufferData(GL_ARRAY_BUFFER, vertices.size * sizeof(TexturedVertex), vertices.data, GL_STATIC_DRAW);
-                Ichigo::Internal::gl.glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size * sizeof(u32), indices.data, GL_STATIC_DRAW);
-
-                i32 camera_uniform  = Ichigo::Internal::gl.glGetUniformLocation(texture_shader_program, "camera_transform");
-                i32 texture_uniform = Ichigo::Internal::gl.glGetUniformLocation(texture_shader_program, "entity_texture");
-
-                Ichigo::Internal::gl.glUniform1i(texture_uniform, 0);
-                Ichigo::Internal::gl.glUniformMatrix4fv(camera_uniform, 1, GL_TRUE, (GLfloat *) &Ichigo::Camera::transform);
-                Ichigo::Internal::gl.glDrawElements(GL_TRIANGLES, indices.size, GL_UNSIGNED_INT, 0);
-
-                END_TEMP_MEMORY(Ichigo::game_state.transient_storage_arena, temp_ptr);
+                render_text(cmd.string_pos, cmd.string, cmd.string_length, cmd.text_scale, cmd.coordinate_system);
             } break;
 
             default: {
@@ -643,7 +738,6 @@ void Ichigo::Internal::do_frame() {
     ImGui::EndFrame();
 
     if (program_mode == Ichigo::Internal::ProgramMode::GAME) {
-
         for (u32 i = 1; i < Ichigo::Internal::entities.size; ++i) {
             Ichigo::Entity &entity = Ichigo::Internal::entities.at(i);
             if (entity.update_proc)
@@ -663,8 +757,13 @@ void Ichigo::Internal::do_frame() {
             }
         }
 
+        // TODO: Let the game update first? Not sure? Maybe they want to change something about an entity before it gets updated.
+        //       Also we might just consider making the game call an Ichigo::update() function so that the game can control when everything updates.
+        //       But also we have frame begin and frame end...?
+        Ichigo::Game::update_and_render();
+
         if (Ichigo::Internal::keyboard_state[IK_F1].down_this_frame) {
-        Ichigo::Camera::mode = Ichigo::Camera::Mode::MANUAL;
+            Ichigo::Camera::mode = Ichigo::Camera::Mode::MANUAL;
             Ichigo::Camera::manual_focus_point = Ichigo::Camera::offset;
 
             Ichigo::Editor::before_open();
@@ -680,10 +779,6 @@ void Ichigo::Internal::do_frame() {
         }
     }
 
-    // TODO: Let the game update first? Not sure? Maybe they want to change something about an entity before it gets updated.
-    //       Also we might just consider making the game call an Ichigo::update() function so that the game can control when everything updates.
-    //       But also we have frame begin and frame end...?
-    Ichigo::Game::update_and_render();
     Ichigo::Camera::update();
 
     if (Ichigo::Internal::window_height != 0 && Ichigo::Internal::window_width != 0) {
@@ -726,6 +821,7 @@ static GLuint link_program(GLuint vertex_shader_id, GLuint fragment_shader_id) {
 }
 
 void Ichigo::Internal::init() {
+    identity_mat4 = m4identity();
     stbi_set_flip_vertically_on_load(true);
 
     // TODO: Platform specific allocations? VirtualAlloc() on win32
@@ -806,7 +902,7 @@ void Ichigo::Internal::init() {
     texture_shader_program                = link_program(worldspace_vertex_shader, texture_fragment_shader);
     solid_colour_shader_program           = link_program(worldspace_vertex_shader, solid_colour_fragment_shader);
     screenspace_solid_colour_rect_program = link_program(screenspace_vertex_shader, solid_colour_fragment_shader);
-    screenspace_texture_program           = link_program(worldspace_vertex_shader, texture_fragment_shader);
+    screenspace_texture_program           = link_program(screenspace_vertex_shader, texture_fragment_shader);
 
     Ichigo::Internal::gl.glDeleteShader(screenspace_vertex_shader);
     Ichigo::Internal::gl.glDeleteShader(worldspace_vertex_shader);

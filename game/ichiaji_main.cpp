@@ -135,29 +135,32 @@ void Ichigo::Game::update_and_render() {
     // Runs right before the engine begins to render
 
     Ichigo::DrawCommand test_draw_command;
-    test_draw_command.type   = Ichigo::DrawCommandType::SOLID_COLOUR_RECT;
-    test_draw_command.rect   = {{0.5f, 0.0f}, 0.1f, 0.1f};
-    test_draw_command.colour = {0.2f, 0.3f, 0.5f, 1.0f};
+    test_draw_command.coordinate_system = Ichigo::CoordinateSystem::WORLD;
+    test_draw_command.type              = Ichigo::DrawCommandType::SOLID_COLOUR_RECT;
+    test_draw_command.rect              = {{0.5f, 0.0f}, 0.1f, 0.1f};
+    test_draw_command.colour            = {0.2f, 0.3f, 0.5f, 1.0f};
     Ichigo::push_draw_command(test_draw_command);
 
     Ichigo::Entity *gert = Ichigo::get_entity(gert_id);
     if (gert) {
         Ichigo::DrawCommand test_draw_command2;
-        test_draw_command2.type          = Ichigo::DrawCommandType::TEXT;
-        test_draw_command2.string        = "gert";
-        test_draw_command2.string_length = 4;
-        test_draw_command2.text_scale    = 0.2f;
-        test_draw_command2.string_pos    = gert->col.pos;
+        test_draw_command2.coordinate_system = Ichigo::CoordinateSystem::WORLD;
+        test_draw_command2.type              = Ichigo::DrawCommandType::TEXT;
+        test_draw_command2.string            = "gert";
+        test_draw_command2.string_length     = 4;
+        test_draw_command2.text_scale        = 1.0f;
+        test_draw_command2.string_pos        = gert->col.pos;
         Ichigo::push_draw_command(test_draw_command2);
     }
 
     const char *ichiaji = "Ichigo no Aji! いちごのあじ! イチゴノアジ!";
     Ichigo::DrawCommand test_draw_command2;
-    test_draw_command2.type          = Ichigo::DrawCommandType::TEXT;
-    test_draw_command2.string        = ichiaji;
-    test_draw_command2.string_length = std::strlen(ichiaji);
-    test_draw_command2.text_scale    = 0.2f;
-    test_draw_command2.string_pos    = {3.0f, 3.0f};
+        test_draw_command2.coordinate_system = Ichigo::CoordinateSystem::CAMERA;
+    test_draw_command2.type                  = Ichigo::DrawCommandType::TEXT;
+    test_draw_command2.string                = ichiaji;
+    test_draw_command2.string_length         = std::strlen(ichiaji);
+    test_draw_command2.text_scale            = 1.0f;
+    test_draw_command2.string_pos            = {0.0f, 1.0f};
     Ichigo::push_draw_command(test_draw_command2);
 
     // ICHIGO_INFO("A button state: %d %d %d %d", Ichigo::Internal::gamepad.a.down, Ichigo::Internal::gamepad.a.up, Ichigo::Internal::gamepad.a.down_this_frame, Ichigo::Internal::gamepad.a.up_this_frame);

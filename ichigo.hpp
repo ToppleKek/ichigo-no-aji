@@ -150,8 +150,16 @@ enum DrawCommandType {
     TEXT
 };
 
+enum CoordinateSystem {
+    WORLD,    // The coordinates are specified in world units (metres).
+    SCREEN,   // The coordinates are specified such that 0,0 is the top left of the screen, and 1,1 is the bottom right of the screen.
+    CAMERA    // The coordinates are specified in world units (metres) relative to the camera.
+};
+
 struct DrawCommand {
     DrawCommandType type;
+    CoordinateSystem coordinate_system;
+
     union {
         // SOLID_COLOUR_RECT
         struct {
