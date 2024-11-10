@@ -18,6 +18,8 @@ struct Arena {
     u8    *data;
 };
 
+#define BEGIN_TEMP_MEMORY(ARENA) (ARENA.pointer)
+#define END_TEMP_MEMORY(ARENA, POINTER) (ARENA.pointer = POINTER)
 #define PUSH_STRUCT(ARENA, S) Util::push_struct(&ARENA, &S, sizeof(S))
 #define PUSH_ARRAY(ARENA, TYPE, COUNT) (TYPE *) Util::push_array(&ARENA, sizeof(TYPE), COUNT)
 #define BEGIN_LIST(ARENA, TYPE) (TYPE *) (&ARENA.data[ARENA.pointer])
@@ -231,8 +233,33 @@ struct Optional {
     T value;
 };
 
+template<typename T>
+struct BufferBuilder {
+    BufferBuilder(T *buffer, usize count) {
+        capacity    = count;
+        data        = buffer;
+        size        = 0;
+    }
+
+    void append(T *items, usize count) {
+        assert(size + count <= capacity);
+        std::memcpy(&data[size], items, count * sizeof(T));
+        size += count;
+    }
+
+    void append(T item) {
+        append(&item, 1);
+    }
+
+    T *data;
+    usize size;
+    usize capacity;
+};
+
+
 char *json_string_serialize(const char *json_string);
 void json_return_serialized_string(char *json_string);
 char *strcat_escape_quotes(char *dest, const char *source);
 bool str_equal_case_insensitive(const char *lhs, const char *rhs);
+u64 utf8_char_count(const char *utf8_string, usize utf8_string_length);
 }

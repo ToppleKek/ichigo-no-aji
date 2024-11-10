@@ -365,6 +365,8 @@ static void frame_render() {
             } break;
 
             case Ichigo::DrawCommandType::TEXT: {
+                assert(Util::utf8_char_count(cmd.string, cmd.string_length) < MAX_TEXT_STRING_LENGTH);
+
                 stbtt_fontinfo font;
                 stbtt_InitFont(&font, noto_font, 0);
 
@@ -373,16 +375,14 @@ static void frame_render() {
                 Ichigo::Internal::gl.glBindVertexArray(draw_data_textured.vertex_array_id);
                 Ichigo::Internal::gl.glBindTexture(GL_TEXTURE_2D, font_atlas_texture_id);
 
-                i32 ascent;
-                i32 descent;
-                i32 line_gap;
-                stbtt_GetFontVMetrics(&font, &ascent, &descent, &line_gap);
-                ascent = (i32) (ascent * scale);
-                descent = (i32) (descent * scale);
+                uptr            temp_ptr      = BEGIN_TEMP_MEMORY(Ichigo::game_state.transient_storage_arena);
+                TexturedVertex *vertex_buffer = PUSH_ARRAY(Ichigo::game_state.transient_storage_arena, TexturedVertex, MAX_TEXT_STRING_LENGTH * 4);
+                u32            *index_buffer  = PUSH_ARRAY(Ichigo::game_state.transient_storage_arena, u32, MAX_TEXT_STRING_LENGTH * 6);
+                Vec2<f32>       current_pos   = cmd.string_pos;
 
-                Util::IchigoVector<TexturedVertex> vertices(256);
-                Util::IchigoVector<u32> indices(256);
-                Vec2<f32> current_pos = cmd.string_pos;
+                Util::BufferBuilder<TexturedVertex> vertices(vertex_buffer, MAX_TEXT_STRING_LENGTH * 4);
+                Util::BufferBuilder<u32>            indices(index_buffer, MAX_TEXT_STRING_LENGTH * 6);
+
                 for (u32 i = 0; i < cmd.string_length; ++i) {
                     if (cmd.string[i] == ' ') {
                         current_pos.x += pixels_to_metres(10.0f) * cmd.text_scale;
@@ -421,18 +421,21 @@ static void frame_render() {
 
                     // 0, 1, 2,
                     // 1, 2, 3
-                    indices.append(vertices.size);
-                    indices.append(vertices.size + 1);
-                    indices.append(vertices.size + 2);
-                    indices.append(vertices.size + 1);
-                    indices.append(vertices.size + 2);
-                    indices.append(vertices.size + 3);
+                    u32 in[] = {
+                        (u32) vertices.size,     (u32) vertices.size + 1, (u32) vertices.size + 2,
+                        (u32) vertices.size + 1, (u32) vertices.size + 2, (u32) vertices.size + 3
+                    };
 
-                    vertices.append({{x0, y0, 0.0f}, {u0, v0}}); // top left
-                    vertices.append({{x1, y0, 0.0f}, {u1, v0}}); // top right
-                    vertices.append({{x0, y1, 0.0f}, {u0, v1}}); // bottom left
-                    vertices.append({{x1, y1, 0.0f}, {u1, v1}}); // bottom right
+                    indices.append(in, ARRAY_LEN(in));
 
+                    TexturedVertex vtx[] = {
+                        {{x0, y0, 0.0f}, {u0, v0}}, // top left
+                        {{x1, y0, 0.0f}, {u1, v0}}, // top right
+                        {{x0, y1, 0.0f}, {u0, v1}}, // bottom left
+                        {{x1, y1, 0.0f}, {u1, v1}}  // bottom right
+                    };
+
+                    vertices.append(vtx, ARRAY_LEN(vtx));
                     current_pos.x += pixels_to_metres(pc.xadvance) * cmd.text_scale;
                 }
 
@@ -445,6 +448,8 @@ static void frame_render() {
                 Ichigo::Internal::gl.glUniform1i(texture_uniform, 0);
                 Ichigo::Internal::gl.glUniformMatrix4fv(camera_uniform, 1, GL_TRUE, (GLfloat *) &Ichigo::Camera::transform);
                 Ichigo::Internal::gl.glDrawElements(GL_TRIANGLES, indices.size, GL_UNSIGNED_INT, 0);
+
+                END_TEMP_MEMORY(Ichigo::game_state.transient_storage_arena, temp_ptr);
             } break;
 
             default: {

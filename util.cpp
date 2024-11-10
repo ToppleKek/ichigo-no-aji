@@ -73,3 +73,14 @@ bool Util::str_equal_case_insensitive(const char *lhs, const char *rhs) {
 
     return true;
 }
+
+u64 Util::utf8_char_count(const char *utf8_string, usize utf8_string_length) {
+    u64 char_count = 0;
+
+    for (usize i = 0; i < utf8_string_length; ++i) {
+        if ((u8) utf8_string[i] >> 6 != 0b10)
+            ++char_count;
+    }
+
+    return char_count;
+}

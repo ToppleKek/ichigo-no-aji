@@ -9,6 +9,7 @@
 #include "opengl.hpp"
 #include "math.hpp"
 
+#define MAX_TEXT_STRING_LENGTH 1024
 #define ICHIGO_FONT_ATLAS_DIM 2048
 #define ICHIGO_MAX_BACKGROUNDS 16
 #define ICHIGO_MAX_TILEMAP_SIZE (4096 * 4096)
