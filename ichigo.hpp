@@ -160,12 +160,18 @@ struct DrawCommand {
 
         // TEXT
         struct {
-            char *string;
+            const char *string;
+            // NOTE: "string_length" is in BYTES and not utf8 characters!
             usize string_length;
             Vec2<f32> string_pos;
             f32 text_scale;
         };
     };
+};
+
+struct CharRange {
+    u32 first_codepoint;
+    u32 length;
 };
 
 using BackgroundFlags = u32;

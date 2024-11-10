@@ -151,6 +151,15 @@ void Ichigo::Game::update_and_render() {
         Ichigo::push_draw_command(test_draw_command2);
     }
 
+    const char *ichiaji = "Ichigo no Aji! いちごのあじ! イチゴノアジ!";
+    Ichigo::DrawCommand test_draw_command2;
+    test_draw_command2.type          = Ichigo::DrawCommandType::TEXT;
+    test_draw_command2.string        = ichiaji;
+    test_draw_command2.string_length = std::strlen(ichiaji);
+    test_draw_command2.text_scale    = 0.2f;
+    test_draw_command2.string_pos    = {3.0f, 3.0f};
+    Ichigo::push_draw_command(test_draw_command2);
+
     // ICHIGO_INFO("A button state: %d %d %d %d", Ichigo::Internal::gamepad.a.down, Ichigo::Internal::gamepad.a.up, Ichigo::Internal::gamepad.a.down_this_frame, Ichigo::Internal::gamepad.a.up_this_frame);
     // ICHIGO_INFO("LT: %f RT: %f", Ichigo::Internal::gamepad.lt, Ichigo::Internal::gamepad.rt);
     // ICHIGO_INFO("left stick: %f,%f", Ichigo::Internal::gamepad.stick_left.x, Ichigo::Internal::gamepad.stick_left.y);
