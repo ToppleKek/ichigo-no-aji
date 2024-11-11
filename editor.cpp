@@ -391,8 +391,10 @@ void Ichigo::Editor::update() {
     }
 
     if (tiles_selected) {
-        Ichigo::DrawCommand c;
-        c.type = Ichigo::DrawCommandType::SOLID_COLOUR_RECT;
+        Ichigo::DrawCommand c = {};
+        c.coordinate_system   = Ichigo::CoordinateSystem::WORLD;
+        c.type                = Ichigo::DrawCommandType::SOLID_COLOUR_RECT;
+
         c.rect = {
             vector_cast<f32>(selected_region.pos),
             (f32) selected_region.w, (f32) selected_region.h

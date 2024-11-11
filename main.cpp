@@ -57,6 +57,10 @@ static Ichigo::TextureID invalid_tile_texture_id;
 static stbtt_packedchar *printable_ascii_pack_data;
 static stbtt_packedchar *cjk_pack_data;
 static Mat4<f32> identity_mat4;
+static char *info_log_data;
+
+#define INFO_LOG_MAX_BYTE_LENGTH 256
+#define INFO_LOG_MAX_MESSAGES 8
 
 bool Ichigo::Internal::must_rebuild_swapchain     = false;
 Ichigo::GameState Ichigo::game_state              = {};
@@ -101,7 +105,11 @@ static void screen_render_solid_colour_rect(Rect<f32> rect, Vec4<f32> colour) {
     Ichigo::Internal::gl.glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(rectangle_indices), rectangle_indices, GL_STATIC_DRAW);
 
     i32 colour_uniform = Ichigo::Internal::gl.glGetUniformLocation(screenspace_solid_colour_rect_program, "colour");
+    i32 object_uniform = Ichigo::Internal::gl.glGetUniformLocation(screenspace_solid_colour_rect_program, "object_transform");
+
     Ichigo::Internal::gl.glUniform4f(colour_uniform, colour.r, colour.g, colour.b, colour.a);
+    Ichigo::Internal::gl.glUniformMatrix4fv(object_uniform, 1, GL_TRUE, (GLfloat *) &identity_mat4);
+
     Ichigo::Internal::gl.glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 }
 
@@ -124,26 +132,13 @@ static void screen_render_textured_rect(Rect<f32> rect, Ichigo::TextureID textur
     Ichigo::Internal::gl.glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(rectangle_indices), rectangle_indices, GL_STATIC_DRAW);
 
     i32 texture_uniform = Ichigo::Internal::gl.glGetUniformLocation(texture_shader_program, "entity_texture");
+    i32 object_uniform  = Ichigo::Internal::gl.glGetUniformLocation(texture_shader_program, "object_transform");
+
     Ichigo::Internal::gl.glUniform1i(texture_uniform, 0);
+    Ichigo::Internal::gl.glUniformMatrix4fv(object_uniform, 1, GL_TRUE, (GLfloat *) &identity_mat4);
+
     Ichigo::Internal::gl.glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 }
-
-// static void screen_render_textured_rect(Rectangle rect, Ichigo::TextureID texture_id) {
-//     TexturedVertex vertices[] = {
-//         {{rect.pos.x, rect.pos.y, 0.0f}, {0.0f, 1.0f}},  // top left
-//         {{rect.pos.x + rect.w, rect.pos.y, 0.0f}, {1.0f, 1.0f}}, // top right
-//         {{rect.pos.x, rect.pos.y + rect.h, 0.0f}, {0.0f, 0.0f}}, // bottom left
-//         {{rect.pos.x + rect.w, rect.pos.y + rect.h, 0.0f}, {1.0f, 0.0f}}, // bottom right
-//     };
-
-//     Ichigo::Internal::gl.glBindBuffer(GL_ARRAY_BUFFER, draw_data_textured.vertex_buffer_id);
-//     Ichigo::Internal::gl.glBindVertexArray(draw_data_textured.vertex_array_id);
-//     Ichigo::Internal::gl.glUseProgram(screenspace_solid_colour_rect_program);
-//     Ichigo::Internal::gl.glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-//     i32 colour_uniform = Ichigo::Internal::gl.glGetUniformLocation(screenspace_solid_colour_rect_program, "colour");
-//     Ichigo::Internal::gl.glUniform4f(colour_uniform, colour.r, colour.g, colour.b, colour.a);
-//     Ichigo::Internal::gl.glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-// }
 
 static void world_render_textured_rect(Rect<f32> rect, Ichigo::TextureID texture_id) {
     Vec2<f32> draw_pos = { rect.pos.x, rect.pos.y };
@@ -164,7 +159,11 @@ static void world_render_textured_rect(Rect<f32> rect, Ichigo::TextureID texture
     Ichigo::Internal::gl.glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(rectangle_indices), rectangle_indices, GL_STATIC_DRAW);
 
     i32 texture_uniform = Ichigo::Internal::gl.glGetUniformLocation(texture_shader_program, "entity_texture");
+    i32 object_uniform  = Ichigo::Internal::gl.glGetUniformLocation(texture_shader_program, "object_transform");
+
     Ichigo::Internal::gl.glUniform1i(texture_uniform, 0);
+    Ichigo::Internal::gl.glUniformMatrix4fv(object_uniform, 1, GL_TRUE, (GLfloat *) &identity_mat4);
+
     Ichigo::Internal::gl.glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 }
 
@@ -186,7 +185,11 @@ static void world_render_solid_colour_rect(Rect<f32> rect, Vec4<f32> colour) {
     Ichigo::Internal::gl.glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(rectangle_indices), rectangle_indices, GL_STATIC_DRAW);
 
     i32 colour_uniform = Ichigo::Internal::gl.glGetUniformLocation(solid_colour_shader_program, "colour");
+    i32 object_uniform = Ichigo::Internal::gl.glGetUniformLocation(solid_colour_shader_program, "object_transform");
+
     Ichigo::Internal::gl.glUniform4f(colour_uniform, colour.r, colour.g, colour.b, colour.a);
+    Ichigo::Internal::gl.glUniformMatrix4fv(object_uniform, 1, GL_TRUE, (GLfloat *) &identity_mat4);
+
     Ichigo::Internal::gl.glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 }
 
@@ -199,15 +202,10 @@ static void render_text(Vec2<f32> pos, const char *str, usize length, f32 scale,
     uptr            temp_ptr      = BEGIN_TEMP_MEMORY(Ichigo::game_state.transient_storage_arena);
     TexturedVertex *vertex_buffer = PUSH_ARRAY(Ichigo::game_state.transient_storage_arena, TexturedVertex, MAX_TEXT_STRING_LENGTH * 4);
     u32            *index_buffer  = PUSH_ARRAY(Ichigo::game_state.transient_storage_arena, u32, MAX_TEXT_STRING_LENGTH * 6);
-    // Vec2<f32>       current_pos   = pos;
     Vec2<f32>       current_pos   = {0.0f, 0.0f};
 
     Util::BufferBuilder<TexturedVertex> vertices(vertex_buffer, MAX_TEXT_STRING_LENGTH * 4);
     Util::BufferBuilder<u32>            indices(index_buffer, MAX_TEXT_STRING_LENGTH * 6);
-
-    // f32 (*pixel_converter)(f32);
-    // if      (coordinate_system == WORLD)  pixel_converter = pixels_to_metres;
-    // else if (coordinate_system == SCREEN) pixel_converter = pixels_to_screenspace;
 
     for (u32 i = 0; i < length; ++i) {
         if (str[i] == ' ') {
@@ -306,12 +304,10 @@ static void render_text(Vec2<f32> pos, const char *str, usize length, f32 scale,
     }
 
     i32 texture_uniform = Ichigo::Internal::gl.glGetUniformLocation(texture_shader_program, "entity_texture");
-
     Ichigo::Internal::gl.glUniform1i(texture_uniform, 0);
+
     Ichigo::Internal::gl.glDrawElements(GL_TRIANGLES, indices.size, GL_UNSIGNED_INT, 0);
 
-    // FIXME: This is dumb
-    // Ichigo::Internal::gl.glUniformMatrix4fv(object_uniform, 1, GL_TRUE, (GLfloat *) &identity_mat4);
     END_TEMP_MEMORY(Ichigo::game_state.transient_storage_arena, temp_ptr);
 }
 
@@ -333,7 +329,11 @@ void default_entity_render_proc(Ichigo::Entity *entity) {
     Ichigo::Internal::gl.glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(rectangle_indices), rectangle_indices, GL_STATIC_DRAW);
 
     i32 texture_uniform = Ichigo::Internal::gl.glGetUniformLocation(texture_shader_program, "entity_texture");
+    i32 object_uniform  = Ichigo::Internal::gl.glGetUniformLocation(texture_shader_program, "object_transform");
+
     Ichigo::Internal::gl.glUniform1i(texture_uniform, 0);
+    Ichigo::Internal::gl.glUniformMatrix4fv(object_uniform, 1, GL_TRUE, (GLfloat *) &identity_mat4);
+
     Ichigo::Internal::gl.glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 }
 
@@ -389,7 +389,11 @@ static void render_tile(Vec2<u32> tile_pos) {
     Ichigo::Internal::gl.glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(rectangle_indices), rectangle_indices, GL_STATIC_DRAW);
 
     i32 texture_uniform = Ichigo::Internal::gl.glGetUniformLocation(texture_shader_program, "entity_texture");
+    i32 object_uniform  = Ichigo::Internal::gl.glGetUniformLocation(texture_shader_program, "object_transform");
+
     Ichigo::Internal::gl.glUniform1i(texture_uniform, 0);
+    Ichigo::Internal::gl.glUniformMatrix4fv(object_uniform, 1, GL_TRUE, (GLfloat *) &identity_mat4);
+
     Ichigo::Internal::gl.glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 }
 
@@ -397,6 +401,10 @@ void Ichigo::push_draw_command(DrawCommand draw_command) {
     assert(Ichigo::game_state.this_frame_data.draw_command_count < MAX_DRAW_COMMANDS);
     Ichigo::game_state.this_frame_data.draw_commands[Ichigo::game_state.this_frame_data.draw_command_count] = draw_command;
     ++Ichigo::game_state.this_frame_data.draw_command_count;
+}
+
+void Ichigo::show_info(const char *str) {
+
 }
 
 f32 calculate_background_start_position(f32 camera_offset, f32 texture_width_in_metres, f32 scroll_speed) {
@@ -429,26 +437,10 @@ static void frame_render() {
     i32 camera_uniform  = Ichigo::Internal::gl.glGetUniformLocation(texture_shader_program, "camera_transform");
     Ichigo::Internal::gl.glUniformMatrix4fv(camera_uniform, 1, GL_TRUE, (GLfloat *) &Ichigo::Camera::transform);
 
-    i32 object_uniform  = Ichigo::Internal::gl.glGetUniformLocation(texture_shader_program, "object_transform");
-    Ichigo::Internal::gl.glUniformMatrix4fv(object_uniform, 1, GL_TRUE, (GLfloat *) &identity_mat4);
-
     Ichigo::Internal::gl.glUseProgram(solid_colour_shader_program);
 
     camera_uniform = Ichigo::Internal::gl.glGetUniformLocation(solid_colour_shader_program, "camera_transform");
     Ichigo::Internal::gl.glUniformMatrix4fv(camera_uniform, 1, GL_TRUE, (GLfloat *) &Ichigo::Camera::transform);
-
-    object_uniform  = Ichigo::Internal::gl.glGetUniformLocation(solid_colour_shader_program, "object_transform");
-    Ichigo::Internal::gl.glUniformMatrix4fv(object_uniform, 1, GL_TRUE, (GLfloat *) &identity_mat4);
-
-    Ichigo::Internal::gl.glUseProgram(screenspace_solid_colour_rect_program);
-
-    object_uniform  = Ichigo::Internal::gl.glGetUniformLocation(screenspace_solid_colour_rect_program, "object_transform");
-    Ichigo::Internal::gl.glUniformMatrix4fv(object_uniform, 1, GL_TRUE, (GLfloat *) &identity_mat4);
-
-    Ichigo::Internal::gl.glUseProgram(screenspace_texture_program);
-
-    object_uniform  = Ichigo::Internal::gl.glGetUniformLocation(screenspace_texture_program, "object_transform");
-    Ichigo::Internal::gl.glUniformMatrix4fv(object_uniform, 1, GL_TRUE, (GLfloat *) &identity_mat4);
 
     // Background colour
     screen_render_solid_colour_rect({{0.0f, 0.0f}, 1.0f, 1.0f}, Ichigo::game_state.background_colour);
@@ -835,6 +827,7 @@ void Ichigo::Internal::init() {
 
     Ichigo::Internal::current_tilemap.tiles     = PUSH_ARRAY(Ichigo::game_state.permanent_storage_arena, TileID, ICHIGO_MAX_TILEMAP_SIZE);
     Ichigo::Internal::current_tilemap.tile_info = PUSH_ARRAY(Ichigo::game_state.permanent_storage_arena, TileInfo, ICHIGO_MAX_UNIQUE_TILES);
+    info_log_data                               = PUSH_ARRAY(Ichigo::game_state.permanent_storage_arena, char, INFO_LOG_MAX_BYTE_LENGTH * INFO_LOG_MAX_MESSAGES);
 
     font_config.FontDataOwnedByAtlas = false;
     font_config.OversampleH = 2;

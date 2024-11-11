@@ -240,6 +240,7 @@ extern GameState game_state;
 void set_tilemap(Tilemap *tilemap);
 u16 tile_at(Vec2<u32> tile_coord);
 void push_draw_command(DrawCommand draw_command);
+void show_info(const char *str);
 
 namespace Game {
 void init();
