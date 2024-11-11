@@ -29,7 +29,7 @@ static Ichigo::AudioID test_sound_id = 0;
 // END DEBUG
 #define MAX_DRAW_COMMANDS 4096
 
-static f32 scale = 1.0f;
+static f32 last_dpi_scale = 1.0f;
 static ImGuiStyle initial_style;
 static ImFontConfig font_config;
 static bool show_debug_menu = true;
@@ -57,7 +57,6 @@ static Ichigo::TextureID invalid_tile_texture_id;
 static stbtt_packedchar *printable_ascii_pack_data;
 static stbtt_packedchar *cjk_pack_data;
 static Mat4<f32> identity_mat4;
-static char *info_log_data;
 
 #define INFO_LOG_MAX_BYTE_LENGTH 256
 #define INFO_LOG_MAX_MESSAGES 8
@@ -83,6 +82,12 @@ struct DrawData {
     u32 vertex_array_id;
     u32 vertex_buffer_id;
     u32 vertex_index_buffer_id;
+};
+
+struct InfoLogMessage {
+    char *data;
+    u32 length;
+    f32 t_remaining;
 };
 
 static DrawData draw_data_textured{};
@@ -403,11 +408,39 @@ void Ichigo::push_draw_command(DrawCommand draw_command) {
     ++Ichigo::game_state.this_frame_data.draw_command_count;
 }
 
-void Ichigo::show_info(const char *str) {
+static InfoLogMessage *info_log;
+static char *info_log_string_data;
+static i32 info_log_top = 0;
+void Ichigo::show_info(const char *str, u32 length) {
+    assert(length < INFO_LOG_MAX_BYTE_LENGTH);
+    char *data = &info_log_string_data[info_log_top * INFO_LOG_MAX_BYTE_LENGTH];
+    std::memcpy(data, str, length);
 
+    InfoLogMessage msg = {};
+    msg.data           = data;
+    msg.length         = length;
+    msg.t_remaining    = 4.0f;
+
+    info_log[info_log_top] = msg;
+    ICHIGO_INFO("put new info log at index %d", info_log_top);
+    info_log_top = (info_log_top + 1) % INFO_LOG_MAX_MESSAGES;
+    ICHIGO_INFO("the new info log top is %d", info_log_top);
 }
 
-f32 calculate_background_start_position(f32 camera_offset, f32 texture_width_in_metres, f32 scroll_speed) {
+static void draw_info_log() {
+    for (i32 i = info_log_top == 0 ? INFO_LOG_MAX_MESSAGES : info_log_top, j = 0; j < INFO_LOG_MAX_MESSAGES; i = (i - 1) % INFO_LOG_MAX_MESSAGES, ++j) {
+        InfoLogMessage &msg = info_log[i];
+
+        if (msg.t_remaining <= 0.0f) {
+            continue;
+        }
+
+        msg.t_remaining -= Ichigo::Internal::dt;
+        render_text({6.0f, 6.0f - (j * 0.5f)}, msg.data, msg.length, 1.0f, Ichigo::CoordinateSystem::CAMERA);
+    }
+}
+
+static f32 calculate_background_start_position(f32 camera_offset, f32 texture_width_in_metres, f32 scroll_speed) {
     // The start of the infinite looping background (in metres) is defined by:
     // begin_x = n*texture_width + offset * scroll_speed
     // And, let n be the "number of backgrounds already scrolled passed". For example, once the camera has scrolled passed one whole background,
@@ -545,6 +578,8 @@ static void frame_render() {
         }
     }
 
+    draw_info_log();
+
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 }
 
@@ -577,7 +612,7 @@ void Ichigo::Internal::do_frame() {
         ICHIGO_INFO("Window resize to: %ux%u Aspect fix to: %ux%u", Ichigo::Internal::window_width, Ichigo::Internal::window_height, Ichigo::Internal::viewport_width, Ichigo::Internal::viewport_height);
     }
 
-    if (dpi_scale != scale) {
+    if (dpi_scale != last_dpi_scale) {
         ICHIGO_INFO("scaling to scale=%f", dpi_scale);
         auto io = ImGui::GetIO();
         ImGui_ImplOpenGL3_DestroyFontsTexture();
@@ -588,7 +623,7 @@ void Ichigo::Internal::do_frame() {
         // Scale all Dear ImGui sizes based on the inital style
         std::memcpy(&ImGui::GetStyle(), &initial_style, sizeof(initial_style));
         ImGui::GetStyle().ScaleAllSizes(dpi_scale);
-        scale = dpi_scale;
+        last_dpi_scale = dpi_scale;
     }
 
     if (Ichigo::Internal::keyboard_state[Ichigo::IK_ESCAPE].down_this_frame)
@@ -606,6 +641,14 @@ void Ichigo::Internal::do_frame() {
         ImGui::Begin("いちご！", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse);
 
         ImGui::Text("苺の力で...! がんばりまー");
+        if (ImGui::Button("Show info log")) {
+            static u32 fuck = 0;
+            static char fuck_data[16] = {};
+            std::snprintf(fuck_data, 15, "Hello%u", fuck);
+            Ichigo::show_info(fuck_data, std::strlen(fuck_data));
+            ++fuck;
+        }
+
         if (ImGui::CollapsingHeader("Performance", ImGuiTreeNodeFlags_DefaultOpen)) {
             // ImGui::SeparatorText("Performance");
             ImGui::Text("FPS: %f", ImGui::GetIO().Framerate);
@@ -827,7 +870,10 @@ void Ichigo::Internal::init() {
 
     Ichigo::Internal::current_tilemap.tiles     = PUSH_ARRAY(Ichigo::game_state.permanent_storage_arena, TileID, ICHIGO_MAX_TILEMAP_SIZE);
     Ichigo::Internal::current_tilemap.tile_info = PUSH_ARRAY(Ichigo::game_state.permanent_storage_arena, TileInfo, ICHIGO_MAX_UNIQUE_TILES);
-    info_log_data                               = PUSH_ARRAY(Ichigo::game_state.permanent_storage_arena, char, INFO_LOG_MAX_BYTE_LENGTH * INFO_LOG_MAX_MESSAGES);
+    info_log_string_data                        = PUSH_ARRAY(Ichigo::game_state.permanent_storage_arena, char, INFO_LOG_MAX_BYTE_LENGTH * INFO_LOG_MAX_MESSAGES);
+    info_log                                    = PUSH_ARRAY(Ichigo::game_state.permanent_storage_arena, InfoLogMessage, INFO_LOG_MAX_MESSAGES);
+
+    std::memset(info_log, 0, INFO_LOG_MAX_MESSAGES * sizeof(InfoLogMessage));
 
     font_config.FontDataOwnedByAtlas = false;
     font_config.OversampleH = 2;
