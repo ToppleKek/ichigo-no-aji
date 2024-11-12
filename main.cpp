@@ -19,6 +19,7 @@
 
 EMBED("noto.ttf", noto_font)
 EMBED("shaders/opengl/frag.glsl", fragment_shader_source)
+EMBED("shaders/opengl/text.glsl", text_shader_source)
 EMBED("shaders/opengl/solid_colour.glsl", solid_colour_fragment_shader_source)
 EMBED("shaders/opengl/vert.glsl", vertex_shader_source)
 EMBED("shaders/opengl/screenspace_vert.glsl", screenspace_vertex_shader_source)
@@ -35,6 +36,8 @@ static ImFontConfig font_config;
 static bool show_debug_menu = true;
 
 static GLuint texture_shader_program;
+static GLuint text_shader_program;
+static GLuint screenspace_text_shader_program; // FIXME: All these "screenspace" variants fucking suck
 static GLuint solid_colour_shader_program;
 static GLuint screenspace_solid_colour_rect_program;
 static GLuint screenspace_texture_program;
@@ -138,7 +141,9 @@ static void screen_render_textured_rect(Rect<f32> rect, Ichigo::TextureID textur
 
     i32 texture_uniform = Ichigo::Internal::gl.glGetUniformLocation(texture_shader_program, "entity_texture");
     i32 object_uniform  = Ichigo::Internal::gl.glGetUniformLocation(texture_shader_program, "object_transform");
+    i32 tint_uniform    = Ichigo::Internal::gl.glGetUniformLocation(texture_shader_program, "colour_tint");
 
+    Ichigo::Internal::gl.glUniform4f(tint_uniform, 1.0f, 1.0f, 1.0f, 1.0f);
     Ichigo::Internal::gl.glUniform1i(texture_uniform, 0);
     Ichigo::Internal::gl.glUniformMatrix4fv(object_uniform, 1, GL_TRUE, (GLfloat *) &identity_mat4);
 
@@ -165,7 +170,9 @@ static void world_render_textured_rect(Rect<f32> rect, Ichigo::TextureID texture
 
     i32 texture_uniform = Ichigo::Internal::gl.glGetUniformLocation(texture_shader_program, "entity_texture");
     i32 object_uniform  = Ichigo::Internal::gl.glGetUniformLocation(texture_shader_program, "object_transform");
+    i32 tint_uniform    = Ichigo::Internal::gl.glGetUniformLocation(texture_shader_program, "colour_tint");
 
+    Ichigo::Internal::gl.glUniform4f(tint_uniform, 1.0f, 1.0f, 1.0f, 1.0f);
     Ichigo::Internal::gl.glUniform1i(texture_uniform, 0);
     Ichigo::Internal::gl.glUniformMatrix4fv(object_uniform, 1, GL_TRUE, (GLfloat *) &identity_mat4);
 
@@ -198,11 +205,8 @@ static void world_render_solid_colour_rect(Rect<f32> rect, Vec4<f32> colour) {
     Ichigo::Internal::gl.glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 }
 
-static void render_text(Vec2<f32> pos, const char *str, usize length, f32 scale, Ichigo::CoordinateSystem coordinate_system, Ichigo::TextAlignment text_alignment) {
+static void render_text(Vec2<f32> pos, const char *str, usize length, Ichigo::CoordinateSystem coordinate_system, Ichigo::TextStyle style) {
     assert(Util::utf8_char_count(str, length) < MAX_TEXT_STRING_LENGTH);
-
-    stbtt_fontinfo font;
-    stbtt_InitFont(&font, noto_font, 0);
 
     uptr            temp_ptr      = BEGIN_TEMP_MEMORY(Ichigo::game_state.transient_storage_arena);
     TexturedVertex *vertex_buffer = PUSH_ARRAY(Ichigo::game_state.transient_storage_arena, TexturedVertex, MAX_TEXT_STRING_LENGTH * 4);
@@ -214,7 +218,7 @@ static void render_text(Vec2<f32> pos, const char *str, usize length, f32 scale,
 
     for (u32 i = 0; i < length; ++i) {
         if (str[i] == ' ') {
-            current_pos.x += 10.0f * scale;
+            current_pos.x += 10.0f * style.scale;
             continue;
         }
 
@@ -243,10 +247,10 @@ static void render_text(Vec2<f32> pos, const char *str, usize length, f32 scale,
         f32 y0_pixels = pc.yoff;
         f32 y1_pixels = pc.yoff2;
 
-        f32 x0 = x0_pixels * scale + current_pos.x;
-        f32 x1 = x1_pixels * scale + current_pos.x;
-        f32 y0 = y0_pixels * scale + current_pos.y;
-        f32 y1 = y1_pixels * scale + current_pos.y;
+        f32 x0 = x0_pixels * style.scale + current_pos.x;
+        f32 x1 = x1_pixels * style.scale + current_pos.x;
+        f32 y0 = y0_pixels * style.scale + current_pos.y;
+        f32 y1 = y1_pixels * style.scale + current_pos.y;
 
         // 0, 1, 2,
         // 1, 2, 3
@@ -265,12 +269,12 @@ static void render_text(Vec2<f32> pos, const char *str, usize length, f32 scale,
         };
 
         vertices.append(vtx, ARRAY_LEN(vtx));
-        current_pos.x += pc.xadvance * scale;
+        current_pos.x += pc.xadvance * style.scale;
     }
 
     f32 line_width = current_pos.x;
     f32 x_offset = 0.0f;
-    switch (text_alignment) {
+    switch (style.alignment) {
         case Ichigo::TextAlignment::CENTER: {
             x_offset = -line_width / 2.0f;
         } break;
@@ -278,12 +282,18 @@ static void render_text(Vec2<f32> pos, const char *str, usize length, f32 scale,
         case Ichigo::TextAlignment::RIGHT: {
             x_offset = -line_width;
         } break;
+
+        default:; // Fallthrough.
     }
 
-    switch (coordinate_system) {
+    i32 texture_uniform;
+    i32 colour_uniform;
+    i32 alpha_adjust_uniform;
+
+    switch (coordinate_system) { // FIXME: Having different shaders for screenspace is meccha stupid. Do something better.
         case Ichigo::CoordinateSystem::CAMERA:
         case Ichigo::CoordinateSystem::WORLD: {
-            Ichigo::Internal::gl.glUseProgram(texture_shader_program);
+            Ichigo::Internal::gl.glUseProgram(text_shader_program);
             Ichigo::Internal::gl.glBindBuffer(GL_ARRAY_BUFFER, draw_data_textured.vertex_buffer_id);
             Ichigo::Internal::gl.glBindVertexArray(draw_data_textured.vertex_array_id);
             Ichigo::Internal::gl.glBindTexture(GL_TEXTURE_2D, font_atlas_texture_id);
@@ -294,14 +304,18 @@ static void render_text(Vec2<f32> pos, const char *str, usize length, f32 scale,
             Vec2<f32> translation = coordinate_system == Ichigo::CoordinateSystem::CAMERA ? pos - get_translation2d(Ichigo::Camera::transform) : pos;
             translation.x += pixels_to_metres(0.2f) * x_offset;
 
-            i32 object_uniform       = Ichigo::Internal::gl.glGetUniformLocation(texture_shader_program, "object_transform");
+            i32 object_uniform       = Ichigo::Internal::gl.glGetUniformLocation(text_shader_program, "object_transform");
             Mat4<f32> text_transform = translate2d(translation) * scale2d({pixels_to_metres(0.2f), pixels_to_metres(0.2f)});
 
             Ichigo::Internal::gl.glUniformMatrix4fv(object_uniform, 1, GL_TRUE, (GLfloat *) &text_transform);
+
+            texture_uniform      = Ichigo::Internal::gl.glGetUniformLocation(text_shader_program, "font_atlas");
+            colour_uniform       = Ichigo::Internal::gl.glGetUniformLocation(text_shader_program, "colour");
+            alpha_adjust_uniform = Ichigo::Internal::gl.glGetUniformLocation(text_shader_program, "alpha_adjust");
         } break;
 
         case Ichigo::CoordinateSystem::SCREEN: {
-            Ichigo::Internal::gl.glUseProgram(screenspace_texture_program);
+            Ichigo::Internal::gl.glUseProgram(screenspace_text_shader_program);
             Ichigo::Internal::gl.glBindBuffer(GL_ARRAY_BUFFER, draw_data_textured.vertex_buffer_id);
             Ichigo::Internal::gl.glBindVertexArray(draw_data_textured.vertex_array_id);
             Ichigo::Internal::gl.glBindTexture(GL_TEXTURE_2D, font_atlas_texture_id);
@@ -312,10 +326,14 @@ static void render_text(Vec2<f32> pos, const char *str, usize length, f32 scale,
             Vec2<f32> translation = pos;
             translation.x += x_offset / Ichigo::Internal::viewport_width;
 
-            i32 object_uniform       = Ichigo::Internal::gl.glGetUniformLocation(screenspace_texture_program, "object_transform");
+            i32 object_uniform       = Ichigo::Internal::gl.glGetUniformLocation(screenspace_text_shader_program, "object_transform");
             Mat4<f32> text_transform = translate2d(pos) * scale2d({1.0f / Ichigo::Internal::viewport_width, 1.0f / Ichigo::Internal::viewport_height});
 
             Ichigo::Internal::gl.glUniformMatrix4fv(object_uniform, 1, GL_TRUE, (GLfloat *) &text_transform);
+
+            texture_uniform      = Ichigo::Internal::gl.glGetUniformLocation(screenspace_text_shader_program, "font_atlas");
+            colour_uniform       = Ichigo::Internal::gl.glGetUniformLocation(screenspace_text_shader_program, "colour");
+            alpha_adjust_uniform = Ichigo::Internal::gl.glGetUniformLocation(screenspace_text_shader_program, "alpha_adjust");
         } break;
 
         default: {
@@ -324,7 +342,9 @@ static void render_text(Vec2<f32> pos, const char *str, usize length, f32 scale,
         }
     }
 
-    i32 texture_uniform = Ichigo::Internal::gl.glGetUniformLocation(texture_shader_program, "entity_texture");
+
+    Ichigo::Internal::gl.glUniform3f(colour_uniform, style.colour.r, style.colour.g, style.colour.b);
+    Ichigo::Internal::gl.glUniform1f(alpha_adjust_uniform, style.colour.a);
     Ichigo::Internal::gl.glUniform1i(texture_uniform, 0);
 
     Ichigo::Internal::gl.glDrawElements(GL_TRIANGLES, indices.size, GL_UNSIGNED_INT, 0);
@@ -351,7 +371,9 @@ void default_entity_render_proc(Ichigo::Entity *entity) {
 
     i32 texture_uniform = Ichigo::Internal::gl.glGetUniformLocation(texture_shader_program, "entity_texture");
     i32 object_uniform  = Ichigo::Internal::gl.glGetUniformLocation(texture_shader_program, "object_transform");
+    i32 tint_uniform    = Ichigo::Internal::gl.glGetUniformLocation(texture_shader_program, "colour_tint");
 
+    Ichigo::Internal::gl.glUniform4f(tint_uniform, 1.0f, 1.0f, 1.0f, 1.0f);
     Ichigo::Internal::gl.glUniform1i(texture_uniform, 0);
     Ichigo::Internal::gl.glUniformMatrix4fv(object_uniform, 1, GL_TRUE, (GLfloat *) &identity_mat4);
 
@@ -411,7 +433,9 @@ static void render_tile(Vec2<u32> tile_pos) {
 
     i32 texture_uniform = Ichigo::Internal::gl.glGetUniformLocation(texture_shader_program, "entity_texture");
     i32 object_uniform  = Ichigo::Internal::gl.glGetUniformLocation(texture_shader_program, "object_transform");
+    i32 tint_uniform    = Ichigo::Internal::gl.glGetUniformLocation(texture_shader_program, "colour_tint");
 
+    Ichigo::Internal::gl.glUniform4f(tint_uniform, 1.0f, 1.0f, 1.0f, 1.0f);
     Ichigo::Internal::gl.glUniform1i(texture_uniform, 0);
     Ichigo::Internal::gl.glUniformMatrix4fv(object_uniform, 1, GL_TRUE, (GLfloat *) &identity_mat4);
 
@@ -441,6 +465,10 @@ void Ichigo::show_info(const char *str, u32 length) {
     info_log_top = (info_log_top + 1) % INFO_LOG_MAX_MESSAGES;
 }
 
+void Ichigo::show_info(const char *cstr) {
+    show_info(cstr, std::strlen(cstr));
+}
+
 static void draw_info_log() {
     for (i32 i = DEC_POSITIVE_OR(info_log_top, INFO_LOG_MAX_MESSAGES - 1), j = 0; j < INFO_LOG_MAX_MESSAGES; i = DEC_POSITIVE_OR(i, INFO_LOG_MAX_MESSAGES - 1), ++j) {
         InfoLogMessage &msg = info_log[i];
@@ -450,7 +478,16 @@ static void draw_info_log() {
         }
 
         msg.t_remaining -= Ichigo::Internal::dt;
-        render_text({SCREEN_TILE_WIDTH / 2.0f, 6.0f - (j * 0.5f)}, msg.data, msg.length, 1.0f, Ichigo::CoordinateSystem::CAMERA, Ichigo::TextAlignment::CENTER);
+
+        Ichigo::TextStyle style;
+        style.scale     = 1.2f;
+        style.alignment = Ichigo::TextAlignment::CENTER;
+        style.colour    = {0.0f, 0.0f, 0.0f, 1.0f};
+
+        render_text({SCREEN_TILE_WIDTH / 2.0f, 4.0f - (j * 0.5f)}, msg.data, msg.length, Ichigo::CoordinateSystem::CAMERA, style);
+
+        style.colour = {1.0f, 1.0f, 1.0f, 1.0f};
+        render_text({SCREEN_TILE_WIDTH / 2.0f + 0.005f, 4.0f - (j * 0.5f) + 0.005f}, msg.data, msg.length, Ichigo::CoordinateSystem::CAMERA, style);
     }
 }
 
@@ -463,9 +500,9 @@ static f32 calculate_background_start_position(f32 camera_offset, f32 texture_wi
     // so the question is which 2 do we draw? Using the value for n, we know how many of these background "indices" to skip over, so we get
     // the correct x position in world space to draw the first background tile. Then, we just draw the second one after that.
     // The calculation for n is done by calculating how far the camera has to scroll to get passed one background tile.
-    // This is the (texture_width_in_metres * (1 / scroll_speed)) part. If the background scrolls at half the speed of the camera (0.5f)
+    // This is the (texture_width_in_metres / scroll_speed) part. If the background scrolls at half the speed of the camera (0.5f)
     // and the texture is 16.0f metres wide, then the camera must scroll 16 * (1/0.5) = 16 * 2 = 32 metres.
-    return ((u32) (camera_offset / (texture_width_in_metres * (1 / scroll_speed)))) * texture_width_in_metres + camera_offset * scroll_speed;
+    return ((u32) (camera_offset / safe_ratio_1(texture_width_in_metres, scroll_speed))) * texture_width_in_metres + camera_offset * scroll_speed;
 }
 
 static void frame_render() {
@@ -482,6 +519,11 @@ static void frame_render() {
     Ichigo::Internal::gl.glUseProgram(texture_shader_program);
 
     i32 camera_uniform  = Ichigo::Internal::gl.glGetUniformLocation(texture_shader_program, "camera_transform");
+    Ichigo::Internal::gl.glUniformMatrix4fv(camera_uniform, 1, GL_TRUE, (GLfloat *) &Ichigo::Camera::transform);
+
+    Ichigo::Internal::gl.glUseProgram(text_shader_program);
+
+    camera_uniform  = Ichigo::Internal::gl.glGetUniformLocation(text_shader_program, "camera_transform");
     Ichigo::Internal::gl.glUniformMatrix4fv(camera_uniform, 1, GL_TRUE, (GLfloat *) &Ichigo::Camera::transform);
 
     Ichigo::Internal::gl.glUseProgram(solid_colour_shader_program);
@@ -583,7 +625,7 @@ static void frame_render() {
             } break;
 
             case Ichigo::DrawCommandType::TEXT: {
-                render_text(cmd.string_pos, cmd.string, cmd.string_length, cmd.text_scale, cmd.coordinate_system, Ichigo::TextAlignment::LEFT);
+                render_text(cmd.string_pos, cmd.string, cmd.string_length, cmd.coordinate_system, cmd.text_style);
             } break;
 
             default: {
@@ -945,21 +987,26 @@ void Ichigo::Internal::init() {
     GLuint screenspace_vertex_shader    = Ichigo::Internal::gl.glCreateShader(GL_VERTEX_SHADER);
     GLuint worldspace_vertex_shader     = Ichigo::Internal::gl.glCreateShader(GL_VERTEX_SHADER);
     GLuint texture_fragment_shader      = Ichigo::Internal::gl.glCreateShader(GL_FRAGMENT_SHADER);
+    GLuint text_fragment_shader         = Ichigo::Internal::gl.glCreateShader(GL_FRAGMENT_SHADER);
     GLuint solid_colour_fragment_shader = Ichigo::Internal::gl.glCreateShader(GL_FRAGMENT_SHADER);
 
     compile_shader(screenspace_vertex_shader, (const GLchar *) screenspace_vertex_shader_source, screenspace_vertex_shader_source_len);
     compile_shader(worldspace_vertex_shader, (const GLchar *) vertex_shader_source, vertex_shader_source_len);
     compile_shader(texture_fragment_shader, (const GLchar *) fragment_shader_source, fragment_shader_source_len);
+    compile_shader(text_fragment_shader, (const GLchar *) text_shader_source, text_shader_source_len);
     compile_shader(solid_colour_fragment_shader, (const GLchar *) solid_colour_fragment_shader_source, solid_colour_fragment_shader_source_len);
 
     texture_shader_program                = link_program(worldspace_vertex_shader, texture_fragment_shader);
+    text_shader_program                   = link_program(worldspace_vertex_shader, text_fragment_shader);
     solid_colour_shader_program           = link_program(worldspace_vertex_shader, solid_colour_fragment_shader);
-    screenspace_solid_colour_rect_program = link_program(screenspace_vertex_shader, solid_colour_fragment_shader);
     screenspace_texture_program           = link_program(screenspace_vertex_shader, texture_fragment_shader);
+    screenspace_text_shader_program       = link_program(screenspace_vertex_shader, text_fragment_shader);
+    screenspace_solid_colour_rect_program = link_program(screenspace_vertex_shader, solid_colour_fragment_shader);
 
     Ichigo::Internal::gl.glDeleteShader(screenspace_vertex_shader);
     Ichigo::Internal::gl.glDeleteShader(worldspace_vertex_shader);
     Ichigo::Internal::gl.glDeleteShader(texture_fragment_shader);
+    Ichigo::Internal::gl.glDeleteShader(text_fragment_shader);
     Ichigo::Internal::gl.glDeleteShader(solid_colour_fragment_shader);
 
     // Textured vertices

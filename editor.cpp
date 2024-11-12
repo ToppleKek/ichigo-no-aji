@@ -149,8 +149,7 @@ static void resize_tilemap(u16 new_width, u16 new_height) {
 
 static void fill_selected_region(Ichigo::TileID brush) {
     if (!tiles_selected) {
-        // Ichigo::show_info("Nothing selected.");
-        ICHIGO_INFO("Nothing selected for fill");
+        Ichigo::show_info("Nothing selected.");
     } else {
         EditorAction action = {
             FILL,

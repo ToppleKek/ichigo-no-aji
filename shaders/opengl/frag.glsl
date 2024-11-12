@@ -1,11 +1,11 @@
 #version 330 core
-out vec4 frag_color;
+out vec4 frag_colour;
 
 in vec2 tex_coord;
 
-// uniform vec4 entity_color;
+uniform vec4 colour_tint;
 uniform sampler2D entity_texture;
 
 void main() {
-    frag_color = texture(entity_texture, tex_coord);
+    frag_colour = texture(entity_texture, tex_coord) * colour_tint;
 }

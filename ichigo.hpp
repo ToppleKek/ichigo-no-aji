@@ -162,6 +162,12 @@ enum TextAlignment {
     RIGHT
 };
 
+struct TextStyle {
+    TextAlignment alignment;
+    f32 scale;
+    Vec4<f32> colour;
+};
+
 struct DrawCommand {
     DrawCommandType type;
     CoordinateSystem coordinate_system;
@@ -179,7 +185,7 @@ struct DrawCommand {
             // NOTE: "string_length" is in BYTES and not utf8 characters!
             usize string_length;
             Vec2<f32> string_pos;
-            f32 text_scale;
+            TextStyle text_style;
         };
     };
 };
@@ -247,6 +253,7 @@ void set_tilemap(Tilemap *tilemap);
 u16 tile_at(Vec2<u32> tile_coord);
 void push_draw_command(DrawCommand draw_command);
 void show_info(const char *str, u32 length);
+void show_info(const char *cstr);
 
 namespace Game {
 void init();
