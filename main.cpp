@@ -198,7 +198,7 @@ static void world_render_solid_colour_rect(Rect<f32> rect, Vec4<f32> colour) {
     Ichigo::Internal::gl.glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 }
 
-static void render_text(Vec2<f32> pos, const char *str, usize length, f32 scale, Ichigo::CoordinateSystem coordinate_system) {
+static void render_text(Vec2<f32> pos, const char *str, usize length, f32 scale, Ichigo::CoordinateSystem coordinate_system, Ichigo::TextAlignment text_alignment) {
     assert(Util::utf8_char_count(str, length) < MAX_TEXT_STRING_LENGTH);
 
     stbtt_fontinfo font;
@@ -268,6 +268,18 @@ static void render_text(Vec2<f32> pos, const char *str, usize length, f32 scale,
         current_pos.x += pc.xadvance * scale;
     }
 
+    f32 line_width = current_pos.x;
+    f32 x_offset = 0.0f;
+    switch (text_alignment) {
+        case Ichigo::TextAlignment::CENTER: {
+            x_offset = -line_width / 2.0f;
+        } break;
+
+        case Ichigo::TextAlignment::RIGHT: {
+            x_offset = -line_width;
+        } break;
+    }
+
     switch (coordinate_system) {
         case Ichigo::CoordinateSystem::CAMERA:
         case Ichigo::CoordinateSystem::WORLD: {
@@ -280,6 +292,7 @@ static void render_text(Vec2<f32> pos, const char *str, usize length, f32 scale,
             Ichigo::Internal::gl.glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size * sizeof(u32), indices.data, GL_STATIC_DRAW);
 
             Vec2<f32> translation = coordinate_system == Ichigo::CoordinateSystem::CAMERA ? pos - get_translation2d(Ichigo::Camera::transform) : pos;
+            translation.x += pixels_to_metres(0.2f) * x_offset;
 
             i32 object_uniform       = Ichigo::Internal::gl.glGetUniformLocation(texture_shader_program, "object_transform");
             Mat4<f32> text_transform = translate2d(translation) * scale2d({pixels_to_metres(0.2f), pixels_to_metres(0.2f)});
@@ -295,6 +308,9 @@ static void render_text(Vec2<f32> pos, const char *str, usize length, f32 scale,
 
             Ichigo::Internal::gl.glBufferData(GL_ARRAY_BUFFER, vertices.size * sizeof(TexturedVertex), vertices.data, GL_STATIC_DRAW);
             Ichigo::Internal::gl.glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size * sizeof(u32), indices.data, GL_STATIC_DRAW);
+
+            Vec2<f32> translation = pos;
+            translation.x += x_offset / Ichigo::Internal::viewport_width;
 
             i32 object_uniform       = Ichigo::Internal::gl.glGetUniformLocation(screenspace_texture_program, "object_transform");
             Mat4<f32> text_transform = translate2d(pos) * scale2d({1.0f / Ichigo::Internal::viewport_width, 1.0f / Ichigo::Internal::viewport_height});
@@ -422,13 +438,11 @@ void Ichigo::show_info(const char *str, u32 length) {
     msg.t_remaining    = 4.0f;
 
     info_log[info_log_top] = msg;
-    ICHIGO_INFO("put new info log at index %d", info_log_top);
     info_log_top = (info_log_top + 1) % INFO_LOG_MAX_MESSAGES;
-    ICHIGO_INFO("the new info log top is %d", info_log_top);
 }
 
 static void draw_info_log() {
-    for (i32 i = info_log_top == 0 ? INFO_LOG_MAX_MESSAGES : info_log_top, j = 0; j < INFO_LOG_MAX_MESSAGES; i = (i - 1) % INFO_LOG_MAX_MESSAGES, ++j) {
+    for (i32 i = DEC_POSITIVE_OR(info_log_top, INFO_LOG_MAX_MESSAGES - 1), j = 0; j < INFO_LOG_MAX_MESSAGES; i = DEC_POSITIVE_OR(i, INFO_LOG_MAX_MESSAGES - 1), ++j) {
         InfoLogMessage &msg = info_log[i];
 
         if (msg.t_remaining <= 0.0f) {
@@ -436,7 +450,7 @@ static void draw_info_log() {
         }
 
         msg.t_remaining -= Ichigo::Internal::dt;
-        render_text({6.0f, 6.0f - (j * 0.5f)}, msg.data, msg.length, 1.0f, Ichigo::CoordinateSystem::CAMERA);
+        render_text({SCREEN_TILE_WIDTH / 2.0f, 6.0f - (j * 0.5f)}, msg.data, msg.length, 1.0f, Ichigo::CoordinateSystem::CAMERA, Ichigo::TextAlignment::CENTER);
     }
 }
 
@@ -569,7 +583,7 @@ static void frame_render() {
             } break;
 
             case Ichigo::DrawCommandType::TEXT: {
-                render_text(cmd.string_pos, cmd.string, cmd.string_length, cmd.text_scale, cmd.coordinate_system);
+                render_text(cmd.string_pos, cmd.string, cmd.string_length, cmd.text_scale, cmd.coordinate_system, Ichigo::TextAlignment::LEFT);
             } break;
 
             default: {

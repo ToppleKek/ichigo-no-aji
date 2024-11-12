@@ -193,7 +193,7 @@ private:
 template<typename T>
 struct IchigoCircularStack {
     IchigoCircularStack() = default;
-    IchigoCircularStack(u64 capacity, T *memory) : top(0), bottom(0), count(0), capacity(capacity), walk_ptr(0), data(memory) {}
+    IchigoCircularStack(u64 capacity, T *memory) : top(0), bottom(0), count(0), capacity(capacity), data(memory) {}
 
     void push(T value) {
         data[top] = value;
@@ -221,29 +221,10 @@ struct IchigoCircularStack {
         return data[top - 1];
     }
 
-    void begin_walk() {
-        walk_ptr = top;
-    }
-
-    T &walk() {
-        assert(count != 0);
-        --count;
-
-        if (top == 0) top = capacity - 1;
-        else          --top;
-
-        return data[top];
-    }
-
-    void end_walk() {
-        top = walk_ptr;
-    }
-
     u64 top;
     u64 bottom;
     u64 count;
     u64 capacity;
-    u64 walk_ptr;
     T *data;
 };
 

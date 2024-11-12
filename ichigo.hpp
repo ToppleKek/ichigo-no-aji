@@ -156,6 +156,12 @@ enum CoordinateSystem {
     CAMERA    // The coordinates are specified in world units (metres) relative to the camera.
 };
 
+enum TextAlignment {
+    LEFT,
+    CENTER,
+    RIGHT
+};
+
 struct DrawCommand {
     DrawCommandType type;
     CoordinateSystem coordinate_system;

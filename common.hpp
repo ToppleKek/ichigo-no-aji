@@ -22,6 +22,7 @@ using f64 = double;
 #define MIN(A, B) (A < B ? A : B)
 #define MAX(A, B) (A > B ? A : B)
 #define DISTANCE(A, B) (MAX(A, B) - (MIN(A, B)))
+#define DEC_POSITIVE_OR(X, ALT) (X == 0 ? ALT : X - 1)
 #define ARRAY_LEN(a) (sizeof(a) / sizeof(a[0]))
 #define KILOBYTES(N) (N * 1024)
 #define MEGABYTES(N) (N * KILOBYTES(1024))
