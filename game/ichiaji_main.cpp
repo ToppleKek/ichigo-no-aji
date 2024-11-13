@@ -158,7 +158,7 @@ void Ichigo::Game::update_and_render() {
         Ichigo::push_draw_command(test_draw_command2);
     }
 
-    const char *ichiaji = "Ichigo no Aji! いちごのあじ! イチゴノアジ! 刃";
+    const char *ichiaji = "Ichigo no Aji! いちごのあじ! イチゴノアジ! 苺の味!";
     Ichigo::DrawCommand test_draw_command2;
     test_draw_command2.coordinate_system = Ichigo::CoordinateSystem::CAMERA;
     test_draw_command2.type              = Ichigo::DrawCommandType::TEXT;
@@ -168,6 +168,18 @@ void Ichigo::Game::update_and_render() {
     test_draw_command2.text_style        = style;
 
     Ichigo::push_draw_command(test_draw_command2);
+
+    const char *kanji_test = "一番、二番、三番、四番。「ラムネは子供っぽくないです。青春の飲み物ですから」世界一美味しい苺パスタを作るアイドル";
+    Ichigo::DrawCommand test_draw_command3;
+    style.alignment = Ichigo::TextAlignment::CENTER;
+    test_draw_command3.coordinate_system = Ichigo::CoordinateSystem::CAMERA;
+    test_draw_command3.type              = Ichigo::DrawCommandType::TEXT;
+    test_draw_command3.string            = kanji_test;
+    test_draw_command3.string_length     = std::strlen(kanji_test);
+    test_draw_command3.string_pos        = {8.0f, 3.0f};
+    test_draw_command3.text_style        = style;
+
+    Ichigo::push_draw_command(test_draw_command3);
 
     // ICHIGO_INFO("A button state: %d %d %d %d", Ichigo::Internal::gamepad.a.down, Ichigo::Internal::gamepad.a.up, Ichigo::Internal::gamepad.a.down_this_frame, Ichigo::Internal::gamepad.a.up_this_frame);
     // ICHIGO_INFO("LT: %f RT: %f", Ichigo::Internal::gamepad.lt, Ichigo::Internal::gamepad.rt);

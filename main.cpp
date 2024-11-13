@@ -284,10 +284,10 @@ static void render_text(Vec2<f32> pos, const char *str, usize length, Ichigo::Co
             continue;
         }
 
-        f32 u0 = pc.x0 / (f32) ICHIGO_FONT_ATLAS_DIM;
-        f32 u1 = pc.x1 / (f32) ICHIGO_FONT_ATLAS_DIM;
-        f32 v0 = pc.y0 / (f32) ICHIGO_FONT_ATLAS_DIM;
-        f32 v1 = pc.y1 / (f32) ICHIGO_FONT_ATLAS_DIM;
+        f32 u0 = pc.x0 / (f32) ICHIGO_FONT_ATLAS_WIDTH;
+        f32 u1 = pc.x1 / (f32) ICHIGO_FONT_ATLAS_WIDTH;
+        f32 v0 = pc.y0 / (f32) ICHIGO_FONT_ATLAS_HEIGHT;
+        f32 v1 = pc.y1 / (f32) ICHIGO_FONT_ATLAS_HEIGHT;
 
         f32 x0_pixels = pc.xoff;
         f32 x1_pixels = pc.xoff2;
@@ -967,7 +967,7 @@ void Ichigo::Internal::init() {
 
     // TODO: Platform specific allocations? VirtualAlloc() on win32
     Ichigo::game_state.transient_storage_arena.pointer  = 0;
-    Ichigo::game_state.transient_storage_arena.capacity = MEGABYTES(32);
+    Ichigo::game_state.transient_storage_arena.capacity = MEGABYTES(64);
     Ichigo::game_state.transient_storage_arena.data     = (u8 *) malloc(Ichigo::game_state.transient_storage_arena.capacity);
 
     Ichigo::game_state.permanent_storage_arena.pointer  = 0;
@@ -1001,13 +1001,13 @@ void Ichigo::Internal::init() {
     kanji_hash_map.data            = kanji_codepoints;
     kanji_hash_map.codepoint_count = kanji_codepoint_count;
 
-    u8 *font_bitmap           = PUSH_ARRAY(Ichigo::game_state.transient_storage_arena, u8, ICHIGO_FONT_ATLAS_DIM * ICHIGO_FONT_ATLAS_DIM);
+    u8 *font_bitmap           = PUSH_ARRAY(Ichigo::game_state.transient_storage_arena, u8, ICHIGO_FONT_ATLAS_WIDTH * ICHIGO_FONT_ATLAS_HEIGHT);
     printable_ascii_pack_data = PUSH_ARRAY(Ichigo::game_state.permanent_storage_arena, stbtt_packedchar, character_ranges[0].length);
     cjk_pack_data             = PUSH_ARRAY(Ichigo::game_state.permanent_storage_arena, stbtt_packedchar, character_ranges[1].length);
-    kanji_pack_data           = PUSH_ARRAY(Ichigo::game_state.permanent_storage_arena, stbtt_packedchar, 10);
+    kanji_pack_data           = PUSH_ARRAY(Ichigo::game_state.permanent_storage_arena, stbtt_packedchar, kanji_codepoint_count);
 
     stbtt_pack_context spc = {};
-    stbtt_PackBegin(&spc, font_bitmap, ICHIGO_FONT_ATLAS_DIM, ICHIGO_FONT_ATLAS_DIM, 0, 1, nullptr);
+    stbtt_PackBegin(&spc, font_bitmap, ICHIGO_FONT_ATLAS_WIDTH, ICHIGO_FONT_ATLAS_HEIGHT, 0, 1, nullptr);
 
     stbtt_pack_range ranges[3] = {};
 
@@ -1026,8 +1026,8 @@ void Ichigo::Internal::init() {
     // ICHIGO_INFO("first kanji codepoint: %X", kanji_codepoints[0]);
     // Joyo and Jinmeiyo kanji
     ranges[2].array_of_unicode_codepoints  = (i32 *) kanji_codepoints;
-    // ranges[2].num_chars                    = kanji_codepoint_count;
-    ranges[2].num_chars                    = 10;
+    ranges[2].num_chars                    = kanji_codepoint_count;
+    // ranges[2].num_chars                    = 500;
     ranges[2].chardata_for_range           = kanji_pack_data;
     ranges[2].font_size                    = 50;
 
@@ -1037,7 +1037,7 @@ void Ichigo::Internal::init() {
 
     Ichigo::Internal::gl.glGenTextures(1, &font_atlas_texture_id);
     Ichigo::Internal::gl.glBindTexture(GL_TEXTURE_2D, font_atlas_texture_id);
-    Ichigo::Internal::gl.glTexImage2D(GL_TEXTURE_2D, 0, GL_ALPHA, ICHIGO_FONT_ATLAS_DIM, ICHIGO_FONT_ATLAS_DIM, 0, GL_ALPHA, GL_UNSIGNED_BYTE, font_bitmap);
+    Ichigo::Internal::gl.glTexImage2D(GL_TEXTURE_2D, 0, GL_ALPHA, ICHIGO_FONT_ATLAS_WIDTH, ICHIGO_FONT_ATLAS_HEIGHT, 0, GL_ALPHA, GL_UNSIGNED_BYTE, font_bitmap);
     Ichigo::Internal::gl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     Ichigo::Internal::gl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
