@@ -4,7 +4,7 @@ OS="win32"
 
 #-Wall -Wextra -Wpedantic -Wconversion
 CXX_FLAGS="-std=c++20 -Wall -Wextra -fno-exceptions -Wno-deprecated-declarations -Wno-missing-braces"
-CXX_FLAGS_GAME="-g"
+CXX_FLAGS_GAME="-g -msse4.1"
 CXX_FLAGS_IMGUI="-O3"
 CXX_FILES_WIN32="win32_ichigo.cpp"
 CXX_FILES_LINUX="linux_ichigo.cpp"

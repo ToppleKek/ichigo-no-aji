@@ -1,6 +1,9 @@
 #include "mixer.hpp"
 #include "math.hpp"
 
+#include <emmintrin.h>
+#include <smmintrin.h>
+
 Util::IchigoVector<Ichigo::Mixer::PlayingAudio> Ichigo::Mixer::playing_audio{64};
 f32 Ichigo::Mixer::master_volume = 1.0f;
 // TODO: Use transient storage?
@@ -73,15 +76,35 @@ void Ichigo::Mixer::mix_into_buffer(AudioFrame2ChI16LE *sound_buffer, usize buff
             pa.is_playing = true;
         }
 
-        for (u32 audio_frame_index = pa.frame_play_cursor, i = 0; audio_frame_index < audio.size_in_bytes / sizeof(AudioFrame2ChI16LE) && i < buffer_size / sizeof(AudioFrame2ChI16LE); ++audio_frame_index, ++i) {
-            // TODO: Mix into i32 buffer, and clamp after that
-            i32 mixed_value_l = sound_buffer[i].l + audio.frames[audio_frame_index].l * pa.volume * pa.left_volume  * master_volume;
-            i32 mixed_value_r = sound_buffer[i].r + audio.frames[audio_frame_index].r * pa.volume * pa.right_volume * master_volume;
-            mixed_value_l = clamp(mixed_value_l, (i32) INT16_MIN, (i32) INT16_MAX);
-            mixed_value_r = clamp(mixed_value_r, (i32) INT16_MIN, (i32) INT16_MAX);
-            sound_buffer[i].l = mixed_value_l;
-            sound_buffer[i].r = mixed_value_r;
+        // u64 start = __rdtsc();
+        // f32 left_channel_volume  = pa.volume * pa.left_volume  * master_volume;
+        // f32 right_channel_volume = pa.volume * pa.right_volume * master_volume;
+        // for (u32 audio_frame_index = pa.frame_play_cursor, i = 0; audio_frame_index < audio.size_in_bytes / sizeof(AudioFrame2ChI16LE) && i < buffer_size / sizeof(AudioFrame2ChI16LE); ++audio_frame_index, ++i) {
+        //     // TODO: Mix into i32 buffer, and clamp after that
+        //     i32 mixed_value_l = sound_buffer[i].l + audio.frames[audio_frame_index].l * left_channel_volume;
+        //     i32 mixed_value_r = sound_buffer[i].r + audio.frames[audio_frame_index].r * right_channel_volume;
+        //     mixed_value_l = clamp(mixed_value_l, (i32) INT16_MIN, (i32) INT16_MAX);
+        //     mixed_value_r = clamp(mixed_value_r, (i32) INT16_MIN, (i32) INT16_MAX);
+        //     sound_buffer[i].l = mixed_value_l;
+        //     sound_buffer[i].r = mixed_value_r;
+        // }
+        // ICHIGO_INFO("MIX: cycle count: %llu", __rdtsc() - start);
+
+        // u64 start = __rdtsc();
+        f32 left_channel_volume  = pa.volume * pa.left_volume  * master_volume;
+        f32 right_channel_volume = pa.volume * pa.right_volume * master_volume;
+        __m128 volume4x  = _mm_setr_ps(left_channel_volume, right_channel_volume, left_channel_volume, right_channel_volume);
+        for (u32 audio_frame_index = pa.frame_play_cursor, i = 0; audio_frame_index < audio.size_in_bytes / sizeof(AudioFrame2ChI16LE) && i < buffer_size / sizeof(AudioFrame2ChI16LE); audio_frame_index += 2, i += 2) {
+            __m128i frames32         = _mm_loadu_si128((__m128i *) &audio.frames[audio_frame_index]);
+            __m128 frames            = _mm_cvtepi32_ps(_mm_cvtepi16_epi32(frames32));
+            __m128i sb32             = _mm_loadu_si128((__m128i *) &sound_buffer[i]);
+            __m128 sb                = _mm_cvtepi32_ps(_mm_cvtepi16_epi32(sb32));
+            __m128 processed_frames  = _mm_mul_ps(frames, volume4x);
+            __m128 mixed_value       = _mm_add_ps(sb, processed_frames);
+            mixed_value              = _mm_cvtps_epi32(mixed_value);
+            mixed_value              = _mm_packs_epi32(mixed_value, mixed_value);
+            _mm_storel_epi64((__m128i *) &sound_buffer[i], mixed_value);
         }
+        // ICHIGO_INFO("MIX: cycle count: %llu", __rdtsc() - start);
     }
 }
-
