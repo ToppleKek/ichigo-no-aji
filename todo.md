@@ -38,11 +38,11 @@
 - ~~Ichigo::push_render_command for allowing the game to draw the UI~~
 - ~~Controller input (DirectInput? XInput?)~~
 -~~ Tilemap editor~~
-- - It will allow you to "create a new tile" where you assign a texture that you load into the editor
+- - ?? (Optional) It will allow you to "create a new tile" where you assign a texture that you load into the editor
 - - The tilemap editor will export (compressed?) tilemap files
-- - It will also export a hpp file that you can include in the game code
+- - ?? (Optional) It will also export a hpp file that you can include in the game code
 - - - The hpp file will have the embed directives for embedding the tilemap files, a struct containing all of the names of the textures you imported (all are fields of type Ichigo::TextureID), and a function to load all the textures.
-- Font rendering with stb_truetype
+- ~~Font rendering with stb_truetype~~
 - Localization support
 - Basic pathfinding/AI
 - - Uses the "Ichigo::EntityControllers" setup
@@ -57,7 +57,7 @@
 - - Set certain tiles to be intangible, etc.
 
 ## The actual TODO for things that need to be done to ship
-- Text rendering (ASCII and hiragana/katakana, maybe some kanji?)
+- ~~Text rendering (ASCII and hiragana/katakana, maybe some kanji?)~~
 - SIMDify mixer
 - Animation "system"
 - Particle system

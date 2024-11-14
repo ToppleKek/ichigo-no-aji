@@ -14,6 +14,9 @@
 
 #include <stb_image.h>
 
+#define STB_RECT_PACK_IMPLEMENTATION
+#include <stb_rect_pack.h>
+
 #define STB_TRUETYPE_IMPLEMENTATION
 #include <stb_truetype.h>
 
@@ -56,6 +59,7 @@ static Ichigo::CharRange character_ranges[] = {
     {33, 93}, // Printable ASCII
     {0x3000, 0x30FF - 0x3000}, // CJK punctuation, hiragana, katakana
     {0x4E00, 0x9FFF - 0x4E00}, // CJK unified ideographs (we only care about/support a subset of this!)
+    {0xFF00, 0xFFEF - 0xFF00}, // Halfwidth and fullwidth forms
 };
 
 static u32 last_window_height                      = 0;
@@ -65,6 +69,7 @@ static Ichigo::TextureID invalid_tile_texture_id;
 static stbtt_packedchar *printable_ascii_pack_data;
 static stbtt_packedchar *cjk_pack_data;
 static stbtt_packedchar *kanji_pack_data;
+static stbtt_packedchar *half_and_full_width_pack_data;
 static Mat4<f32> identity_mat4;
 
 #define INFO_LOG_MAX_BYTE_LENGTH 256
@@ -279,6 +284,8 @@ static void render_text(Vec2<f32> pos, const char *str, usize length, Ichigo::Co
             }
 
             pc = kanji_pack_data[index];
+        } else if (codepoint >= character_ranges[3].first_codepoint && codepoint <= character_ranges[3].first_codepoint + character_ranges[3].length) {
+            pc = half_and_full_width_pack_data[codepoint - character_ranges[3].first_codepoint];
         } else {
             // This characer is not in the font atlas.
             continue;
@@ -1001,15 +1008,16 @@ void Ichigo::Internal::init() {
     kanji_hash_map.data            = kanji_codepoints;
     kanji_hash_map.codepoint_count = kanji_codepoint_count;
 
-    u8 *font_bitmap           = PUSH_ARRAY(Ichigo::game_state.transient_storage_arena, u8, ICHIGO_FONT_ATLAS_WIDTH * ICHIGO_FONT_ATLAS_HEIGHT);
-    printable_ascii_pack_data = PUSH_ARRAY(Ichigo::game_state.permanent_storage_arena, stbtt_packedchar, character_ranges[0].length);
-    cjk_pack_data             = PUSH_ARRAY(Ichigo::game_state.permanent_storage_arena, stbtt_packedchar, character_ranges[1].length);
-    kanji_pack_data           = PUSH_ARRAY(Ichigo::game_state.permanent_storage_arena, stbtt_packedchar, kanji_codepoint_count);
+    u8 *font_bitmap               = PUSH_ARRAY(Ichigo::game_state.transient_storage_arena, u8, ICHIGO_FONT_ATLAS_WIDTH * ICHIGO_FONT_ATLAS_HEIGHT);
+    printable_ascii_pack_data     = PUSH_ARRAY(Ichigo::game_state.permanent_storage_arena, stbtt_packedchar, character_ranges[0].length);
+    cjk_pack_data                 = PUSH_ARRAY(Ichigo::game_state.permanent_storage_arena, stbtt_packedchar, character_ranges[1].length);
+    kanji_pack_data               = PUSH_ARRAY(Ichigo::game_state.permanent_storage_arena, stbtt_packedchar, kanji_codepoint_count);
+    half_and_full_width_pack_data = PUSH_ARRAY(Ichigo::game_state.permanent_storage_arena, stbtt_packedchar, character_ranges[3].length);
 
     stbtt_pack_context spc = {};
     stbtt_PackBegin(&spc, font_bitmap, ICHIGO_FONT_ATLAS_WIDTH, ICHIGO_FONT_ATLAS_HEIGHT, 0, 1, nullptr);
 
-    stbtt_pack_range ranges[3] = {};
+    stbtt_pack_range ranges[4] = {};
 
     // Printable ASCII
     ranges[0].first_unicode_codepoint_in_range = character_ranges[0].first_codepoint;
@@ -1023,13 +1031,17 @@ void Ichigo::Internal::init() {
     ranges[1].chardata_for_range               = cjk_pack_data;
     ranges[1].font_size                        = 50;
 
-    // ICHIGO_INFO("first kanji codepoint: %X", kanji_codepoints[0]);
     // Joyo and Jinmeiyo kanji
-    ranges[2].array_of_unicode_codepoints  = (i32 *) kanji_codepoints;
-    ranges[2].num_chars                    = kanji_codepoint_count;
-    // ranges[2].num_chars                    = 500;
-    ranges[2].chardata_for_range           = kanji_pack_data;
-    ranges[2].font_size                    = 50;
+    ranges[2].array_of_unicode_codepoints      = (i32 *) kanji_codepoints;
+    ranges[2].num_chars                        = kanji_codepoint_count;
+    ranges[2].chardata_for_range               = kanji_pack_data;
+    ranges[2].font_size                        = 50;
+
+    // Halfwidth and fullwidth forms
+    ranges[3].first_unicode_codepoint_in_range = character_ranges[3].first_codepoint;
+    ranges[3].num_chars                        = character_ranges[3].length;
+    ranges[3].chardata_for_range               = half_and_full_width_pack_data;
+    ranges[3].font_size                        = 50;
 
     stbtt_PackSetOversampling(&spc, 2, 2);
     stbtt_PackFontRanges(&spc, noto_font, 0, ranges, ARRAY_LEN(ranges));
