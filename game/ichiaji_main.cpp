@@ -142,7 +142,7 @@ void Ichigo::Game::update_and_render() {
     Ichigo::push_draw_command(test_draw_command);
 
     Ichigo::TextStyle style;
-    style.scale     = 1.0f;
+    style.scale     = 0.8f;
     style.alignment = Ichigo::TextAlignment::LEFT;
     style.colour    = {0.0f, 0.0f, 0.0f, 1.0f};
 

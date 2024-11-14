@@ -1023,25 +1023,25 @@ void Ichigo::Internal::init() {
     ranges[0].first_unicode_codepoint_in_range = character_ranges[0].first_codepoint;
     ranges[0].num_chars                        = character_ranges[0].length;
     ranges[0].chardata_for_range               = printable_ascii_pack_data;
-    ranges[0].font_size                        = 50;
+    ranges[0].font_size                        = ICHIGO_FONT_PIXEL_HEIGHT;
 
     // CJK punctuation, hiragana, katakana
     ranges[1].first_unicode_codepoint_in_range = character_ranges[1].first_codepoint;
     ranges[1].num_chars                        = character_ranges[1].length;
     ranges[1].chardata_for_range               = cjk_pack_data;
-    ranges[1].font_size                        = 50;
+    ranges[1].font_size                        = ICHIGO_FONT_PIXEL_HEIGHT;
 
     // Joyo and Jinmeiyo kanji
     ranges[2].array_of_unicode_codepoints      = (i32 *) kanji_codepoints;
     ranges[2].num_chars                        = kanji_codepoint_count;
     ranges[2].chardata_for_range               = kanji_pack_data;
-    ranges[2].font_size                        = 50;
+    ranges[2].font_size                        = ICHIGO_FONT_PIXEL_HEIGHT;
 
     // Halfwidth and fullwidth forms
     ranges[3].first_unicode_codepoint_in_range = character_ranges[3].first_codepoint;
     ranges[3].num_chars                        = character_ranges[3].length;
     ranges[3].chardata_for_range               = half_and_full_width_pack_data;
-    ranges[3].font_size                        = 50;
+    ranges[3].font_size                        = ICHIGO_FONT_PIXEL_HEIGHT;
 
     stbtt_PackSetOversampling(&spc, 2, 2);
     stbtt_PackFontRanges(&spc, noto_font, 0, ranges, ARRAY_LEN(ranges));
