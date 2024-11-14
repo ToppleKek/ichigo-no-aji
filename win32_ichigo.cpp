@@ -35,7 +35,7 @@ static f64 last_frame_time;
 static HWND window_handle;
 static HDC hdc;
 static HGLRC wgl_context;
-static bool in_sizing_loop = false;
+static bool paused_audio_in_sizing_loop = false;
 static bool init_completed = false;
 
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -369,18 +369,18 @@ static LRESULT window_proc(HWND window, u32 msg, WPARAM wparam, LPARAM lparam) {
     switch (msg) {
     case WM_ENTERSIZEMOVE: {
         ICHIGO_INFO("WM_ENTERSIZEMOVE");
-        if (is_buffer_playing)
+        if (is_buffer_playing) {
             Ichigo::Internal::platform_pause_audio();
-
-        in_sizing_loop = true;
+            paused_audio_in_sizing_loop = true;
+        }
     } break;
 
     case WM_EXITSIZEMOVE: {
         ICHIGO_INFO("WM_EXITSIZEMOVE");
-        if (is_buffer_playing)
+        if (paused_audio_in_sizing_loop) {
             Ichigo::Internal::platform_resume_audio();
-
-        in_sizing_loop = false;
+            paused_audio_in_sizing_loop = false;
+        }
     } break;
 
     case WM_SIZE: {
@@ -597,6 +597,7 @@ i32 main() {
     realloc_dsound_buffer(AUDIO_SAMPLE_RATE, DSOUND_BUFFER_SIZE);
     win32_write_samples(audio_samples, 0, AUDIO_SAMPLES_BUFFER_SIZE);
     secondary_dsound_buffer->Play(0 ,0, DSBPLAY_LOOPING);
+    is_buffer_playing = true;
 
     hdc = GetDC(window_handle);
     PIXELFORMATDESCRIPTOR pfd{};
