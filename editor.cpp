@@ -4,15 +4,24 @@
 
 enum ActionType {
     FILL,
+    RESIZE_TILEMAP,
+};
+
+struct FillData {
+    Rect<i32> region;
+    Ichigo::TileID tile_brush;
+};
+
+struct TilemapResizeData {
+    u16 new_width;
+    u16 new_height;
 };
 
 struct EditorAction {
     ActionType type;
     union {
-        struct {
-            Rect<i32> region;
-            Ichigo::TileID tile_brush;
-        };
+        FillData fill_data;
+        TilemapResizeData tilemap_resize_data;
     };
 };
 
@@ -83,14 +92,56 @@ static bool tiles_selected                = false;
 static Rect<i32> selected_region          = {};
 static Ichigo::TileID selected_brush_tile = 0;
 
+static void actually_resize_tilemap(u16 new_width, u16 new_height) {
+    ICHIGO_INFO("New tilemap size: %ux%u (%u)", new_width, new_height, new_width * new_height);
+
+    if (new_width != tilemap_working_copy.width) {
+        if (new_width > tilemap_working_copy.width) {
+            u32 width_delta = new_width - tilemap_working_copy.width;
+
+            auto *p = &tilemap_working_copy.tiles[tilemap_working_copy.width];
+            for (u32 i = 1; i < tilemap_working_copy.height; ++i) {
+                std::memmove(p + width_delta, p, (tilemap_working_copy.height - i) * tilemap_working_copy.width * sizeof(Ichigo::TileID));
+                std::memset(p, 0, width_delta * sizeof(Ichigo::TileID));
+                p += width_delta + tilemap_working_copy.width;
+            }
+        } else {
+            u32 width_delta = tilemap_working_copy.width - new_width;
+
+            auto *p = &tilemap_working_copy.tiles[(tilemap_working_copy.height - 1) * tilemap_working_copy.width];
+            for (u32 i = 1; i < tilemap_working_copy.height; ++i) {
+                std::memmove(p - width_delta, p, i * new_width * sizeof(Ichigo::TileID));
+                p = &tilemap_working_copy.tiles[(tilemap_working_copy.height - (i + 1)) * tilemap_working_copy.width];
+            }
+        }
+    }
+
+    if (new_height < tilemap_working_copy.height) {
+        std::memset(
+            &tilemap_working_copy.tiles[new_width * new_height],
+            0,
+            new_width * tilemap_working_copy.height - new_height * sizeof(Ichigo::TileID)
+        );
+    }
+
+    tilemap_working_copy.width               = new_width;
+    tilemap_working_copy.height              = new_height;
+    Ichigo::Internal::current_tilemap.width  = new_width;
+    Ichigo::Internal::current_tilemap.height = new_height;
+}
+
 static void apply_action(EditorAction action) {
     switch (action.type) {
         case FILL: {
-            for (i32 y = action.region.pos.y; y < action.region.pos.y + action.region.h; ++y) {
-                for (i32 x = action.region.pos.x; x < action.region.pos.x + action.region.w; ++x) {
-                    tilemap_working_copy.tiles[y * tilemap_working_copy.width + x] = action.tile_brush;
+            for (i32 y = action.fill_data.region.pos.y; y < action.fill_data.region.pos.y + action.fill_data.region.h; ++y) {
+                for (i32 x = action.fill_data.region.pos.x; x < action.fill_data.region.pos.x + action.fill_data.region.w; ++x) {
+                    tilemap_working_copy.tiles[y * tilemap_working_copy.width + x] = action.fill_data.tile_brush;
                 }
             }
+        } break;
+
+        case RESIZE_TILEMAP: {
+            actually_resize_tilemap(action.tilemap_resize_data.new_width, action.tilemap_resize_data.new_height);
         } break;
 
         default: {
@@ -100,10 +151,13 @@ static void apply_action(EditorAction action) {
 }
 
 static void rebuild_tilemap() {
-    tilemap_working_copy.width           = saved_tilemap.width;
-    tilemap_working_copy.height          = saved_tilemap.height;
-    tilemap_working_copy.tile_info       = saved_tilemap.tile_info;
-    tilemap_working_copy.tile_info_count = saved_tilemap.tile_info_count;
+
+    Ichigo::Internal::current_tilemap.width  = saved_tilemap.width;
+    Ichigo::Internal::current_tilemap.height = saved_tilemap.height;
+    tilemap_working_copy.width               = saved_tilemap.width;
+    tilemap_working_copy.height              = saved_tilemap.height;
+    tilemap_working_copy.tile_info           = saved_tilemap.tile_info;
+    tilemap_working_copy.tile_info_count     = saved_tilemap.tile_info_count;
     std::memcpy(tilemap_working_copy.tiles, saved_tilemap.tiles, saved_tilemap.width * saved_tilemap.height * sizeof(Ichigo::TileID));
 
     for (u64 i = 0; i < undo_stack.top; ++i) {
@@ -112,50 +166,23 @@ static void rebuild_tilemap() {
 }
 
 static void resize_tilemap(u16 new_width, u16 new_height) {
-    ICHIGO_INFO("New tilemap size: %ux%u (%u)", new_width, new_height, new_width * new_height);
+    EditorAction action;
+    action.type                           = RESIZE_TILEMAP;
+    action.tilemap_resize_data.new_width  = new_width;
+    action.tilemap_resize_data.new_height = new_height;
 
-    if (new_width != Ichigo::Internal::current_tilemap.width) {
-        if (new_width > Ichigo::Internal::current_tilemap.width) {
-            u32 width_delta = new_width - Ichigo::Internal::current_tilemap.width;
-
-            auto *p = &Ichigo::Internal::current_tilemap.tiles[Ichigo::Internal::current_tilemap.width];
-            for (u32 i = 1; i < Ichigo::Internal::current_tilemap.height; ++i) {
-                std::memmove(p + width_delta, p, (Ichigo::Internal::current_tilemap.height - i) * Ichigo::Internal::current_tilemap.width * sizeof(Ichigo::TileID));
-                std::memset(p, 0, width_delta * sizeof(Ichigo::TileID));
-                p += width_delta + Ichigo::Internal::current_tilemap.width;
-            }
-        } else {
-            u32 width_delta = Ichigo::Internal::current_tilemap.width - new_width;
-
-            auto *p = &Ichigo::Internal::current_tilemap.tiles[(Ichigo::Internal::current_tilemap.height - 1) * Ichigo::Internal::current_tilemap.width];
-            for (u32 i = 1; i < Ichigo::Internal::current_tilemap.height; ++i) {
-                std::memmove(p - width_delta, p, i * new_width * sizeof(Ichigo::TileID));
-                p = &Ichigo::Internal::current_tilemap.tiles[(Ichigo::Internal::current_tilemap.height - (i + 1)) * Ichigo::Internal::current_tilemap.width];
-            }
-        }
-    }
-
-    if (new_height < Ichigo::Internal::current_tilemap.height) {
-        std::memset(
-            &Ichigo::Internal::current_tilemap.tiles[new_width * new_height],
-            0,
-            new_width * Ichigo::Internal::current_tilemap.height - new_height * sizeof(Ichigo::TileID)
-        );
-    }
-
-    Ichigo::Internal::current_tilemap.width  = new_width;
-    Ichigo::Internal::current_tilemap.height = new_height;
+    undo_stack.push(action);
+    apply_action(action);
 }
 
 static void fill_selected_region(Ichigo::TileID brush) {
     if (!tiles_selected) {
         Ichigo::show_info("Nothing selected.");
     } else {
-        EditorAction action = {
-            FILL,
-            selected_region,
-            brush
-        };
+        EditorAction action;
+        action.type                 = FILL;
+        action.fill_data.region     = selected_region;
+        action.fill_data.tile_brush = brush;
 
         undo_stack.push(action);
         apply_action(action);
@@ -179,12 +206,13 @@ void Ichigo::Editor::render_ui() {
             new_tilemap_width  = std::atoi(tilemap_w_text);
             new_tilemap_height = std::atoi(tilemap_h_text);
 
-            if (new_tilemap_width == 0 || new_tilemap_height == 0 || new_tilemap_width * new_tilemap_height > ICHIGO_MAX_TILEMAP_SIZE)
+            if (new_tilemap_width == 0 || new_tilemap_height == 0 || new_tilemap_width * new_tilemap_height > ICHIGO_MAX_TILEMAP_SIZE) {
                 ImGui::OpenPopup("Invalid size");
-            else if (new_tilemap_width < Internal::current_tilemap.width || new_tilemap_height < Internal::current_tilemap.height)
+            } else if (new_tilemap_width < Internal::current_tilemap.width || new_tilemap_height < Internal::current_tilemap.height) {
                 ImGui::OpenPopup("Dangerous resize");
-            else
+            } else {
                 resize_tilemap(new_tilemap_width, new_tilemap_height);
+            }
         }
     }
 
