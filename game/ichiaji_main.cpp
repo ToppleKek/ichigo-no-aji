@@ -158,7 +158,7 @@ void Ichigo::Game::update_and_render() {
         Ichigo::push_draw_command(test_draw_command2);
     }
 
-    const char *ichiaji = "Ichigo no Aji! いちごのあじ! イチゴノアジ!";
+    const char *ichiaji = "Ichigo no Aji! いちごのあじ! イチゴノアジ! 刃";
     Ichigo::DrawCommand test_draw_command2;
     test_draw_command2.coordinate_system = Ichigo::CoordinateSystem::CAMERA;
     test_draw_command2.type              = Ichigo::DrawCommandType::TEXT;

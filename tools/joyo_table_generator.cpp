@@ -2,8 +2,8 @@
     Joyo and Jinmeiyo kanji array generator. Part of the Ichigo! project.
 
     Given a text file of utf8-encoded characters, creates a file called "kanji.bin" that is a u32 array
-    of the corresponding unicode codepoints. Outputs Ichigo! C++ code for embeding the file, and defining
-    extra metadata.
+    of a pre-comupted hash table of the unicode codepoints. Outputs Ichigo! C++ code for embeding the file,
+    and defining extra metadata.
 
     Author: Braeden Hong
     Date:   2024/11/12
@@ -14,6 +14,9 @@
 #include "../common.hpp"
 
 #include <cstdlib>
+
+static u32 codepoints[10000] = {};
+static u32 hash_table[10000] = {};
 
 i32 main(i32 argc, char **argv) {
     if (argc != 2) {
@@ -38,9 +41,8 @@ i32 main(i32 argc, char **argv) {
 
     std::FILE *out_file = std::fopen("kanji.bin", "wb");
 
-    i64 i = 0;
     u32 codepoint_count = 0;
-    while (i < file_size) {
+    for (i64 i = 0; i < file_size;) {
         u32 codepoint = 0;
         if (data[i] <= 0x7F) {
             codepoint = data[i];
@@ -59,10 +61,20 @@ i32 main(i32 argc, char **argv) {
             return 1;
         }
 
-        std::fwrite(&codepoint, sizeof(u32), 1, out_file);
-        ++codepoint_count;
+        codepoints[codepoint_count++] = codepoint;
     }
 
+    for (u32 i = 0; i < codepoint_count; ++i) {
+        u32 hash = codepoints[i] % codepoint_count;
+        for (u32 j = hash;; j = (j + 1) % codepoint_count) {
+            if (hash_table[j] == 0) {
+                hash_table[j] = codepoints[i];
+                break;
+            }
+        }
+    }
+
+    std::fwrite(&hash_table, sizeof(u32), codepoint_count, out_file);
     std::printf("EMBED(\"kanji.bin\", kt_bytes);\nstatic const u32 *kanji_codepoints = (u32 *) kt_bytes;\nstatic const u32 kanji_codepoint_count = %u;\n", codepoint_count);
 
     std::fclose(out_file);

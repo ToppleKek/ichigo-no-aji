@@ -52,9 +52,10 @@ static u32 rectangle_indices[] = {
     1, 2, 3
 };
 
-static Ichigo::CharRange character_ranges[2] = {
+static Ichigo::CharRange character_ranges[] = {
     {33, 93}, // Printable ASCII
-    {0x3000, 0x30FF - 0x3000} // CJK punctuation, hiragana, katakana
+    {0x3000, 0x30FF - 0x3000}, // CJK punctuation, hiragana, katakana
+    {0x4E00, 0x9FFF - 0x4E00}, // CJK unified ideographs (we only care about/support a subset of this!)
 };
 
 static u32 last_window_height                      = 0;
@@ -97,6 +98,23 @@ struct InfoLogMessage {
     u32 length;
     f32 t_remaining;
 };
+
+struct KanjiHashMap {
+    const u32 *data;
+    u32 codepoint_count;
+
+    i64 get(u32 codepoint) {
+        for (u32 i = codepoint % codepoint_count, j = 0; j < codepoint_count; i = (i + 1) % codepoint_count, ++j) {
+            if (data[i] == codepoint) {
+                return i;
+            }
+        }
+
+        return -1;
+    }
+};
+
+static KanjiHashMap kanji_hash_map;
 
 static DrawData draw_data_textured{};
 static DrawData draw_data_solid_colour{};
@@ -221,22 +239,46 @@ static void render_text(Vec2<f32> pos, const char *str, usize length, Ichigo::Co
     Util::BufferBuilder<TexturedVertex> vertices(vertex_buffer, MAX_TEXT_STRING_LENGTH * 4);
     Util::BufferBuilder<u32>            indices(index_buffer, MAX_TEXT_STRING_LENGTH * 6);
 
-    for (u32 i = 0; i < length; ++i) {
-        if (str[i] == ' ') {
+    const u8 *unsigned_str = (const u8 *) str;
+    for (u32 i = 0; i < length;) {
+        if (unsigned_str[i] == ' ') {
             current_pos.x += 10.0f * style.scale;
+            ++i;
             continue;
         }
 
         stbtt_packedchar pc;
-        if ((u32) str[i] >= character_ranges[0].first_codepoint && (u32) str[i] <= character_ranges[0].first_codepoint + character_ranges[0].length) {
-            pc = printable_ascii_pack_data[str[i] - character_ranges[0].first_codepoint];
-        } else if ((str[i] & 0b11100000) == 0b11100000) {
-            u32 codepoint = ((str[i] & 0b00001111) << 12) | ((str[i + 1] & 0b00111111) << 6) | ((str[i + 2] & 0b00111111));
-            if (codepoint >= character_ranges[1].first_codepoint && codepoint <= character_ranges[1].first_codepoint + character_ranges[1].length) {
-                pc = cjk_pack_data[codepoint - character_ranges[1].first_codepoint];
+        u32 codepoint = 0;
+        if (unsigned_str[i] <= 0x7F) {
+            codepoint = unsigned_str[i];
+            ++i;
+        } else if ((unsigned_str[i] & 0b11110000) == 0b11110000) {
+            codepoint = ((unsigned_str[i] & 0b00000111) << 18) | ((unsigned_str[i + 1] & 0b00111111) << 12) | ((unsigned_str[i + 2] & 0b00111111) << 6) | (unsigned_str[i + 3] & 0b00111111);
+            i += 4;
+        } else if ((unsigned_str[i] & 0b11100000) == 0b11100000) {
+            codepoint = ((unsigned_str[i] & 0b00001111) << 12) | ((unsigned_str[i + 1] & 0b00111111) << 6) | ((unsigned_str[i + 2] & 0b00111111));
+            i += 3;
+        } else if ((unsigned_str[i] & 0b11000000) == 0b11000000) {
+            codepoint = ((unsigned_str[i] & 0b00011111) << 6) | ((unsigned_str[i + 1] & 0b00111111));
+            i += 2;
+        } else {
+            ICHIGO_ERROR("Not a valid utf8 character: %u", unsigned_str[i]);
+            ++i;
+            continue;
+        }
+
+        if (codepoint >= character_ranges[0].first_codepoint && codepoint <= character_ranges[0].first_codepoint + character_ranges[0].length) {
+            pc = printable_ascii_pack_data[codepoint - character_ranges[0].first_codepoint];
+        } else if (codepoint >= character_ranges[1].first_codepoint && codepoint <= character_ranges[1].first_codepoint + character_ranges[1].length) {
+            pc = cjk_pack_data[codepoint - character_ranges[1].first_codepoint];
+        } else if (codepoint >= character_ranges[2].first_codepoint && codepoint <= character_ranges[2].first_codepoint + character_ranges[2].length) {
+            i64 index = kanji_hash_map.get(codepoint);
+            if (index == -1) {
+                ICHIGO_ERROR("Unsupported CJK ideograph: 0x%X", codepoint);
+                continue;
             }
 
-            i += 2;
+            pc = kanji_pack_data[index];
         } else {
             // This characer is not in the font atlas.
             continue;
@@ -955,6 +997,9 @@ void Ichigo::Internal::init() {
     // Fonts
     auto io = ImGui::GetIO();
     io.Fonts->AddFontFromMemoryTTF((void *) noto_font, noto_font_len, 18, &font_config, io.Fonts->GetGlyphRangesJapanese());
+
+    kanji_hash_map.data            = kanji_codepoints;
+    kanji_hash_map.codepoint_count = kanji_codepoint_count;
 
     u8 *font_bitmap           = PUSH_ARRAY(Ichigo::game_state.transient_storage_arena, u8, ICHIGO_FONT_ATLAS_DIM * ICHIGO_FONT_ATLAS_DIM);
     printable_ascii_pack_data = PUSH_ARRAY(Ichigo::game_state.permanent_storage_arena, stbtt_packedchar, character_ranges[0].length);

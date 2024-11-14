@@ -257,7 +257,6 @@ struct BufferBuilder {
     usize capacity;
 };
 
-
 char *json_string_serialize(const char *json_string);
 void json_return_serialized_string(char *json_string);
 char *strcat_escape_quotes(char *dest, const char *source);
