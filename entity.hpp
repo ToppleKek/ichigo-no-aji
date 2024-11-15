@@ -25,6 +25,28 @@ enum EntityFlag {
     EF_ON_GROUND = 1 << 0
 };
 
+struct SpriteSheet {
+    TextureID texture;
+    u32 cell_width;
+    u32 cell_height;
+};
+
+struct Animation {
+    u32 cell_of_first_frame;
+    u32 cell_of_last_frame;
+    u32 current_frame;
+    f32 seconds_per_frame;
+    f32 elapsed_t;
+};
+
+struct Sprite {
+    Vec2<f32> pos_offset;
+    f32 width;
+    f32 height;
+    SpriteSheet sheet;
+    Animation animation;
+};
+
 struct Entity {
     char name[8];
     EntityID id;
@@ -34,14 +56,11 @@ struct Entity {
     Vec2<f32> velocity;
     Vec2<f32> acceleration;
     Vec2<f32> max_velocity;
-    Vec2<f32> sprite_pos_offset;
-    f32 sprite_w;
-    f32 sprite_h;
+    Sprite sprite;
     f32 movement_speed;
     f32 jump_acceleration;
     f32 gravity;
     f32 friction;
-    TextureID texture_id;
     EntityFlags flags;
     EntityRenderProc *render_proc;
     EntityUpdateProc *update_proc;

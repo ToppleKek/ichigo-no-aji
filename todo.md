@@ -58,7 +58,7 @@
 
 ## The actual TODO for things that need to be done to ship
 - ~~Text rendering (ASCII and hiragana/katakana, maybe some kanji?)~~
-- SIMDify mixer
+- ~~SIMDify mixer~~
 - Animation "system"
 - Particle system
 

@@ -10,6 +10,7 @@
 #include <cstring>
 #include <cassert>
 #include <cstdlib>
+#include "math.hpp"
 
 namespace Util {
 struct Arena {
@@ -262,4 +263,5 @@ void json_return_serialized_string(char *json_string);
 char *strcat_escape_quotes(char *dest, const char *source);
 bool str_equal_case_insensitive(const char *lhs, const char *rhs);
 u64 utf8_char_count(const char *utf8_string, usize utf8_string_length);
+Vec2<f32> calculate_centered_pos_offset(const Rect<f32> &col, f32 sprite_width, f32 sprite_height);
 }

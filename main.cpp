@@ -407,17 +407,42 @@ static void render_text(Vec2<f32> pos, const char *str, usize length, Ichigo::Co
 }
 
 void default_entity_render_proc(Ichigo::Entity *entity) {
+    const Ichigo::Texture &texture = Ichigo::Internal::textures.at(entity->sprite.sheet.texture);
+
+    Ichigo::Internal::gl.glUseProgram(texture_shader_program);
     Ichigo::Internal::gl.glBindBuffer(GL_ARRAY_BUFFER, draw_data_textured.vertex_buffer_id);
     Ichigo::Internal::gl.glBindVertexArray(draw_data_textured.vertex_array_id);
-    Ichigo::Internal::gl.glUseProgram(texture_shader_program);
-    Ichigo::Internal::gl.glBindTexture(GL_TEXTURE_2D, Ichigo::Internal::textures.at(entity->texture_id).id);
+    Ichigo::Internal::gl.glBindTexture(GL_TEXTURE_2D, texture.id);
 
-    Vec2<f32> draw_pos = { entity->col.pos.x + entity->sprite_pos_offset.x, entity->col.pos.y + entity->sprite_pos_offset.y };
+    u32 current_cell  = entity->sprite.animation.cell_of_first_frame + entity->sprite.animation.current_frame;
+    u32 cells_per_row = texture.width / entity->sprite.sheet.cell_width;
+    u32 row_of_cell   = current_cell  / cells_per_row;
+    u32 col_of_cell   = current_cell  % cells_per_row;
+    u32 cell_x_px     = col_of_cell   * entity->sprite.sheet.cell_width;
+    u32 cell_y_px     = row_of_cell   * entity->sprite.sheet.cell_height;
+
+    f32 u0 = (f32) cell_x_px / (f32) texture.width;
+    f32 v0 = (f32) (texture.height - cell_y_px) / (f32) texture.height;
+    f32 u1 = u0 + ((f32) entity->sprite.sheet.cell_width  / (f32) texture.width);
+    f32 v1 = v0 - ((f32) entity->sprite.sheet.cell_height / (f32) texture.height);
+
+    entity->sprite.animation.elapsed_t += Ichigo::Internal::dt;
+    if (entity->sprite.animation.elapsed_t >= entity->sprite.animation.seconds_per_frame) {
+        entity->sprite.animation.elapsed_t = 0.0f;
+
+        if (entity->sprite.animation.current_frame + 1 > entity->sprite.animation.cell_of_last_frame - entity->sprite.animation.cell_of_first_frame) {
+            entity->sprite.animation.current_frame = 0;
+        } else {
+            ++entity->sprite.animation.current_frame;
+        }
+    }
+
+    Vec2<f32> draw_pos = { entity->col.pos.x + entity->sprite.pos_offset.x, entity->col.pos.y + entity->sprite.pos_offset.y };
     TexturedVertex vertices[] = {
-        {{draw_pos.x, draw_pos.y, 0.0f}, {0.0f, 1.0f}},  // top left
-        {{draw_pos.x + entity->sprite_w, draw_pos.y, 0.0f}, {1.0f, 1.0f}}, // top right
-        {{draw_pos.x, draw_pos.y + entity->sprite_h, 0.0f}, {0.0f, 0.0f}}, // bottom left
-        {{draw_pos.x + entity->sprite_w, draw_pos.y + entity->sprite_h, 0.0f}, {1.0f, 0.0f}}, // bottom right
+        {{draw_pos.x, draw_pos.y, 0.0f},                                                {u0, v0}}, // top left
+        {{draw_pos.x + entity->sprite.width, draw_pos.y, 0.0f},                         {u1, v0}}, // top right
+        {{draw_pos.x, draw_pos.y + entity->sprite.height, 0.0f},                        {u0, v1}}, // bottom left
+        {{draw_pos.x + entity->sprite.width, draw_pos.y + entity->sprite.height, 0.0f}, {u1, v1}}, // bottom right
     };
 
     Ichigo::Internal::gl.glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);

@@ -6,7 +6,7 @@ EMBED("assets/other_tile.png", other_tile_png)
 EMBED("assets/three_tile.png", three_tile_png)
 EMBED("assets/enemy.png", enemy_png)
 EMBED("assets/bg.png", test_bg)
-EMBED("assets/music/yori.mp3", test_song)
+EMBED("assets/music/song.mp3", test_song)
 
 static Ichigo::TextureID player_texture_id  = 0;
 static Ichigo::TextureID enemy_texture_id   = 0;
@@ -89,21 +89,36 @@ void Ichigo::Game::init() {
     SET_FLAG(tile_info_map[3].flags, TileFlag::TANGIBLE);
 
     Ichigo::set_tilemap(&tilemap);
+
     Ichigo::Entity *player = Ichigo::spawn_entity();
 
     std::strcpy(player->name, "player");
-    player->col               = {{3.0f, 2.0f}, 0.5f, 1.5f};
-    player->sprite_pos_offset = {-0.25f, -0.5f};
-    player->sprite_w          = 1.0f;
-    player->sprite_h          = 2.0f;
+    player->col               = {{3.0f, 2.0f}, 0.5f, 1.0f};
     player->max_velocity      = {8.0f, 12.0f};
     player->movement_speed    = 22.0f;
     player->jump_acceleration = 128.0f;
     player->friction          = 8.0f; // TODO: Friction should be a property of the ground maybe?
     player->gravity           = 12.0f; // TODO: gravity should be a property of the level?
-    player->texture_id        = player_texture_id;
     player->update_proc       = Ichigo::EntityControllers::player_controller;
     player->collide_proc      = entity_collide_proc;
+
+    Ichigo::Animation player_idle   = {};
+    player_idle.cell_of_first_frame = 0;
+    player_idle.cell_of_last_frame  = 7;
+    player_idle.current_frame       = 0;
+    player_idle.seconds_per_frame   = 0.08f;
+    player_idle.elapsed_t           = 0.0f;
+
+    Ichigo::Sprite player_sprite    = {};
+    player_sprite.width             = 1.41f;
+    player_sprite.height            = 1.25f;
+    player_sprite.pos_offset        = Util::calculate_centered_pos_offset(player->col, player_sprite.width, player_sprite.height);
+    player_sprite.sheet.texture     = player_texture_id;
+    player_sprite.sheet.cell_width  = 45;
+    player_sprite.sheet.cell_height = 45;
+    player_sprite.animation         = player_idle;
+
+    player->sprite = player_sprite;
 
     Ichigo::game_state.player_entity_id = player->id;
 
@@ -114,15 +129,30 @@ void Ichigo::Game::init() {
     gert_id = enemy->id;
     std::strcpy(enemy->name, "gert");
     enemy->col            = {{9.0f, 2.0f}, 0.5f, 0.5f};
-    enemy->sprite_w       = 0.5f;
-    enemy->sprite_h       = 0.5f;
     enemy->max_velocity   = {2.0f, 12.0f};
     enemy->movement_speed = 4.0f;
     enemy->friction       = 8.0f;
     enemy->gravity        = 12.0f;
-    enemy->texture_id     = enemy_texture_id;
     enemy->update_proc    = Ichigo::EntityControllers::patrol_controller;
     enemy->collide_proc   = entity_collide_proc;
+
+    Ichigo::Animation gert_idle = {};
+    gert_idle.cell_of_first_frame = 0;
+    gert_idle.cell_of_last_frame  = 0;
+    gert_idle.current_frame       = 0;
+    gert_idle.seconds_per_frame   = 0.0f;
+    gert_idle.elapsed_t           = 0.0f;
+
+    Ichigo::Sprite gert_sprite;
+    gert_sprite.width             = 1.0f;
+    gert_sprite.height            = 1.0f;
+    gert_sprite.pos_offset        = Util::calculate_centered_pos_offset(enemy->col, gert_sprite.width, gert_sprite.height);
+    gert_sprite.sheet.texture     = enemy_texture_id;
+    gert_sprite.sheet.cell_width  = 32;
+    gert_sprite.sheet.cell_height = 32;
+    gert_sprite.animation         = gert_idle;
+
+    enemy->sprite = gert_sprite;
 
     Ichigo::Mixer::play_audio(test_music_id, 1.0f, 1.0f, 1.0f);
 }
