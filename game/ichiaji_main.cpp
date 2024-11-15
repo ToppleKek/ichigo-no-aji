@@ -154,7 +154,7 @@ void Ichigo::Game::init() {
 
     enemy->sprite = gert_sprite;
 
-    Ichigo::Mixer::play_audio(test_music_id, 1.0f, 1.0f, 1.0f);
+    Ichigo::Mixer::play_audio(test_music_id, 1.0f, 1.0f, 1.0f, 0.864f, 54.188f);
 }
 
 void Ichigo::Game::frame_begin() {

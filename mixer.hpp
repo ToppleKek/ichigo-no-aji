@@ -16,6 +16,8 @@ struct PlayingAudio {
     f32 volume;
     f32 left_volume;
     f32 right_volume;
+    u64 loop_start_frame;
+    u64 loop_end_frame;
     u64 frame_play_cursor;
     bool is_playing; // TODO: Stupid?
 };
@@ -23,7 +25,8 @@ extern Util::IchigoVector<PlayingAudio> playing_audio;
 extern f32 master_volume;
 // END DEBUG (we just wanted to see this in the debug window)
 
-PlayingAudioID play_audio(AudioID audio_id, f32 volume, f32 left_volume, f32 right_volume);
+PlayingAudioID play_audio(AudioID audio_id, f32 volume, f32 left_volume, f32 right_volume, f32 loop_start_seconds, f32 loop_end_seconds);
+PlayingAudioID play_audio_oneshot(AudioID audio_id, f32 volume, f32 left_volume, f32 right_volume);
 void cancel_audio(PlayingAudioID id);
 PlayingAudio *get_playing_audio(PlayingAudioID id);
 void mix_into_buffer(AudioFrame2ChI16LE *sound_buffer, usize buffer_size, usize write_cursor_position_delta);

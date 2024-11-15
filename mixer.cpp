@@ -9,13 +9,15 @@ f32 Ichigo::Mixer::master_volume = 1.0f;
 // TODO: Use transient storage?
 // static Ichigo::AudioFrame2ChI16LE mix_buffer[MEGABYTES(50)];
 
-Ichigo::Mixer::PlayingAudioID Ichigo::Mixer::play_audio(AudioID audio_id, f32 volume, f32 left_volume, f32 right_volume) {
-    PlayingAudio pa;
-    pa.audio_id           = audio_id;
-    pa.volume             = volume;
-    pa.left_volume        = left_volume;
-    pa.right_volume       = right_volume;
-    pa.frame_play_cursor  = 0;
+Ichigo::Mixer::PlayingAudioID Ichigo::Mixer::play_audio(AudioID audio_id, f32 volume, f32 left_volume, f32 right_volume, f32 loop_start_seconds, f32 loop_end_seconds) {
+    PlayingAudio pa = {};
+    pa.audio_id          = audio_id;
+    pa.volume            = volume;
+    pa.left_volume       = left_volume;
+    pa.right_volume      = right_volume;
+    pa.loop_start_frame  = (u64) (loop_start_seconds * AUDIO_SAMPLE_RATE);
+    pa.loop_end_frame    = (u64) (loop_end_seconds   * AUDIO_SAMPLE_RATE);
+    pa.frame_play_cursor = 0;
 
     for (u32 i = 0; i < playing_audio.size; ++i) {
         if (playing_audio.at(i).audio_id == 0) {
@@ -31,6 +33,10 @@ Ichigo::Mixer::PlayingAudioID Ichigo::Mixer::play_audio(AudioID audio_id, f32 vo
     playing_audio.append(pa);
 
     return pa.id;
+}
+
+Ichigo::Mixer::PlayingAudioID Ichigo::Mixer::play_audio_oneshot(AudioID audio_id, f32 volume, f32 left_volume, f32 right_volume) {
+    return play_audio(audio_id, volume, left_volume, right_volume, 0.0f, 0.0f);
 }
 
 Ichigo::Mixer::PlayingAudio *Ichigo::Mixer::get_playing_audio(PlayingAudioID id) {
@@ -64,10 +70,14 @@ void Ichigo::Mixer::mix_into_buffer(AudioFrame2ChI16LE *sound_buffer, usize buff
         if (pa.audio_id == 0)
             continue;
 
-        Audio audio = Internal::audio_assets.at(pa.audio_id);
+        Audio &audio = Internal::audio_assets.at(pa.audio_id);
 
         if (pa.is_playing) {
             pa.frame_play_cursor += write_cursor_position_delta / sizeof(AudioFrame2ChI16LE);
+            if (pa.loop_end_frame != 0 && pa.frame_play_cursor >= pa.loop_end_frame) {
+                pa.frame_play_cursor = pa.loop_start_frame;
+            }
+
             if (pa.frame_play_cursor * sizeof(AudioFrame2ChI16LE) >= audio.size_in_bytes) {
                 pa.audio_id = 0;
                 continue;

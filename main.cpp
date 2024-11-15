@@ -846,7 +846,7 @@ void Ichigo::Internal::do_frame() {
             ImGui::SliderFloat("Right Ch.", &next_test_sound_volume_r, 0.0f, 1.0f, "%f");
 
             if (ImGui::Button("Test Sound"))
-                Ichigo::Mixer::play_audio(test_sound_id, next_test_sound_volume, next_test_sound_volume_l, next_test_sound_volume_r);
+                Ichigo::Mixer::play_audio_oneshot(test_sound_id, next_test_sound_volume, next_test_sound_volume_l, next_test_sound_volume_r);
 
             static bool is_playing_audio = true;
             if (ImGui::Button("Toggle Playback")) {
