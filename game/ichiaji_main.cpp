@@ -110,12 +110,12 @@ void Ichigo::Game::init() {
     player_idle.elapsed_t           = 0.0f;
 
     Ichigo::Sprite player_sprite    = {};
-    player_sprite.width             = 1.41f;
-    player_sprite.height            = 1.25f;
+    player_sprite.width             = pixels_to_metres(50.0f);
+    player_sprite.height            = pixels_to_metres(50.0f);
     player_sprite.pos_offset        = Util::calculate_centered_pos_offset(player->col, player_sprite.width, player_sprite.height);
     player_sprite.sheet.texture     = player_texture_id;
-    player_sprite.sheet.cell_width  = 45;
-    player_sprite.sheet.cell_height = 45;
+    player_sprite.sheet.cell_width  = 50;
+    player_sprite.sheet.cell_height = 50;
     player_sprite.animation         = player_idle;
 
     player->sprite = player_sprite;

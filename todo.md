@@ -59,7 +59,14 @@
 ## The actual TODO for things that need to be done to ship
 - ~~Text rendering (ASCII and hiragana/katakana, maybe some kanji?)~~
 - ~~SIMDify mixer~~
+- ~~Looping audio in mixer~~
 - Animation "system"
+- - ~~Spritesheets~~
+- - ~~Animations~~
+- - Frame skip
+- - Entry/exit animations
+- - - Add `cell_of_loop_start`
+- - - Add `cell_of_loop_end`
 - Particle system
 
 ## Wishlist

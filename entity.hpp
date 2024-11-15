@@ -22,7 +22,8 @@ struct EntityID {
 };
 
 enum EntityFlag {
-    EF_ON_GROUND = 1 << 0
+    EF_ON_GROUND = 1 << 0,
+    EF_FLIP_H    = 1 << 1,
 };
 
 struct SpriteSheet {

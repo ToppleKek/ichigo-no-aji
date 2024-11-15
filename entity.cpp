@@ -214,10 +214,16 @@ void Ichigo::EntityControllers::player_controller(Ichigo::Entity *player_entity)
     static f32 jump_t = 0.0f;
 
     player_entity->acceleration = {0.0f, 0.0f};
-    if (Ichigo::Internal::keyboard_state[Ichigo::IK_RIGHT].down)
+    if (Ichigo::Internal::keyboard_state[Ichigo::IK_RIGHT].down) {
         player_entity->acceleration.x = player_entity->movement_speed;
-    if (Ichigo::Internal::keyboard_state[Ichigo::IK_LEFT].down)
+        SET_FLAG(player_entity->flags, Ichigo::EF_FLIP_H);
+    }
+
+    if (Ichigo::Internal::keyboard_state[Ichigo::IK_LEFT].down) {
         player_entity->acceleration.x = -player_entity->movement_speed;
+        CLEAR_FLAG(player_entity->flags, Ichigo::EF_FLIP_H);
+    }
+
     if (Ichigo::Internal::keyboard_state[Ichigo::IK_SPACE].down_this_frame && FLAG_IS_SET(player_entity->flags, Ichigo::EntityFlag::EF_ON_GROUND))
         jump_t = 0.06f;
 
@@ -234,8 +240,9 @@ void Ichigo::EntityControllers::player_controller(Ichigo::Entity *player_entity)
         player_entity->velocity += {player_entity->friction * Ichigo::Internal::dt * -direction, 0.0f};
         i32 new_direction = player_entity->velocity.x < 0 ? -1 : 1;
 
-        if (new_direction != direction)
+        if (new_direction != direction) {
             player_entity->velocity.x = 0.0f;
+        }
     }
 
     // p' = 1/2 at^2 + vt + p

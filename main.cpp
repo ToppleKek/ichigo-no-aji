@@ -426,6 +426,12 @@ void default_entity_render_proc(Ichigo::Entity *entity) {
     f32 u1 = u0 + ((f32) entity->sprite.sheet.cell_width  / (f32) texture.width);
     f32 v1 = v0 - ((f32) entity->sprite.sheet.cell_height / (f32) texture.height);
 
+    if (FLAG_IS_SET(entity->flags, Ichigo::EF_FLIP_H)) {
+        f32 temp = u0;
+        u0       = u1;
+        u1       = temp;
+    }
+
     entity->sprite.animation.elapsed_t += Ichigo::Internal::dt;
     if (entity->sprite.animation.elapsed_t >= entity->sprite.animation.seconds_per_frame) {
         entity->sprite.animation.elapsed_t = 0.0f;
