@@ -83,7 +83,8 @@ static Ichigo::Tilemap tilemap_working_copy = {
     0,
     0,
     nullptr,
-    0
+    0,
+    {}
 };
 
 static bool tiles_selected                = false;
@@ -315,7 +316,7 @@ void Ichigo::Editor::render_ui() {
                 ImGui::Text("Name: %s",          tile_info.name);
                 ImGui::Text("Friction: %f",      tile_info.friction);
                 ImGui::Text("FLAG Tangible: %d", FLAG_IS_SET(tile_info.flags, TileFlag::TANGIBLE));
-                ImGui::Text("Texture ID: %u",    tile_info.texture_id);
+                ImGui::Text("Cell in sheet: %u", tile_info.cell);
                 ImGui::Text("Tile ID: %u",       tile);
             }
         } else {

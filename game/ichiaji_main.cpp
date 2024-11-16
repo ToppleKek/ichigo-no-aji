@@ -9,31 +9,12 @@ EMBED("assets/bg.png", test_bg)
 EMBED("assets/music/song.mp3", test_song)
 
 // Real tiles
-EMBED("assets/gr_1by1.png", one_by_one_png);
-EMBED("assets/gr_bottomleft.png", bottom_left_png);
-EMBED("assets/gr_bottommiddle.png", bottom_middle_png);
-EMBED("assets/gr_bottomright.png", bottom_right_png);
-EMBED("assets/gr_left.png", left_png);
-EMBED("assets/gr_middle.png", middle_png);
-EMBED("assets/gr_right.png", right_png);
-EMBED("assets/gr_topleft.png", top_left_png);
-EMBED("assets/gr_topmiddle.png", top_middle_png);
-EMBED("assets/gr_topright.png", top_right_png);
+EMBED("assets/tiles.png", tileset_png)
 
 // Tilemaps
 EMBED("assets/test_tilemap.ichigotm", level1_tilemap);
 
-static Ichigo::TextureID one_by_one_tile_tid    = 0;
-static Ichigo::TextureID bottom_left_tile_tid   = 0;
-static Ichigo::TextureID bottom_middle_tile_tid = 0;
-static Ichigo::TextureID bottom_right_tile_tid  = 0;
-static Ichigo::TextureID left_tile_tid          = 0;
-static Ichigo::TextureID middle_tile_tid        = 0;
-static Ichigo::TextureID right_tile_tid         = 0;
-static Ichigo::TextureID top_left_tile_tid      = 0;
-static Ichigo::TextureID top_middle_tile_tid    = 0;
-static Ichigo::TextureID top_right_tile_tid     = 0;
-
+static Ichigo::TextureID tileset_texture = 0;
 static Ichigo::TextureID player_texture_id  = 0;
 static Ichigo::TextureID enemy_texture_id   = 0;
 static Ichigo::TextureID grass_texture_id   = 0;
@@ -41,33 +22,6 @@ static Ichigo::TextureID other_tile_texture_id   = 0;
 static Ichigo::TextureID three_tile_texture_id   = 0;
 static Ichigo::TextureID test_bg_texture_id = 0;
 static Ichigo::AudioID   test_music_id      = 0;
-
-
-#define TILEMAP_WIDTH SCREEN_TILE_WIDTH * 4
-#define TILEMAP_HEIGHT SCREEN_TILE_HEIGHT * 2
-
-static Ichigo::TileID tiles[TILEMAP_HEIGHT][TILEMAP_WIDTH] = {
-    {2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3},
-    {2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3},
-    {2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3},
-    {2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3},
-    {2, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3},
-    {2, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3},
-    {2, 1, 1, 1, 0, 0, 0, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 3},
-    {2, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 1, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 1, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 3},
-    {2, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 3},
-    {2, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 3},
-    {2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3},
-    {2, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3},
-    {2, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 3},
-    {2, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 3},
-    {2, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3},
-    {2, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 0, 1, 1, 3},
-    {2, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 1, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 1, 1, 0, 1, 1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 1, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 1, 1, 0, 3},
-    {2, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 3},
-};
-
-
 
 static Ichigo::TileInfo tile_info_map[14]{};
 
@@ -77,14 +31,6 @@ static Ichigo::TileInfo tile_info_map[14]{};
 static Ichigo::Animation player_idle = {};
 static Ichigo::Animation player_walk = {};
 static Ichigo::Animation player_jump = {};
-
-static Ichigo::Tilemap tilemap = {
-    (Ichigo::TileID *) tiles,
-    TILEMAP_WIDTH,
-    TILEMAP_HEIGHT,
-    tile_info_map,
-    ARRAY_LEN(tile_info_map)
-};
 
 static void entity_collide_proc(Ichigo::Entity *entity, Ichigo::Entity *other_entity) {
     ICHIGO_INFO("I (%s) just collided with %s!", entity->name, other_entity->name);
@@ -101,16 +47,7 @@ void Ichigo::Game::init() {
     three_tile_texture_id = Ichigo::load_texture(three_tile_png, three_tile_png_len);
     test_music_id         = Ichigo::load_audio(test_song, test_song_len);
 
-    one_by_one_tile_tid    = Ichigo::load_texture(one_by_one_png, one_by_one_png_len);
-    bottom_left_tile_tid   = Ichigo::load_texture(bottom_left_png, bottom_left_png_len);
-    bottom_middle_tile_tid = Ichigo::load_texture(bottom_middle_png, bottom_middle_png_len);
-    bottom_right_tile_tid  = Ichigo::load_texture(bottom_right_png, bottom_right_png_len);
-    left_tile_tid          = Ichigo::load_texture(left_png, left_png_len);
-    middle_tile_tid        = Ichigo::load_texture(middle_png, middle_png_len);
-    right_tile_tid         = Ichigo::load_texture(right_png, right_png_len);
-    top_left_tile_tid      = Ichigo::load_texture(top_left_png, top_left_png_len);
-    top_middle_tile_tid    = Ichigo::load_texture(top_middle_png, top_middle_png_len);
-    top_right_tile_tid     = Ichigo::load_texture(top_right_png, top_right_png_len);
+    tileset_texture       = Ichigo::load_texture(tileset_png, tileset_png_len);
 
     Ichigo::game_state.background_colour = {0.54f, 0.84f, 1.0f, 1.0f};
     Ichigo::game_state.background_layers[0].texture_id     = test_bg_texture_id;
@@ -119,80 +56,85 @@ void Ichigo::Game::init() {
     Ichigo::game_state.background_layers[0].scroll_speed   = {0.5f, 0.6f};
 
     std::strcpy(tile_info_map[0].name, "air");
+    tile_info_map[0].cell = -1;
     std::strcpy(tile_info_map[1].name, "grass");
-    tile_info_map[1].texture_id = grass_texture_id;
+    tile_info_map[1].cell = 0;
     tile_info_map[1].friction   = 8.0f;
     SET_FLAG(tile_info_map[1].flags, TileFlag::TANGIBLE);
 
     std::strcpy(tile_info_map[2].name, "2tile");
-    tile_info_map[2].texture_id = other_tile_texture_id;
+    tile_info_map[2].cell = 0;
     tile_info_map[2].friction   = 8.0f;
     SET_FLAG(tile_info_map[2].flags, TileFlag::TANGIBLE);
 
     std::strcpy(tile_info_map[3].name, "3tile");
-    tile_info_map[3].texture_id = three_tile_texture_id;
+    tile_info_map[3].cell = 0;
     tile_info_map[3].friction   = 8.0f;
     SET_FLAG(tile_info_map[3].flags, TileFlag::TANGIBLE);
 
 
     std::strcpy(tile_info_map[4].name, "gr_1x1");
-    tile_info_map[4].texture_id = one_by_one_tile_tid;
+    tile_info_map[4].cell = 0;
     tile_info_map[4].friction   = 8.0f;
     SET_FLAG(tile_info_map[4].flags, TileFlag::TANGIBLE);
 
 
     std::strcpy(tile_info_map[5].name, "gr_bl");
-    tile_info_map[5].texture_id = bottom_left_tile_tid;
+    tile_info_map[5].cell = 17;
     tile_info_map[5].friction   = 8.0f;
     SET_FLAG(tile_info_map[5].flags, TileFlag::TANGIBLE);
 
 
     std::strcpy(tile_info_map[6].name, "gr_bm");
-    tile_info_map[6].texture_id = bottom_middle_tile_tid;
+    tile_info_map[6].cell = 18;
     tile_info_map[6].friction   = 8.0f;
     SET_FLAG(tile_info_map[6].flags, TileFlag::TANGIBLE);
 
 
     std::strcpy(tile_info_map[7].name, "gr_br");
-    tile_info_map[7].texture_id = bottom_right_tile_tid;
+    tile_info_map[7].cell = 19;
     tile_info_map[7].friction   = 8.0f;
     SET_FLAG(tile_info_map[7].flags, TileFlag::TANGIBLE);
 
 
     std::strcpy(tile_info_map[8].name, "gr_l");
-    tile_info_map[8].texture_id = left_tile_tid;
+    tile_info_map[8].cell = 9;
     tile_info_map[8].friction   = 8.0f;
     SET_FLAG(tile_info_map[8].flags, TileFlag::TANGIBLE);
 
 
     std::strcpy(tile_info_map[9].name, "gr_m");
-    tile_info_map[9].texture_id = middle_tile_tid;
+    tile_info_map[9].cell = 10;
     tile_info_map[9].friction   = 8.0f;
     SET_FLAG(tile_info_map[9].flags, TileFlag::TANGIBLE);
 
 
     std::strcpy(tile_info_map[10].name, "gr_r");
-    tile_info_map[10].texture_id = right_tile_tid;
+    tile_info_map[10].cell = 11;
     tile_info_map[10].friction   = 8.0f;
     SET_FLAG(tile_info_map[10].flags, TileFlag::TANGIBLE);
 
     std::strcpy(tile_info_map[11].name, "gr_tl");
-    tile_info_map[11].texture_id = top_left_tile_tid;
+    tile_info_map[11].cell = 1;
     tile_info_map[11].friction   = 8.0f;
     SET_FLAG(tile_info_map[11].flags, TileFlag::TANGIBLE);
 
     std::strcpy(tile_info_map[12].name, "gr_tm");
-    tile_info_map[12].texture_id = top_middle_tile_tid;
+    tile_info_map[12].cell = 2;
     tile_info_map[12].friction   = 8.0f;
     SET_FLAG(tile_info_map[12].flags, TileFlag::TANGIBLE);
 
     std::strcpy(tile_info_map[13].name, "gr_tr");
-    tile_info_map[13].texture_id = top_right_tile_tid;
+    tile_info_map[13].cell = 3;
     tile_info_map[13].friction   = 8.0f;
     SET_FLAG(tile_info_map[13].flags, TileFlag::TANGIBLE);
 
-    Ichigo::set_tilemap((u8 *) level1_tilemap, tile_info_map, ARRAY_LEN(tile_info_map));
-    // Ichigo::set_tilemap(&tilemap);
+    Ichigo::SpriteSheet tileset_sheet = {};
+    tileset_sheet.cell_width  = 32;
+    tileset_sheet.cell_height = 32;
+    tileset_sheet.texture     = tileset_texture;
+
+    Ichigo::set_tilemap((u8 *) level1_tilemap, tile_info_map, ARRAY_LEN(tile_info_map), tileset_sheet);
 
     Ichigo::Entity *player = Ichigo::spawn_entity();
 

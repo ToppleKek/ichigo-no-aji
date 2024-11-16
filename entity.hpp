@@ -33,9 +33,9 @@ enum EntityFlag {
 };
 
 struct SpriteSheet {
-    TextureID texture;
     u32 cell_width;
     u32 cell_height;
+    TextureID texture;
 };
 
 struct Animation {

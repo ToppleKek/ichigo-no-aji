@@ -219,7 +219,7 @@ enum TileFlag {
 
 struct TileInfo {
     char name[8];
-    TextureID texture_id;
+    i32 cell; // NOTE: A negative cell number means this tile does not render.
     TileFlags flags;
     f32 friction;
 };
@@ -232,6 +232,7 @@ struct Tilemap {
     u32 height;
     TileInfo *tile_info;
     u32 tile_info_count;
+    SpriteSheet sheet;
 };
 
 struct FrameData {
@@ -252,7 +253,7 @@ struct GameState {
 extern GameState game_state;
 
 void set_tilemap(Tilemap *tilemap);
-void set_tilemap(u8 *ichigo_tilemap_memory, TileInfo *tile_info, u32 tile_info_count);
+void set_tilemap(u8 *ichigo_tilemap_memory, TileInfo *tile_info, u32 tile_info_count, SpriteSheet tileset_sheet);
 u16 tile_at(Vec2<u32> tile_coord);
 void push_draw_command(DrawCommand draw_command);
 void show_info(const char *str, u32 length);

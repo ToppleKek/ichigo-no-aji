@@ -474,6 +474,7 @@ void Ichigo::set_tilemap(Tilemap *tilemap) {
     Internal::current_tilemap.width           = tilemap->width;
     Internal::current_tilemap.height          = tilemap->height;
     Internal::current_tilemap.tile_info_count = tilemap->tile_info_count;
+    Internal::current_tilemap.sheet           = tilemap->sheet;
 
     std::memset(Internal::current_tilemap.tiles, 0, tilemap->width * tilemap->height * sizeof(TileID));
     std::memset(Internal::current_tilemap.tile_info, 0, tilemap->tile_info_count * sizeof(TileInfo));
@@ -481,7 +482,7 @@ void Ichigo::set_tilemap(Tilemap *tilemap) {
     std::memcpy(Internal::current_tilemap.tile_info, tilemap->tile_info, tilemap->tile_info_count * sizeof(TileInfo));
 }
 
-void Ichigo::set_tilemap(u8 *ichigo_tilemap_memory, TileInfo *tile_info, u32 tile_info_count) {
+void Ichigo::set_tilemap(u8 *ichigo_tilemap_memory, TileInfo *tile_info, u32 tile_info_count, Ichigo::SpriteSheet tileset_sheet) {
     Tilemap tilemap;
     usize cursor = 0;
     // Version number
@@ -497,6 +498,7 @@ void Ichigo::set_tilemap(u8 *ichigo_tilemap_memory, TileInfo *tile_info, u32 til
     tilemap.tiles           = (TileID *) &ichigo_tilemap_memory[cursor];
     tilemap.tile_info       = tile_info;
     tilemap.tile_info_count = tile_info_count;
+    tilemap.sheet           = tileset_sheet;
 
     set_tilemap(&tilemap);
 }
@@ -519,20 +521,34 @@ static void render_tile(Vec2<u32> tile_pos) {
 
     const Ichigo::TileInfo &tile_info = Ichigo::Internal::current_tilemap.tile_info[tile];
 
-    if (tile_info.texture_id == 0) {
+    if (tile_info.cell < 0) {
         return;
     }
 
+    const Ichigo::Texture &texture = Ichigo::Internal::textures.at(Ichigo::Internal::current_tilemap.sheet.texture);
+
+    u32 cells_per_row = texture.width  / Ichigo::Internal::current_tilemap.sheet.cell_width;
+    u32 row_of_cell   = tile_info.cell / cells_per_row;
+    u32 col_of_cell   = tile_info.cell % cells_per_row;
+    u32 cell_x_px     = col_of_cell    * Ichigo::Internal::current_tilemap.sheet.cell_width;
+    u32 cell_y_px     = row_of_cell    * Ichigo::Internal::current_tilemap.sheet.cell_height;
+
+    f32 u0 = (f32) cell_x_px / (f32) texture.width;
+    f32 v0 = (f32) (texture.height - cell_y_px) / (f32) texture.height;
+    f32 u1 = u0 + ((f32) Ichigo::Internal::current_tilemap.sheet.cell_width  / (f32) texture.width);
+    f32 v1 = v0 - ((f32) Ichigo::Internal::current_tilemap.sheet.cell_height / (f32) texture.height);
+
+
     Vec2<f32> draw_pos = { (f32) tile_pos.x, (f32) tile_pos.y };
     TexturedVertex vertices[] = {
-        {{draw_pos.x, draw_pos.y, 0.0f}, {0.0f, 1.0f}},  // top left
-        {{draw_pos.x + 1, draw_pos.y, 0.0f}, {1.0f, 1.0f}}, // top right
-        {{draw_pos.x, draw_pos.y + 1, 0.0f}, {0.0f, 0.0f}}, // bottom left
-        {{draw_pos.x + 1, draw_pos.y + 1, 0.0f}, {1.0f, 0.0f}}, // bottom right
+        {{draw_pos.x, draw_pos.y, 0.0f},         {u0, v0}},  // top left
+        {{draw_pos.x + 1, draw_pos.y, 0.0f},     {u1, v0}}, // top right
+        {{draw_pos.x, draw_pos.y + 1, 0.0f},     {u0, v1}}, // bottom left
+        {{draw_pos.x + 1, draw_pos.y + 1, 0.0f}, {u1, v1}}, // bottom right
     };
 
     Ichigo::Internal::gl.glUseProgram(texture_shader_program);
-    Ichigo::Internal::gl.glBindTexture(GL_TEXTURE_2D, Ichigo::Internal::textures.at(tile_info.texture_id).id);
+    Ichigo::Internal::gl.glBindTexture(GL_TEXTURE_2D, texture.id);
 
     Ichigo::Internal::gl.glBindBuffer(GL_ARRAY_BUFFER, draw_data_textured.vertex_buffer_id);
     Ichigo::Internal::gl.glBindVertexArray(draw_data_textured.vertex_array_id);
