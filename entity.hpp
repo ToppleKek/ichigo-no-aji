@@ -29,7 +29,7 @@ struct EntityID {
 enum EntityFlag {
     EF_ON_GROUND    = 1 << 0,
     EF_FLIP_H       = 1 << 1,
-    EF_ANIM_LOOPING = 1 << 2, // TODO: Not sure if this makes sense?
+    // EF_ANIM_LOOPING = 1 << 2, // TODO: Not sure if this makes sense?
 };
 
 struct SpriteSheet {

@@ -434,17 +434,16 @@ void default_entity_render_proc(Ichigo::Entity *entity) {
 
     Ichigo::Animation &anim = entity->sprite.animation;
     entity->sprite.elapsed_animation_frame_time += Ichigo::Internal::dt;
-    if (entity->sprite.elapsed_animation_frame_time >= anim.seconds_per_frame) {
-        entity->sprite.elapsed_animation_frame_time = 0.0f;
+    u32 frames_advanced = (u32) safe_ratio_0(entity->sprite.elapsed_animation_frame_time, anim.seconds_per_frame);
 
-        u32 loop_duration = anim.cell_of_loop_end - anim.cell_of_loop_start;
-        u32 anim_duration = FLAG_IS_SET(entity->flags, Ichigo::EF_ANIM_LOOPING) ? loop_duration : anim.cell_of_last_frame - anim.cell_of_first_frame;
+    if (frames_advanced > 0) {
+        entity->sprite.elapsed_animation_frame_time -= (frames_advanced * anim.seconds_per_frame);
+        u32 anim_duration = anim.cell_of_last_frame - anim.cell_of_first_frame + 1;
 
-        if (entity->sprite.current_animation_frame + 1 > anim_duration) {
+        if (entity->sprite.current_animation_frame + frames_advanced >= anim_duration) {
             entity->sprite.current_animation_frame = anim.cell_of_loop_start - anim.cell_of_first_frame;
-            SET_FLAG(entity->flags, Ichigo::EF_ANIM_LOOPING);
         } else {
-            ++entity->sprite.current_animation_frame;
+            entity->sprite.current_animation_frame += frames_advanced;
         }
     }
 
@@ -831,7 +830,7 @@ void Ichigo::Internal::do_frame() {
                         ImGui::TreePop();
                     }
                 } else {
-                    if (ImGui::TreeNode((void *) (uptr) i, "Entity slot %u: %s (%s)", i, entity.name, Internal::entity_id_as_string(entity.id))) {
+                    if (ImGui::TreeNodeEx((void *) (uptr) i, ImGuiTreeNodeFlags_DefaultOpen, "Entity slot %u: %s (%s)", i, entity.name, Internal::entity_id_as_string(entity.id))) {
                         ImGui::PushID(entity.id.index);
                         if (ImGui::Button("Follow"))
                             Ichigo::Camera::follow(entity.id);
@@ -842,6 +841,9 @@ void Ichigo::Internal::do_frame() {
                         ImGui::Text("on ground?=%d", FLAG_IS_SET(entity.flags, Ichigo::EntityFlag::EF_ON_GROUND));
                         ImGui::Text("left_standing_tile=%d,%d", entity.left_standing_tile.x, entity.left_standing_tile.y);
                         ImGui::Text("right_standing_tile=%d,%d", entity.right_standing_tile.x, entity.right_standing_tile.y);
+                        ImGui::Text("animation_tag=%u", entity.sprite.animation.tag);
+                        ImGui::Text("current_anim_frame=%u", entity.sprite.current_animation_frame);
+                        ImGui::Text("anim_t=%f", entity.sprite.elapsed_animation_frame_time);
                         ImGui::TreePop();
                     }
                 }

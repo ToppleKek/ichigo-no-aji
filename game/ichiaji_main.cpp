@@ -216,9 +216,9 @@ void Ichigo::Game::init() {
 
     player_jump.tag                 = ANIMATION_TAG_PLAYER_JUMP;
     player_jump.cell_of_first_frame = 20;
-    player_jump.cell_of_last_frame  = 24;
+    player_jump.cell_of_last_frame  = 23;
     player_jump.cell_of_loop_start  = 21;
-    player_jump.cell_of_loop_end    = 24;
+    player_jump.cell_of_loop_end    = 23;
     player_jump.seconds_per_frame   = 0.08f;
 
     Ichigo::Sprite player_sprite    = {};
@@ -248,14 +248,14 @@ void Ichigo::Game::init() {
     enemy->update_proc    = Ichigo::EntityControllers::patrol_controller;
     enemy->collide_proc   = entity_collide_proc;
 
-    Ichigo::Animation gert_idle = {};
+    Ichigo::Animation gert_idle   = {};
     gert_idle.cell_of_first_frame = 0;
     gert_idle.cell_of_last_frame  = 0;
     gert_idle.cell_of_loop_start  = 0;
     gert_idle.cell_of_loop_end    = 0;
     gert_idle.seconds_per_frame   = 0.0f;
 
-    Ichigo::Sprite gert_sprite;
+    Ichigo::Sprite gert_sprite    = {};
     gert_sprite.width             = 1.0f;
     gert_sprite.height            = 1.0f;
     gert_sprite.pos_offset        = Util::calculate_centered_pos_offset(enemy->col, gert_sprite.width, gert_sprite.height);

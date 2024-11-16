@@ -64,9 +64,11 @@
 - - ~~Spritesheets~~
 - - ~~Animations~~
 - - Frame skip
-- - Entry/exit animations
-- - - Add `cell_of_loop_start`
-- - - Add `cell_of_loop_end`
+- - ~~Horizontal flipping~~
+- - ~~Entry/exit animations~~
+- - - ~~Add `cell_of_loop_start`~~
+- - - ~~Add `cell_of_loop_end`~~
+- Tiles use spritesheet
 - Particle system
 
 ## Wishlist

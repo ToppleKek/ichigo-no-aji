@@ -285,6 +285,13 @@ inline f32 safe_ratio_1(f32 dividend, f32 divisor) {
     return dividend / divisor;
 }
 
+inline f32 safe_ratio_0(f32 dividend, f32 divisor) {
+    if (divisor == 0)
+        return 0.0f;
+
+    return dividend / divisor;
+}
+
 template<typename T>
 inline T clamp(T value, T min, T max) {
     if (value < min) return min;
