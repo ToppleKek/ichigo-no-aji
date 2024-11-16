@@ -9,16 +9,19 @@ EMBED("assets/bg.png", test_bg)
 EMBED("assets/music/song.mp3", test_song)
 
 // Real tiles
-EMBED("assets/1by1.png", one_by_one_png);
-EMBED("assets/bottomleft.png", bottom_left_png);
-EMBED("assets/bottommiddle.png", bottom_middle_png);
-EMBED("assets/bottomright.png", bottom_right_png);
-EMBED("assets/left.png", left_png);
-EMBED("assets/middle.png", middle_png);
-EMBED("assets/right.png", right_png);
-EMBED("assets/topleft.png", top_left_png);
-EMBED("assets/topmiddle.png", top_middle_png);
-EMBED("assets/topright.png", top_right_png);
+EMBED("assets/gr_1by1.png", one_by_one_png);
+EMBED("assets/gr_bottomleft.png", bottom_left_png);
+EMBED("assets/gr_bottommiddle.png", bottom_middle_png);
+EMBED("assets/gr_bottomright.png", bottom_right_png);
+EMBED("assets/gr_left.png", left_png);
+EMBED("assets/gr_middle.png", middle_png);
+EMBED("assets/gr_right.png", right_png);
+EMBED("assets/gr_topleft.png", top_left_png);
+EMBED("assets/gr_topmiddle.png", top_middle_png);
+EMBED("assets/gr_topright.png", top_right_png);
+
+// Tilemaps
+EMBED("assets/test_tilemap.ichigotm", level1_tilemap);
 
 static Ichigo::TextureID one_by_one_tile_tid    = 0;
 static Ichigo::TextureID bottom_left_tile_tid   = 0;
@@ -63,6 +66,8 @@ static Ichigo::TileID tiles[TILEMAP_HEIGHT][TILEMAP_WIDTH] = {
     {2, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 1, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 1, 1, 0, 1, 1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 1, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 1, 1, 0, 3},
     {2, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 3},
 };
+
+
 
 static Ichigo::TileInfo tile_info_map[14]{};
 
@@ -186,7 +191,8 @@ void Ichigo::Game::init() {
     tile_info_map[13].friction   = 8.0f;
     SET_FLAG(tile_info_map[13].flags, TileFlag::TANGIBLE);
 
-    Ichigo::set_tilemap(&tilemap);
+    Ichigo::set_tilemap((u8 *) level1_tilemap, tile_info_map, ARRAY_LEN(tile_info_map));
+    // Ichigo::set_tilemap(&tilemap);
 
     Ichigo::Entity *player = Ichigo::spawn_entity();
 

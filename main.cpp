@@ -481,6 +481,26 @@ void Ichigo::set_tilemap(Tilemap *tilemap) {
     std::memcpy(Internal::current_tilemap.tile_info, tilemap->tile_info, tilemap->tile_info_count * sizeof(TileInfo));
 }
 
+void Ichigo::set_tilemap(u8 *ichigo_tilemap_memory, TileInfo *tile_info, u32 tile_info_count) {
+    Tilemap tilemap;
+    usize cursor = 0;
+    // Version number
+    assert((u16) ichigo_tilemap_memory[cursor] == 1);
+    cursor += sizeof(u16);
+
+    tilemap.width = (u32) ichigo_tilemap_memory[cursor];
+    cursor += sizeof(u32);
+
+    tilemap.height = (u32) ichigo_tilemap_memory[cursor];
+    cursor += sizeof(u32);
+
+    tilemap.tiles           = (TileID *) &ichigo_tilemap_memory[cursor];
+    tilemap.tile_info       = tile_info;
+    tilemap.tile_info_count = tile_info_count;
+
+    set_tilemap(&tilemap);
+}
+
 #define INVALID_TILE UINT16_MAX
 Ichigo::TileID Ichigo::tile_at(Vec2<u32> tile_coord) {
     if (!Internal::current_tilemap.tiles || tile_coord.x >= Internal::current_tilemap.width || tile_coord.x < 0 || tile_coord.y >= Internal::current_tilemap.height || tile_coord.y < 0)

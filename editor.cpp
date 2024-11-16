@@ -74,10 +74,8 @@ private:
     }
 };
 
-// #define UNDO_STACK_SIZE 4
-// static EditorAction undo_stack_memory[UNDO_STACK_SIZE] = {};
-// static Util::IchigoCircularStack undo_stack(UNDO_STACK_SIZE, undo_stack_memory);
 static UndoStack undo_stack(512);
+static bool wants_to_save = false;
 static Ichigo::TileID tiles_working_copy[ICHIGO_MAX_TILEMAP_SIZE] = {};
 static Ichigo::Tilemap saved_tilemap;
 static Ichigo::Tilemap tilemap_working_copy = {
@@ -91,6 +89,19 @@ static Ichigo::Tilemap tilemap_working_copy = {
 static bool tiles_selected                = false;
 static Rect<i32> selected_region          = {};
 static Ichigo::TileID selected_brush_tile = 0;
+
+static void save_tilemap(const char *path) {
+    Ichigo::Internal::PlatformFile *file = Ichigo::Internal::platform_open_file_write(path);
+
+    u16 tilemap_format_version_number = 1;
+
+    Ichigo::Internal::platform_append_file_sync(file, (u8 *) &tilemap_format_version_number, sizeof(tilemap_format_version_number));
+    Ichigo::Internal::platform_append_file_sync(file, (u8 *) &tilemap_working_copy.width,    sizeof(tilemap_working_copy.width));
+    Ichigo::Internal::platform_append_file_sync(file, (u8 *) &tilemap_working_copy.height,   sizeof(tilemap_working_copy.height));
+    Ichigo::Internal::platform_append_file_sync(file, (u8 *) tilemap_working_copy.tiles,     sizeof(Ichigo::TileID) * tilemap_working_copy.width * tilemap_working_copy.height);
+
+    Ichigo::Internal::platform_close_file(file);
+}
 
 static void actually_resize_tilemap(u16 new_width, u16 new_height) {
     ICHIGO_INFO("New tilemap size: %ux%u (%u)", new_width, new_height, new_width * new_height);
@@ -151,7 +162,6 @@ static void apply_action(EditorAction action) {
 }
 
 static void rebuild_tilemap() {
-
     Ichigo::Internal::current_tilemap.width  = saved_tilemap.width;
     Ichigo::Internal::current_tilemap.height = saved_tilemap.height;
     tilemap_working_copy.width               = saved_tilemap.width;
@@ -214,6 +224,29 @@ void Ichigo::Editor::render_ui() {
                 resize_tilemap(new_tilemap_width, new_tilemap_height);
             }
         }
+    }
+
+    if (wants_to_save) {
+        ImGui::OpenPopup("Save as");
+    }
+
+    if (ImGui::BeginPopupModal("Save as", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+        static char path_buffer[256];
+        ImGui::InputText("Path", path_buffer, ARRAY_LEN(path_buffer));
+        if (ImGui::Button("Save")) {
+            save_tilemap(path_buffer);
+            wants_to_save = false;
+            ImGui::CloseCurrentPopup();
+        }
+
+        ImGui::SameLine();
+
+        if (ImGui::Button("Cancel")) {
+            wants_to_save = false;
+            ImGui::CloseCurrentPopup();
+        }
+
+        ImGui::EndPopup();
     }
 
     if (ImGui::BeginPopupModal("Invalid size", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
@@ -347,7 +380,7 @@ void Ichigo::Editor::update() {
 
     if (Internal::keyboard_state[IK_W].down)
         Ichigo::Camera::manual_focus_point.y -= camera_speed * Ichigo::Internal::dt;
-    if (Internal::keyboard_state[IK_S].down)
+    if (Internal::keyboard_state[IK_LEFT_CONTROL].up && Internal::keyboard_state[IK_S].down) // FIXME: Stupid hack
         Ichigo::Camera::manual_focus_point.y += camera_speed * Ichigo::Internal::dt;
     if (Internal::keyboard_state[IK_A].down)
         Ichigo::Camera::manual_focus_point.x -= camera_speed * Ichigo::Internal::dt;
@@ -370,6 +403,8 @@ void Ichigo::Editor::update() {
     } else if (Internal::keyboard_state[IK_LEFT_CONTROL].down && Internal::keyboard_state[IK_Z].down_this_frame && undo_stack.size != 0) {
         undo_stack.pop();
         rebuild_tilemap();
+    } else if (Internal::keyboard_state[IK_LEFT_CONTROL].down && Internal::keyboard_state[IK_S].down_this_frame) {
+        wants_to_save = true;
     }
 
     static Vec2<f32> pan_start_pos;
