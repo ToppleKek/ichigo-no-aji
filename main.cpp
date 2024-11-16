@@ -149,7 +149,7 @@ static void screen_render_solid_colour_rect(Rect<f32> rect, Vec4<f32> colour) {
     Ichigo::Internal::gl.glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 }
 
-static void screen_render_textured_rect(Rect<f32> rect, Ichigo::TextureID texture_id) {
+[[maybe_unused]] static void screen_render_textured_rect(Rect<f32> rect, Ichigo::TextureID texture_id) {
     Vec2<f32> draw_pos = { rect.pos.x, rect.pos.y };
     TexturedVertex vertices[] = {
         {{draw_pos.x, draw_pos.y, 0.0f}, {0.0f, 1.0f}},  // top left

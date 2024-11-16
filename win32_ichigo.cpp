@@ -38,7 +38,14 @@ static HGLRC wgl_context;
 static bool paused_audio_in_sizing_loop = false;
 static bool init_completed = false;
 
+
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+
+struct Ichigo::Internal::PlatformFile {
+    HANDLE file_handle;
+};
+
+static Ichigo::Internal::PlatformFile open_files[32];
 
 static wchar_t *to_wide_char(const char *str) {
     i32 buf_size = MultiByteToWideChar(CP_UTF8, 0, str, -1, nullptr, 0);
@@ -74,22 +81,55 @@ static i64 win32_get_timestamp() {
     return win32_get_timestamp() * 1000 / performance_frequency;
 }
 
-std::FILE *Ichigo::Internal::platform_open_file(const std::string &path, const std::string &mode) {
-    i32 buf_size = MultiByteToWideChar(CP_UTF8, 0, path.c_str(), -1, nullptr, 0);
-    i32 mode_buf_size = MultiByteToWideChar(CP_UTF8, 0, mode.c_str(), -1, nullptr, 0);
-    assert(buf_size > 0 && mode_buf_size > 0);
-    wchar_t *wide_buf = new wchar_t[buf_size];
-    wchar_t *mode_wide_buf = new wchar_t[mode_buf_size];
-    MultiByteToWideChar(CP_UTF8, 0, path.c_str(), -1, wide_buf, buf_size);
-    MultiByteToWideChar(CP_UTF8, 0, mode.c_str(), -1, mode_wide_buf, mode_buf_size);
-    // std::wprintf(L"platform_open_file: wide_buf=%s mode_wide_buf=%s\n", wide_buf, mode_wide_buf);
-    std::FILE *ret = _wfopen(wide_buf, mode_wide_buf);
+Ichigo::Internal::PlatformFile *Ichigo::Internal::platform_open_file_write(const char *path) {
+    wchar_t *pathw = to_wide_char(path);
+    HANDLE file = CreateFile(pathw, GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
+    free_wide_char_conversion(pathw);
 
-    // TODO: Should this actually exist? If we want to check if a file exists then should we have a different platform function for it?
-    // assert(ret != nullptr);
-    delete[] wide_buf;
-    delete[] mode_wide_buf;
-    return ret;
+    if (file == INVALID_HANDLE_VALUE) {
+        ICHIGO_ERROR("Failed to open file for writing!");
+        return nullptr;
+    }
+
+    for (u32 i = 0; i < ARRAY_LEN(open_files); ++i) {
+        if (open_files[i].file_handle == INVALID_HANDLE_VALUE) {
+            open_files[i].file_handle = file;
+            return &open_files[i];
+        }
+    }
+
+    ICHIGO_ERROR("Too many files open!");
+    return nullptr;
+}
+
+void Ichigo::Internal::platform_write_entire_file_sync(const char *path, const u8 *data, usize data_size) {
+    wchar_t *pathw = to_wide_char(path);
+    HANDLE file = CreateFile(pathw, GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
+    free_wide_char_conversion(pathw);
+
+    if (file == INVALID_HANDLE_VALUE) {
+        ICHIGO_ERROR("Failed to open file for writing!");
+        return;
+    }
+
+    DWORD bytes_written = 0;
+    if (!WriteFile(file, data, data_size, &bytes_written, nullptr)) {
+        ICHIGO_ERROR("Failed to write file!");
+    }
+
+    CloseHandle(file);
+}
+
+void Ichigo::Internal::platform_append_file_sync(PlatformFile *file, const u8 *data, usize data_size) {
+    DWORD bytes_written = 0;
+    if (!WriteFile(file->file_handle, data, data_size, &bytes_written, nullptr)) {
+        ICHIGO_ERROR("Failed to write to file!");
+    }
+}
+
+void Ichigo::Internal::platform_close_file(PlatformFile *file) {
+    CloseHandle(file->file_handle);
+    file->file_handle = INVALID_HANDLE_VALUE;
 }
 
 bool Ichigo::Internal::platform_file_exists(const char *path) {
@@ -100,79 +140,79 @@ bool Ichigo::Internal::platform_file_exists(const char *path) {
     return ret;
 }
 
-static bool is_filtered_file(const wchar_t *filename, const char **extension_filter, const u16 extension_filter_count) {
-    // Find the last period in the file name
-    u64 period_index = 0;
-    for (u64 current_index = 0; filename[current_index] != '\0'; ++current_index) {
-        if (filename[current_index] == '.')
-            period_index = current_index;
-    }
+// static bool is_filtered_file(const wchar_t *filename, const char **extension_filter, const u16 extension_filter_count) {
+//     // Find the last period in the file name
+//     u64 period_index = 0;
+//     for (u64 current_index = 0; filename[current_index] != '\0'; ++current_index) {
+//         if (filename[current_index] == '.')
+//             period_index = current_index;
+//     }
 
-    wchar_t ext_wide[16] = {};
-    for (u32 i = 0; i < extension_filter_count; ++i) {
-        const char *ext = extension_filter[i];
-        i32 buf_size = MultiByteToWideChar(CP_UTF8, 0, ext, -1, nullptr, 0);
-        assert(buf_size <= 16);
-        MultiByteToWideChar(CP_UTF8, 0, ext, -1, ext_wide, buf_size);
+//     wchar_t ext_wide[16] = {};
+//     for (u32 i = 0; i < extension_filter_count; ++i) {
+//         const char *ext = extension_filter[i];
+//         i32 buf_size = MultiByteToWideChar(CP_UTF8, 0, ext, -1, nullptr, 0);
+//         assert(buf_size <= 16);
+//         MultiByteToWideChar(CP_UTF8, 0, ext, -1, ext_wide, buf_size);
 
-        if (std::wcscmp(&filename[period_index + 1], ext_wide) == 0)
-            return true;
-    }
+//         if (std::wcscmp(&filename[period_index + 1], ext_wide) == 0)
+//             return true;
+//     }
 
-    return false;
-}
+//     return false;
+// }
 
-void visit_directory(const wchar_t *path, Util::IchigoVector<std::string> *files, const char **extension_filter, const u16 extension_filter_count) {
-    HANDLE find_handle;
-    WIN32_FIND_DATAW find_data;
-    wchar_t path_with_filter[2048] = {};
-    std::wcscat(path_with_filter, path);
-    std::wcscat(path_with_filter, L"\\*");
+// void visit_directory(const wchar_t *path, Util::IchigoVector<std::string> *files, const char **extension_filter, const u16 extension_filter_count) {
+//     HANDLE find_handle;
+//     WIN32_FIND_DATAW find_data;
+//     wchar_t path_with_filter[2048] = {};
+//     std::wcscat(path_with_filter, path);
+//     std::wcscat(path_with_filter, L"\\*");
 
-    if ((find_handle = FindFirstFileW(path_with_filter, &find_data)) != INVALID_HANDLE_VALUE) {
-        do {
-            if (std::wcscmp(find_data.cFileName, L".") == 0 || std::wcscmp(find_data.cFileName, L"..") == 0)
-                continue;
+//     if ((find_handle = FindFirstFileW(path_with_filter, &find_data)) != INVALID_HANDLE_VALUE) {
+//         do {
+//             if (std::wcscmp(find_data.cFileName, L".") == 0 || std::wcscmp(find_data.cFileName, L"..") == 0)
+//                 continue;
 
-            if (find_data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
-                wchar_t sub_dir[2048] = {};
-                _snwprintf(sub_dir, 2048, L"%s/%s", path, find_data.cFileName);
-                visit_directory(sub_dir, files, extension_filter, extension_filter_count);
-            } else {
-                if (!is_filtered_file(find_data.cFileName, extension_filter, extension_filter_count))
-                    continue;
+//             if (find_data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
+//                 wchar_t sub_dir[2048] = {};
+//                 _snwprintf(sub_dir, 2048, L"%s/%s", path, find_data.cFileName);
+//                 visit_directory(sub_dir, files, extension_filter, extension_filter_count);
+//             } else {
+//                 if (!is_filtered_file(find_data.cFileName, extension_filter, extension_filter_count))
+//                     continue;
 
-                wchar_t full_path[2048] = {};
-                _snwprintf(full_path, 2048, L"%s/%s", path, find_data.cFileName);
-                i32 u8_buf_size = WideCharToMultiByte(CP_UTF8, 0, full_path, -1, nullptr, 0, nullptr, nullptr);
-                char *u8_bytes = new char[u8_buf_size]();
-                WideCharToMultiByte(CP_UTF8, 0, full_path, -1, u8_bytes, u8_buf_size, nullptr, nullptr);
+//                 wchar_t full_path[2048] = {};
+//                 _snwprintf(full_path, 2048, L"%s/%s", path, find_data.cFileName);
+//                 i32 u8_buf_size = WideCharToMultiByte(CP_UTF8, 0, full_path, -1, nullptr, 0, nullptr, nullptr);
+//                 char *u8_bytes = new char[u8_buf_size]();
+//                 WideCharToMultiByte(CP_UTF8, 0, full_path, -1, u8_bytes, u8_buf_size, nullptr, nullptr);
 
-                files->append(u8_bytes);
-                delete[] u8_bytes;
-            }
-        } while (FindNextFileW(find_handle, &find_data) != 0);
+//                 files->append(u8_bytes);
+//                 delete[] u8_bytes;
+//             }
+//         } while (FindNextFileW(find_handle, &find_data) != 0);
 
-        FindClose(find_handle);
-    } else {
-        auto error = GetLastError();
-        std::printf("win32 plat: Failed to create find handle! error=%lu\n", error);
-    }
-}
+//         FindClose(find_handle);
+//     } else {
+//         auto error = GetLastError();
+//         std::printf("win32 plat: Failed to create find handle! error=%lu\n", error);
+//     }
+// }
 
-Util::IchigoVector<std::string> Ichigo::Internal::platform_recurse_directory(const std::string &path, const char **extension_filter, const u16 extension_filter_count) {
-    Util::IchigoVector<std::string> ret;
+// Util::IchigoVector<std::string> Ichigo::Internal::platform_recurse_directory(const std::string &path, const char **extension_filter, const u16 extension_filter_count) {
+//     Util::IchigoVector<std::string> ret;
 
-    i32 buf_size = MultiByteToWideChar(CP_UTF8, 0, path.c_str(), -1, nullptr, 0);
-    assert(buf_size > 0);
-    wchar_t *wide_buf = new wchar_t[buf_size]();
-    MultiByteToWideChar(CP_UTF8, 0, path.c_str(), -1, wide_buf, buf_size);
+//     i32 buf_size = MultiByteToWideChar(CP_UTF8, 0, path.c_str(), -1, nullptr, 0);
+//     assert(buf_size > 0);
+//     wchar_t *wide_buf = new wchar_t[buf_size]();
+//     MultiByteToWideChar(CP_UTF8, 0, path.c_str(), -1, wide_buf, buf_size);
 
-    visit_directory(wide_buf, &ret, extension_filter, extension_filter_count);
+//     visit_directory(wide_buf, &ret, extension_filter, extension_filter_count);
 
-    delete[] wide_buf;
-    return ret;
-}
+//     delete[] wide_buf;
+//     return ret;
+// }
 
 void Ichigo::Internal::platform_sleep(f64 t) {
     Sleep((u32) (t * 1000));
@@ -578,6 +618,10 @@ i32 main() {
     SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
     SetConsoleOutputCP(CP_UTF8);
     auto instance = GetModuleHandle(nullptr);
+
+    for (u32 i = 0; i < ARRAY_LEN(open_files); ++i) {
+        open_files[i].file_handle = INVALID_HANDLE_VALUE;
+    }
 
     assert(timeBeginPeriod(1) == TIMERR_NOERROR);
 

@@ -5,7 +5,6 @@
 #include "entity.hpp"
 #include "mixer.hpp"
 #include "util.hpp"
-#include <string> // TODO: Remove this shit
 #include "opengl.hpp"
 #include "math.hpp"
 
@@ -293,13 +292,14 @@ void do_frame();
 void deinit();
 void fill_sample_buffer(u8 *buffer, usize buffer_size, usize write_cursor_position_delta);
 
-/*
-    Open a file with the specified mode.
-    Parameter 'path': A string of the path to the file to open.
-    Parameter 'mode': A string of the mode to open the file in (eg. rb, wb, a, etc.)
-    Returns a standard C FILE struct.
-*/
-std::FILE *platform_open_file(const std::string &path, const std::string &mode);
+
+struct PlatformFile;
+
+PlatformFile *platform_open_file_write(const char *path);
+void platform_write_entire_file_sync(const char *path, const u8 *data, usize data_size);
+void platform_append_file_sync(PlatformFile *file, const u8 *data, usize data_size);
+void platform_close_file(PlatformFile *file);
+// usize platform_read_entire_file_sync(const char *path, const u8 *data, usize data_size);
 
 /*
     Test if a file exists.
@@ -314,7 +314,7 @@ bool platform_file_exists(const char *path);
     Parameter 'extention_filter': An array of constant strings of file extensions. Only returns files that have these extensions.
     Parameter 'extension_filter_count': The size of the array.
 */
-Util::IchigoVector<std::string> platform_recurse_directory(const std::string &path, const char **extension_filter, const u16 extension_filter_count);
+// Util::IchigoVector<std::string> platform_recurse_directory(const std::string &path, const char **extension_filter, const u16 extension_filter_count);
 
 void platform_sleep(f64 t);
 f64 platform_get_current_time();
