@@ -8,6 +8,29 @@ EMBED("assets/enemy.png", enemy_png)
 EMBED("assets/bg.png", test_bg)
 EMBED("assets/music/song.mp3", test_song)
 
+// Real tiles
+EMBED("assets/1by1.png", one_by_one_png);
+EMBED("assets/bottomleft.png", bottom_left_png);
+EMBED("assets/bottommiddle.png", bottom_middle_png);
+EMBED("assets/bottomright.png", bottom_right_png);
+EMBED("assets/left.png", left_png);
+EMBED("assets/middle.png", middle_png);
+EMBED("assets/right.png", right_png);
+EMBED("assets/topleft.png", top_left_png);
+EMBED("assets/topmiddle.png", top_middle_png);
+EMBED("assets/topright.png", top_right_png);
+
+static Ichigo::TextureID one_by_one_tile_tid    = 0;
+static Ichigo::TextureID bottom_left_tile_tid   = 0;
+static Ichigo::TextureID bottom_middle_tile_tid = 0;
+static Ichigo::TextureID bottom_right_tile_tid  = 0;
+static Ichigo::TextureID left_tile_tid          = 0;
+static Ichigo::TextureID middle_tile_tid        = 0;
+static Ichigo::TextureID right_tile_tid         = 0;
+static Ichigo::TextureID top_left_tile_tid      = 0;
+static Ichigo::TextureID top_middle_tile_tid    = 0;
+static Ichigo::TextureID top_right_tile_tid     = 0;
+
 static Ichigo::TextureID player_texture_id  = 0;
 static Ichigo::TextureID enemy_texture_id   = 0;
 static Ichigo::TextureID grass_texture_id   = 0;
@@ -41,7 +64,14 @@ static Ichigo::TileID tiles[TILEMAP_HEIGHT][TILEMAP_WIDTH] = {
     {2, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 3},
 };
 
-static Ichigo::TileInfo tile_info_map[4]{};
+static Ichigo::TileInfo tile_info_map[14]{};
+
+#define ANIMATION_TAG_PLAYER_IDLE 0
+#define ANIMATION_TAG_PLAYER_WALK 1
+#define ANIMATION_TAG_PLAYER_JUMP 2
+static Ichigo::Animation player_idle = {};
+static Ichigo::Animation player_walk = {};
+static Ichigo::Animation player_jump = {};
 
 static Ichigo::Tilemap tilemap = {
     (Ichigo::TileID *) tiles,
@@ -66,6 +96,17 @@ void Ichigo::Game::init() {
     three_tile_texture_id = Ichigo::load_texture(three_tile_png, three_tile_png_len);
     test_music_id         = Ichigo::load_audio(test_song, test_song_len);
 
+    one_by_one_tile_tid    = Ichigo::load_texture(one_by_one_png, one_by_one_png_len);
+    bottom_left_tile_tid   = Ichigo::load_texture(bottom_left_png, bottom_left_png_len);
+    bottom_middle_tile_tid = Ichigo::load_texture(bottom_middle_png, bottom_middle_png_len);
+    bottom_right_tile_tid  = Ichigo::load_texture(bottom_right_png, bottom_right_png_len);
+    left_tile_tid          = Ichigo::load_texture(left_png, left_png_len);
+    middle_tile_tid        = Ichigo::load_texture(middle_png, middle_png_len);
+    right_tile_tid         = Ichigo::load_texture(right_png, right_png_len);
+    top_left_tile_tid      = Ichigo::load_texture(top_left_png, top_left_png_len);
+    top_middle_tile_tid    = Ichigo::load_texture(top_middle_png, top_middle_png_len);
+    top_right_tile_tid     = Ichigo::load_texture(top_right_png, top_right_png_len);
+
     Ichigo::game_state.background_colour = {0.54f, 0.84f, 1.0f, 1.0f};
     Ichigo::game_state.background_layers[0].texture_id     = test_bg_texture_id;
     Ichigo::game_state.background_layers[0].flags          = Ichigo::BG_REPEAT_X;
@@ -88,6 +129,63 @@ void Ichigo::Game::init() {
     tile_info_map[3].friction   = 8.0f;
     SET_FLAG(tile_info_map[3].flags, TileFlag::TANGIBLE);
 
+
+    std::strcpy(tile_info_map[4].name, "gr_1x1");
+    tile_info_map[4].texture_id = one_by_one_tile_tid;
+    tile_info_map[4].friction   = 8.0f;
+    SET_FLAG(tile_info_map[4].flags, TileFlag::TANGIBLE);
+
+
+    std::strcpy(tile_info_map[5].name, "gr_bl");
+    tile_info_map[5].texture_id = bottom_left_tile_tid;
+    tile_info_map[5].friction   = 8.0f;
+    SET_FLAG(tile_info_map[5].flags, TileFlag::TANGIBLE);
+
+
+    std::strcpy(tile_info_map[6].name, "gr_bm");
+    tile_info_map[6].texture_id = bottom_middle_tile_tid;
+    tile_info_map[6].friction   = 8.0f;
+    SET_FLAG(tile_info_map[6].flags, TileFlag::TANGIBLE);
+
+
+    std::strcpy(tile_info_map[7].name, "gr_br");
+    tile_info_map[7].texture_id = bottom_right_tile_tid;
+    tile_info_map[7].friction   = 8.0f;
+    SET_FLAG(tile_info_map[7].flags, TileFlag::TANGIBLE);
+
+
+    std::strcpy(tile_info_map[8].name, "gr_l");
+    tile_info_map[8].texture_id = left_tile_tid;
+    tile_info_map[8].friction   = 8.0f;
+    SET_FLAG(tile_info_map[8].flags, TileFlag::TANGIBLE);
+
+
+    std::strcpy(tile_info_map[9].name, "gr_m");
+    tile_info_map[9].texture_id = middle_tile_tid;
+    tile_info_map[9].friction   = 8.0f;
+    SET_FLAG(tile_info_map[9].flags, TileFlag::TANGIBLE);
+
+
+    std::strcpy(tile_info_map[10].name, "gr_r");
+    tile_info_map[10].texture_id = right_tile_tid;
+    tile_info_map[10].friction   = 8.0f;
+    SET_FLAG(tile_info_map[10].flags, TileFlag::TANGIBLE);
+
+    std::strcpy(tile_info_map[11].name, "gr_tl");
+    tile_info_map[11].texture_id = top_left_tile_tid;
+    tile_info_map[11].friction   = 8.0f;
+    SET_FLAG(tile_info_map[11].flags, TileFlag::TANGIBLE);
+
+    std::strcpy(tile_info_map[12].name, "gr_tm");
+    tile_info_map[12].texture_id = top_middle_tile_tid;
+    tile_info_map[12].friction   = 8.0f;
+    SET_FLAG(tile_info_map[12].flags, TileFlag::TANGIBLE);
+
+    std::strcpy(tile_info_map[13].name, "gr_tr");
+    tile_info_map[13].texture_id = top_right_tile_tid;
+    tile_info_map[13].friction   = 8.0f;
+    SET_FLAG(tile_info_map[13].flags, TileFlag::TANGIBLE);
+
     Ichigo::set_tilemap(&tilemap);
 
     Ichigo::Entity *player = Ichigo::spawn_entity();
@@ -102,12 +200,26 @@ void Ichigo::Game::init() {
     player->update_proc       = Ichigo::EntityControllers::player_controller;
     player->collide_proc      = entity_collide_proc;
 
-    Ichigo::Animation player_idle   = {};
+    player_idle.tag                 = ANIMATION_TAG_PLAYER_IDLE;
     player_idle.cell_of_first_frame = 0;
     player_idle.cell_of_last_frame  = 7;
-    player_idle.current_frame       = 0;
+    player_idle.cell_of_loop_start  = 0;
+    player_idle.cell_of_loop_end    = 7;
     player_idle.seconds_per_frame   = 0.08f;
-    player_idle.elapsed_t           = 0.0f;
+
+    player_walk.tag                 = ANIMATION_TAG_PLAYER_WALK;
+    player_walk.cell_of_first_frame = 10;
+    player_walk.cell_of_last_frame  = 15;
+    player_walk.cell_of_loop_start  = 10;
+    player_walk.cell_of_loop_end    = 15;
+    player_walk.seconds_per_frame   = 0.08f;
+
+    player_jump.tag                 = ANIMATION_TAG_PLAYER_JUMP;
+    player_jump.cell_of_first_frame = 20;
+    player_jump.cell_of_last_frame  = 24;
+    player_jump.cell_of_loop_start  = 21;
+    player_jump.cell_of_loop_end    = 24;
+    player_jump.seconds_per_frame   = 0.08f;
 
     Ichigo::Sprite player_sprite    = {};
     player_sprite.width             = pixels_to_metres(50.0f);
@@ -139,9 +251,9 @@ void Ichigo::Game::init() {
     Ichigo::Animation gert_idle = {};
     gert_idle.cell_of_first_frame = 0;
     gert_idle.cell_of_last_frame  = 0;
-    gert_idle.current_frame       = 0;
+    gert_idle.cell_of_loop_start  = 0;
+    gert_idle.cell_of_loop_end    = 0;
     gert_idle.seconds_per_frame   = 0.0f;
-    gert_idle.elapsed_t           = 0.0f;
 
     Ichigo::Sprite gert_sprite;
     gert_sprite.width             = 1.0f;
@@ -186,6 +298,40 @@ void Ichigo::Game::update_and_render() {
         test_draw_command2.string_pos        = gert->col.pos;
         test_draw_command2.text_style        = style;
         Ichigo::push_draw_command(test_draw_command2);
+    }
+
+    Ichigo::Entity *player = Ichigo::get_entity(Ichigo::game_state.player_entity_id);
+    static u32 player_state = 0;
+    if (player) {
+        switch (player_state) {
+            case 0: { // idle
+                if      (!FLAG_IS_SET(player->flags, EF_ON_GROUND)) player_state = 2;
+                else if (player->velocity.x != 0.0f)                player_state = 1;
+            } break;
+
+            case 1: { // walking
+                if      (!FLAG_IS_SET(player->flags, EF_ON_GROUND)) player_state = 2;
+                else if (player->velocity.x == 0.0f)                player_state = 0;
+            } break;
+
+            case 2: { // in air
+                if      (FLAG_IS_SET(player->flags, EF_ON_GROUND) && player->velocity.x == 0.0f) player_state = 0;
+                else if (FLAG_IS_SET(player->flags, EF_ON_GROUND) && player->velocity.x != 0.0f) player_state = 1;
+            } break;
+        }
+        if (player_state == 1 && player->sprite.animation.tag != ANIMATION_TAG_PLAYER_WALK) {
+            player->sprite.animation                    = player_walk;
+            player->sprite.current_animation_frame      = 0;
+            player->sprite.elapsed_animation_frame_time = 0.0f;
+        } else if (player_state == 2 && player->sprite.animation.tag != ANIMATION_TAG_PLAYER_JUMP) {
+            player->sprite.animation                    = player_jump;
+            player->sprite.current_animation_frame      = 0;
+            player->sprite.elapsed_animation_frame_time = 0.0f;
+        } else if (player_state == 0 && player->sprite.animation.tag != ANIMATION_TAG_PLAYER_IDLE) {
+            player->sprite.animation                    = player_idle;
+            player->sprite.current_animation_frame      = 0;
+            player->sprite.elapsed_animation_frame_time = 0.0f;
+        }
     }
 
     const char *ichiaji = "Ichigo no Aji! いちごのあじ！ イチゴノアジ！ 苺の味！ Ｉｃｈｉｇｏ ｎｏ Ａｊｉ！";

@@ -414,7 +414,7 @@ void default_entity_render_proc(Ichigo::Entity *entity) {
     Ichigo::Internal::gl.glBindVertexArray(draw_data_textured.vertex_array_id);
     Ichigo::Internal::gl.glBindTexture(GL_TEXTURE_2D, texture.id);
 
-    u32 current_cell  = entity->sprite.animation.cell_of_first_frame + entity->sprite.animation.current_frame;
+    u32 current_cell  = entity->sprite.animation.cell_of_first_frame + entity->sprite.current_animation_frame;
     u32 cells_per_row = texture.width / entity->sprite.sheet.cell_width;
     u32 row_of_cell   = current_cell  / cells_per_row;
     u32 col_of_cell   = current_cell  % cells_per_row;
@@ -432,14 +432,19 @@ void default_entity_render_proc(Ichigo::Entity *entity) {
         u1       = temp;
     }
 
-    entity->sprite.animation.elapsed_t += Ichigo::Internal::dt;
-    if (entity->sprite.animation.elapsed_t >= entity->sprite.animation.seconds_per_frame) {
-        entity->sprite.animation.elapsed_t = 0.0f;
+    Ichigo::Animation &anim = entity->sprite.animation;
+    entity->sprite.elapsed_animation_frame_time += Ichigo::Internal::dt;
+    if (entity->sprite.elapsed_animation_frame_time >= anim.seconds_per_frame) {
+        entity->sprite.elapsed_animation_frame_time = 0.0f;
 
-        if (entity->sprite.animation.current_frame + 1 > entity->sprite.animation.cell_of_last_frame - entity->sprite.animation.cell_of_first_frame) {
-            entity->sprite.animation.current_frame = 0;
+        u32 loop_duration = anim.cell_of_loop_end - anim.cell_of_loop_start;
+        u32 anim_duration = FLAG_IS_SET(entity->flags, Ichigo::EF_ANIM_LOOPING) ? loop_duration : anim.cell_of_last_frame - anim.cell_of_first_frame;
+
+        if (entity->sprite.current_animation_frame + 1 > anim_duration) {
+            entity->sprite.current_animation_frame = anim.cell_of_loop_start - anim.cell_of_first_frame;
+            SET_FLAG(entity->flags, Ichigo::EF_ANIM_LOOPING);
         } else {
-            ++entity->sprite.animation.current_frame;
+            ++entity->sprite.current_animation_frame;
         }
     }
 
