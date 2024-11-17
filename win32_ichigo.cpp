@@ -800,6 +800,7 @@ i32 main() {
         for (u32 i = 0; i < Ichigo::IK_ENUM_COUNT; ++i) {
             Ichigo::Internal::keyboard_state[i].down_this_frame = false;
             Ichigo::Internal::keyboard_state[i].up_this_frame   = false;
+            Ichigo::Internal::keyboard_state[i].up              = !Ichigo::Internal::keyboard_state[i].down;
         }
 
 #define RESET_MOUSE_BTN_STATE(BTN)                               \

@@ -327,7 +327,7 @@ void Ichigo::Editor::render_ui() {
                 ImGui::Text("Name: %s",          tile_info.name);
                 ImGui::Text("Friction: %f",      tile_info.friction);
                 ImGui::Text("FLAG Tangible: %d", FLAG_IS_SET(tile_info.flags, TileFlag::TANGIBLE));
-                ImGui::Text("Cell in sheet: %u", tile_info.cell);
+                ImGui::Text("Cell in sheet: %d", tile_info.cell);
                 ImGui::Text("Tile ID: %u",       tile);
             }
         } else {

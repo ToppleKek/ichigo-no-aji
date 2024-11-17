@@ -538,9 +538,10 @@ Ichigo::TileID Ichigo::tile_at(Vec2<u32> tile_coord) {
     return Internal::current_tilemap.tiles[tile_coord.y * Internal::current_tilemap.width + tile_coord.x];
 }
 
-static void render_tile(Vec2<u32> tile_pos) {
+static void build_tile_draw_data(Vec2<u32> tile_pos, Util::BufferBuilder<TexturedVertex> &vertices, Util::BufferBuilder<u32> &indices) {
     Ichigo::TileID tile = Ichigo::tile_at(tile_pos);
 
+    // TODO: This is still done per-tile. But this codepath will only ever get lit up in the level editor. So, who cares, right?
     if (tile == INVALID_TILE) {
         world_render_textured_rect({{(f32) tile_pos.x, (f32) tile_pos.y}, 1.0f, 1.0f}, invalid_tile_texture_id);
         return;
@@ -565,33 +566,22 @@ static void render_tile(Vec2<u32> tile_pos) {
     f32 u1 = u0 + ((f32) Ichigo::Internal::current_tilemap.sheet.cell_width  / (f32) texture.width);
     f32 v1 = v0 - ((f32) Ichigo::Internal::current_tilemap.sheet.cell_height / (f32) texture.height);
 
+    u32 in[] = {
+        (u32) vertices.size,     (u32) vertices.size + 1, (u32) vertices.size + 2,
+        (u32) vertices.size + 1, (u32) vertices.size + 2, (u32) vertices.size + 3
+    };
+
+    indices.append(in, ARRAY_LEN(in));
 
     Vec2<f32> draw_pos = { (f32) tile_pos.x, (f32) tile_pos.y };
-    TexturedVertex vertices[] = {
+    TexturedVertex vtx[] = {
         {{draw_pos.x, draw_pos.y, 0.0f},         {u0, v0}},  // top left
         {{draw_pos.x + 1, draw_pos.y, 0.0f},     {u1, v0}}, // top right
         {{draw_pos.x, draw_pos.y + 1, 0.0f},     {u0, v1}}, // bottom left
         {{draw_pos.x + 1, draw_pos.y + 1, 0.0f}, {u1, v1}}, // bottom right
     };
 
-    Ichigo::Internal::gl.glUseProgram(texture_shader_program);
-    Ichigo::Internal::gl.glBindTexture(GL_TEXTURE_2D, texture.id);
-
-    Ichigo::Internal::gl.glBindBuffer(GL_ARRAY_BUFFER, draw_data_textured.vertex_buffer_id);
-    Ichigo::Internal::gl.glBindVertexArray(draw_data_textured.vertex_array_id);
-
-    Ichigo::Internal::gl.glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-    Ichigo::Internal::gl.glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(rectangle_indices), rectangle_indices, GL_STATIC_DRAW);
-
-    i32 texture_uniform = Ichigo::Internal::gl.glGetUniformLocation(texture_shader_program, "entity_texture");
-    i32 object_uniform  = Ichigo::Internal::gl.glGetUniformLocation(texture_shader_program, "object_transform");
-    i32 tint_uniform    = Ichigo::Internal::gl.glGetUniformLocation(texture_shader_program, "colour_tint");
-
-    Ichigo::Internal::gl.glUniform4f(tint_uniform, 1.0f, 1.0f, 1.0f, 1.0f);
-    Ichigo::Internal::gl.glUniform1i(texture_uniform, 0);
-    Ichigo::Internal::gl.glUniformMatrix4fv(object_uniform, 1, GL_TRUE, (GLfloat *) &identity_mat4);
-
-    Ichigo::Internal::gl.glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+    vertices.append(vtx, ARRAY_LEN(vtx));
 }
 
 void Ichigo::push_draw_command(DrawCommand draw_command) {
@@ -686,10 +676,10 @@ static void frame_render() {
     camera_uniform = Ichigo::Internal::gl.glGetUniformLocation(solid_colour_shader_program, "camera_transform");
     Ichigo::Internal::gl.glUniformMatrix4fv(camera_uniform, 1, GL_TRUE, (GLfloat *) &Ichigo::Camera::transform);
 
+    // == Background ==
     // Background colour
     screen_render_solid_colour_rect({{0.0f, 0.0f}, 1.0f, 1.0f}, Ichigo::game_state.background_colour);
 
-    // Background
     for (u32 i = 0; i < ICHIGO_MAX_BACKGROUNDS; ++i) {
         if (Ichigo::game_state.background_layers[i].texture_id != 0) {
             Ichigo::Background &bg = Ichigo::game_state.background_layers[i];
@@ -726,13 +716,51 @@ static void frame_render() {
             }
         }
     }
+    // == End background ==
+
+    // == Tilemap ==
+    i64 row_count = ((i64) Ichigo::Camera::offset.y + SCREEN_TILE_HEIGHT + 1) - (i64) Ichigo::Camera::offset.y;
+    i64 col_count = ((i64) Ichigo::Camera::offset.x + SCREEN_TILE_WIDTH + 1) - (i64) Ichigo::Camera::offset.x;
+
+    TexturedVertex *vertex_buffer = PUSH_ARRAY(Ichigo::game_state.transient_storage_arena, TexturedVertex, (row_count * col_count) * 4);
+    u32            *index_buffer  = PUSH_ARRAY(Ichigo::game_state.transient_storage_arena, u32, (row_count * col_count) * 6);
+
+    u32 *overrun_flag = PUSH_ARRAY(Ichigo::game_state.transient_storage_arena, u32, 1);
+    *overrun_flag = 0;
+    Util::BufferBuilder<TexturedVertex> vertices(vertex_buffer, MAX_TEXT_STRING_LENGTH * 4);
+    Util::BufferBuilder<u32>            indices(index_buffer, MAX_TEXT_STRING_LENGTH * 6);
 
     for (i64 row = (i64) Ichigo::Camera::offset.y; row < (i64) Ichigo::Camera::offset.y + SCREEN_TILE_HEIGHT + 1; ++row) {
-        for (i64 col = (i64) Ichigo::Camera::offset.x; col < Ichigo::Camera::offset.x + SCREEN_TILE_WIDTH + 1; ++col) {
-            render_tile({(u32) clamp(col, (i64) 0, (i64) UINT32_MAX), (u32) clamp(row, (i64) 0, (i64) UINT32_MAX)});
+        for (i64 col = (i64) Ichigo::Camera::offset.x; col < (i64) Ichigo::Camera::offset.x + SCREEN_TILE_WIDTH + 1; ++col) {
+            build_tile_draw_data({(u32) clamp(col, (i64) 0, (i64) UINT32_MAX), (u32) clamp(row, (i64) 0, (i64) UINT32_MAX)}, vertices, indices);
         }
     }
 
+    if (*overrun_flag) {
+        __builtin_debugtrap();
+    }
+
+    Ichigo::Internal::gl.glUseProgram(texture_shader_program);
+    Ichigo::Internal::gl.glBindTexture(GL_TEXTURE_2D, Ichigo::Internal::textures.at(Ichigo::Internal::current_tilemap.sheet.texture).id);
+
+    Ichigo::Internal::gl.glBindBuffer(GL_ARRAY_BUFFER, draw_data_textured.vertex_buffer_id);
+    Ichigo::Internal::gl.glBindVertexArray(draw_data_textured.vertex_array_id);
+
+    Ichigo::Internal::gl.glBufferData(GL_ARRAY_BUFFER, vertices.size * sizeof(TexturedVertex), vertices.data, GL_STATIC_DRAW);
+    Ichigo::Internal::gl.glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size * sizeof(u32), indices.data, GL_STATIC_DRAW);
+
+    i32 texture_uniform = Ichigo::Internal::gl.glGetUniformLocation(texture_shader_program, "entity_texture");
+    i32 object_uniform  = Ichigo::Internal::gl.glGetUniformLocation(texture_shader_program, "object_transform");
+    i32 tint_uniform    = Ichigo::Internal::gl.glGetUniformLocation(texture_shader_program, "colour_tint");
+
+    Ichigo::Internal::gl.glUniform4f(tint_uniform, 1.0f, 1.0f, 1.0f, 1.0f);
+    Ichigo::Internal::gl.glUniform1i(texture_uniform, 0);
+    Ichigo::Internal::gl.glUniformMatrix4fv(object_uniform, 1, GL_TRUE, (GLfloat *) &identity_mat4);
+
+    Ichigo::Internal::gl.glDrawElements(GL_TRIANGLES, indices.size, GL_UNSIGNED_INT, 0);
+    // == End tilemap ==
+
+    // == Editor out-of-bounds boxes ==
     if (Ichigo::Camera::offset.x < 0.0f) {
         world_render_solid_colour_rect(
             {
@@ -752,7 +780,9 @@ static void frame_render() {
             {0.0f, 0.0f, 0.0f, 0.5f}
         );
     }
+    // == End editor out-of-bounds boxes ==
 
+    // == Entities ==
     for (u32 i = 1; i < Ichigo::Internal::entities.size; ++i) {
         Ichigo::Entity &entity = Ichigo::Internal::entities.at(i);
         if (entity.render_proc)
@@ -760,6 +790,7 @@ static void frame_render() {
         else
             default_entity_render_proc(&entity);
     }
+    // == End entities ==
 
     // TODO: Render order? The player is now a part of the entity list. We could also skip rendering the player in the loop and render afterwards
     //       but maybe we want a more robust layering system?
@@ -770,6 +801,7 @@ static void frame_render() {
     // else
     //     default_entity_render_proc(&Ichigo::game_state.player_entity);
 
+    // == Draw commands ==
     // TODO: This is technically a "stack" I guess. Should we do this in stack order?
     for (u32 i = 0; i < Ichigo::game_state.this_frame_data.draw_command_count; ++i) {
         Ichigo::DrawCommand &cmd = Ichigo::game_state.this_frame_data.draw_commands[i];
@@ -788,6 +820,7 @@ static void frame_render() {
             }
         }
     }
+    // == End draw commands ==
 
     draw_info_log();
 

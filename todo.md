@@ -68,10 +68,13 @@
 - - - ~~Add `cell_of_loop_end`~~
 - ~~Tilemap editor saving to a file~~
 - ~~Tiles use spritesheet~~
-- Adding new tiles to tileset editor
+- ~~Adding new tiles to tileset editor~~
+- ~~Render all tiles in one draw call~~
+- Perfect pixel graphics (Casey lecture)
 - Increase tile name length
 - Tileset editor UI revamp
 - Particle system
+- Look into weird texture shifting on player sprite in specific x positions (float error?)
 
 ## Wishlist
 - Fixed number of timesteps? (fixed ~200hz physics?)

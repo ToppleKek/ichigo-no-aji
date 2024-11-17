@@ -1,9 +1,6 @@
 #include "../ichigo.hpp"
 
 EMBED("assets/test3.png", test_png_image)
-EMBED("assets/grass.png", grass_tile_png)
-EMBED("assets/other_tile.png", other_tile_png)
-EMBED("assets/three_tile.png", three_tile_png)
 EMBED("assets/enemy.png", enemy_png)
 EMBED("assets/bg.png", test_bg)
 EMBED("assets/music/song.mp3", test_song)
@@ -23,8 +20,6 @@ static Ichigo::TextureID three_tile_texture_id   = 0;
 static Ichigo::TextureID test_bg_texture_id = 0;
 static Ichigo::AudioID   test_music_id      = 0;
 
-static Ichigo::TileInfo tile_info_map[14]{};
-
 #define ANIMATION_TAG_PLAYER_IDLE 0
 #define ANIMATION_TAG_PLAYER_WALK 1
 #define ANIMATION_TAG_PLAYER_JUMP 2
@@ -42,9 +37,6 @@ void Ichigo::Game::init() {
     test_bg_texture_id    = Ichigo::load_texture(test_bg, test_bg_len);
     player_texture_id     = Ichigo::load_texture(test_png_image, test_png_image_len);
     enemy_texture_id      = Ichigo::load_texture(enemy_png, enemy_png_len);
-    grass_texture_id      = Ichigo::load_texture(grass_tile_png, grass_tile_png_len);
-    other_tile_texture_id = Ichigo::load_texture(other_tile_png, other_tile_png_len);
-    three_tile_texture_id = Ichigo::load_texture(three_tile_png, three_tile_png_len);
     test_music_id         = Ichigo::load_audio(test_song, test_song_len);
 
     tileset_texture       = Ichigo::load_texture(tileset_png, tileset_png_len);
