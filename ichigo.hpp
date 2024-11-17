@@ -253,7 +253,7 @@ struct GameState {
 extern GameState game_state;
 
 void set_tilemap(Tilemap *tilemap);
-void set_tilemap(u8 *ichigo_tilemap_memory, TileInfo *tile_info, u32 tile_info_count, SpriteSheet tileset_sheet);
+void set_tilemap(u8 *ichigo_tilemap_memory, SpriteSheet tileset_sheet);
 u16 tile_at(Vec2<u32> tile_coord);
 void push_draw_command(DrawCommand draw_command);
 void show_info(const char *str, u32 length);

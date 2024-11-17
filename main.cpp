@@ -482,12 +482,19 @@ void Ichigo::set_tilemap(Tilemap *tilemap) {
     std::memcpy(Internal::current_tilemap.tile_info, tilemap->tile_info, tilemap->tile_info_count * sizeof(TileInfo));
 }
 
-void Ichigo::set_tilemap(u8 *ichigo_tilemap_memory, TileInfo *tile_info, u32 tile_info_count, Ichigo::SpriteSheet tileset_sheet) {
+
+void Ichigo::set_tilemap(u8 *ichigo_tilemap_memory, Ichigo::SpriteSheet tileset_sheet) {
     Tilemap tilemap;
     usize cursor = 0;
     // Version number
-    assert((u16) ichigo_tilemap_memory[cursor] == 1);
+    assert((u16) ichigo_tilemap_memory[cursor] == 2);
     cursor += sizeof(u16);
+
+    tilemap.tile_info_count = (u32) ichigo_tilemap_memory[cursor];
+    cursor += sizeof(u32);
+
+    tilemap.tile_info = (TileInfo *) &ichigo_tilemap_memory[cursor];
+    cursor += sizeof(TileInfo) * tilemap.tile_info_count;
 
     tilemap.width = (u32) ichigo_tilemap_memory[cursor];
     cursor += sizeof(u32);
@@ -496,12 +503,32 @@ void Ichigo::set_tilemap(u8 *ichigo_tilemap_memory, TileInfo *tile_info, u32 til
     cursor += sizeof(u32);
 
     tilemap.tiles           = (TileID *) &ichigo_tilemap_memory[cursor];
-    tilemap.tile_info       = tile_info;
-    tilemap.tile_info_count = tile_info_count;
     tilemap.sheet           = tileset_sheet;
 
     set_tilemap(&tilemap);
 }
+
+
+// void Ichigo::set_tilemap(u8 *ichigo_tilemap_memory, TileInfo *tile_info, u32 tile_info_count, Ichigo::SpriteSheet tileset_sheet) {
+//     Tilemap tilemap;
+//     usize cursor = 0;
+//     // Version number
+//     assert((u16) ichigo_tilemap_memory[cursor] == 1);
+//     cursor += sizeof(u16);
+
+//     tilemap.width = (u32) ichigo_tilemap_memory[cursor];
+//     cursor += sizeof(u32);
+
+//     tilemap.height = (u32) ichigo_tilemap_memory[cursor];
+//     cursor += sizeof(u32);
+
+//     tilemap.tiles           = (TileID *) &ichigo_tilemap_memory[cursor];
+//     tilemap.tile_info       = tile_info;
+//     tilemap.tile_info_count = tile_info_count;
+//     tilemap.sheet           = tileset_sheet;
+
+//     set_tilemap(&tilemap);
+// }
 
 #define INVALID_TILE UINT16_MAX
 Ichigo::TileID Ichigo::tile_at(Vec2<u32> tile_coord) {

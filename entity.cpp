@@ -179,17 +179,17 @@ void Ichigo::move_entity_in_world(Ichigo::Entity *entity) {
         entity_delta = entity_delta - 1 * dot(entity_delta, wall_normal) * wall_normal;
         t_remaining -= best_t * t_remaining;
 
-        for (u32 tile_y = min_tile_y; tile_y <= max_tile_y; ++tile_y) {
-            for (u32 tile_x = min_tile_x; tile_x <= max_tile_x; ++tile_x) {
-                if (tile_at({tile_x, tile_y}) != 0 && rectangles_intersect({{(f32) tile_x, (f32) tile_y}, 1.0f, 1.0f}, entity->col)) {
-                    ICHIGO_ERROR(
-                        "Collision fail at tile %d,%d! potential_next_col=%f,%f wall_normal=%f,%f entity %s position now=%f,%f",
-                        tile_x, tile_y, potential_next_col.pos.x, potential_next_col.pos.y, wall_normal.x, wall_normal.y, Internal::entity_id_as_string(entity->id), entity->col.pos.x, entity->col.pos.y
-                    );
-                    __builtin_debugtrap();
-                }
-            }
-        }
+        // for (u32 tile_y = min_tile_y; tile_y <= max_tile_y; ++tile_y) {
+        //     for (u32 tile_x = min_tile_x; tile_x <= max_tile_x; ++tile_x) {
+        //         if (tile_at({tile_x, tile_y}) != 0 && rectangles_intersect({{(f32) tile_x, (f32) tile_y}, 1.0f, 1.0f}, entity->col)) {
+        //             ICHIGO_ERROR(
+        //                 "Collision fail at tile %d,%d! potential_next_col=%f,%f wall_normal=%f,%f entity %s position now=%f,%f",
+        //                 tile_x, tile_y, potential_next_col.pos.x, potential_next_col.pos.y, wall_normal.x, wall_normal.y, Internal::entity_id_as_string(entity->id), entity->col.pos.x, entity->col.pos.y
+        //             );
+        //             __builtin_debugtrap();
+        //         }
+        //     }
+        // }
 
         // if (entity->velocity.x == 0.0f && entity->velocity.y == 0.0f) {
         //     ICHIGO_INFO("EARLY OUT");

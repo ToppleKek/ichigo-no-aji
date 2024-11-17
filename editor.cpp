@@ -76,13 +76,15 @@ private:
 
 static UndoStack undo_stack(512);
 static bool wants_to_save = false;
+static bool tileset_editor_is_open = false;
 static Ichigo::TileID tiles_working_copy[ICHIGO_MAX_TILEMAP_SIZE] = {};
+static Ichigo::TileInfo tile_info_working_copy[ICHIGO_MAX_UNIQUE_TILES] = {};
 static Ichigo::Tilemap saved_tilemap;
 static Ichigo::Tilemap tilemap_working_copy = {
     tiles_working_copy,
     0,
     0,
-    nullptr,
+    tile_info_working_copy,
     0,
     {}
 };
@@ -94,9 +96,13 @@ static Ichigo::TileID selected_brush_tile = 0;
 static void save_tilemap(const char *path) {
     Ichigo::Internal::PlatformFile *file = Ichigo::Internal::platform_open_file_write(path);
 
-    u16 tilemap_format_version_number = 1;
+    u16 tilemap_format_version_number = 2;
 
     Ichigo::Internal::platform_append_file_sync(file, (u8 *) &tilemap_format_version_number, sizeof(tilemap_format_version_number));
+
+    Ichigo::Internal::platform_append_file_sync(file, (u8 *) &tilemap_working_copy.tile_info_count, sizeof(tilemap_working_copy.tile_info_count));
+    Ichigo::Internal::platform_append_file_sync(file, (u8 *) tilemap_working_copy.tile_info, sizeof(Ichigo::TileInfo) * tilemap_working_copy.tile_info_count);
+
     Ichigo::Internal::platform_append_file_sync(file, (u8 *) &tilemap_working_copy.width,    sizeof(tilemap_working_copy.width));
     Ichigo::Internal::platform_append_file_sync(file, (u8 *) &tilemap_working_copy.height,   sizeof(tilemap_working_copy.height));
     Ichigo::Internal::platform_append_file_sync(file, (u8 *) tilemap_working_copy.tiles,     sizeof(Ichigo::TileID) * tilemap_working_copy.width * tilemap_working_copy.height);
@@ -167,8 +173,9 @@ static void rebuild_tilemap() {
     Ichigo::Internal::current_tilemap.height = saved_tilemap.height;
     tilemap_working_copy.width               = saved_tilemap.width;
     tilemap_working_copy.height              = saved_tilemap.height;
-    tilemap_working_copy.tile_info           = saved_tilemap.tile_info;
-    tilemap_working_copy.tile_info_count     = saved_tilemap.tile_info_count;
+    // TODO: Undo/redo in the tileset editor
+    // tilemap_working_copy.tile_info           = saved_tilemap.tile_info;
+    // tilemap_working_copy.tile_info_count     = saved_tilemap.tile_info_count;
     std::memcpy(tilemap_working_copy.tiles, saved_tilemap.tiles, saved_tilemap.width * saved_tilemap.height * sizeof(Ichigo::TileID));
 
     for (u64 i = 0; i < undo_stack.top; ++i) {
@@ -224,6 +231,10 @@ void Ichigo::Editor::render_ui() {
             } else {
                 resize_tilemap(new_tilemap_width, new_tilemap_height);
             }
+        }
+
+        if (ImGui::Button("Open tileset editor")) {
+            tileset_editor_is_open = true;
         }
     }
 
@@ -327,6 +338,48 @@ void Ichigo::Editor::render_ui() {
     }
 
     ImGui::End();
+
+    if (tileset_editor_is_open) {
+        static TileID tile_being_edited = 0;
+
+        ImGui::Begin("Tileset", nullptr);
+        if (ImGui::BeginCombo("Select tile", tilemap_working_copy.tile_info[tile_being_edited].name)) {
+            for (u32 i = 0; i < tilemap_working_copy.tile_info_count; ++i) {
+                if (i == tile_being_edited) {
+                    ImGui::SetItemDefaultFocus();
+                }
+
+                if (ImGui::Selectable(tilemap_working_copy.tile_info[i].name, i == tile_being_edited)) {
+                    tile_being_edited = i;
+                }
+            }
+
+            ImGui::EndCombo();
+        }
+
+        TileInfo &current_tile_info = tilemap_working_copy.tile_info[tile_being_edited];
+
+        i32 i32_one = 1;
+        f32 f32_one = 1.0f;
+
+        // FLAGS
+        bool tangible = FLAG_IS_SET(current_tile_info.flags, TileFlag::TANGIBLE);
+
+        ImGui::InputText("Name", current_tile_info.name, ARRAY_LEN(current_tile_info.name));
+        ImGui::InputScalar("Friction", ImGuiDataType_Float, &current_tile_info.friction, &f32_one, nullptr, "%f");
+        ImGui::Checkbox("FLAG Tangible", &tangible);
+        ImGui::InputScalar("Cell in sheet", ImGuiDataType_S32, &current_tile_info.cell, &i32_one, nullptr, "%d");
+        ImGui::Text("Tile ID: %u", tile_being_edited);
+
+        if (!tangible) CLEAR_FLAG(current_tile_info.flags, TileFlag::TANGIBLE);
+        else           SET_FLAG(current_tile_info.flags, TileFlag::TANGIBLE);
+
+        if (ImGui::Button("Close")) {
+            tileset_editor_is_open = false;
+        }
+
+        ImGui::End();
+    }
 }
 
 static Util::Optional<Vec2<f32>> screen_space_to_camera_space(Vec2<i32> screen_space_coord) {
@@ -478,12 +531,14 @@ void Ichigo::Editor::before_open() {
 
     tilemap_working_copy.width           = Internal::current_tilemap.width;
     tilemap_working_copy.height          = Internal::current_tilemap.height;
-    tilemap_working_copy.tile_info       = Internal::current_tilemap.tile_info;
     tilemap_working_copy.tile_info_count = Internal::current_tilemap.tile_info_count;
+
+    std::memcpy(tilemap_working_copy.tile_info, Internal::current_tilemap.tile_info, Internal::current_tilemap.tile_info_count * sizeof(TileInfo));
     std::memcpy(tilemap_working_copy.tiles, Internal::current_tilemap.tiles, Internal::current_tilemap.width * Internal::current_tilemap.height * sizeof(TileID));
 
     // TODO: This is kind of a hack. We do this so that the renderer shows the modified tilemap while we are editing it.
-    Internal::current_tilemap.tiles = tilemap_working_copy.tiles;
+    Internal::current_tilemap.tiles     = tilemap_working_copy.tiles;
+    Internal::current_tilemap.tile_info = tilemap_working_copy.tile_info;
 }
 
 void Ichigo::Editor::before_close() {
@@ -492,6 +547,8 @@ void Ichigo::Editor::before_close() {
     Internal::current_tilemap.tile_info       = tilemap_working_copy.tile_info;
     Internal::current_tilemap.tile_info_count = tilemap_working_copy.tile_info_count;
 
-    Internal::current_tilemap.tiles = saved_tilemap.tiles;
+    Internal::current_tilemap.tiles     = saved_tilemap.tiles;
+    Internal::current_tilemap.tile_info = saved_tilemap.tile_info;
+    std::memcpy(Internal::current_tilemap.tile_info, tilemap_working_copy.tile_info, tilemap_working_copy.tile_info_count * sizeof(TileInfo));
     std::memcpy(Internal::current_tilemap.tiles, tilemap_working_copy.tiles, tilemap_working_copy.width * tilemap_working_copy.height * sizeof(TileID));
 }
