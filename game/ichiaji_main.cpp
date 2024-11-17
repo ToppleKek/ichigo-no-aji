@@ -1,6 +1,7 @@
 #include "../ichigo.hpp"
 
-EMBED("assets/test3.png", test_png_image)
+// EMBED("assets/test3.png", test_png_image)
+EMBED("assets/irisu.png", irisu_spritesheet_png)
 EMBED("assets/enemy.png", enemy_png)
 EMBED("assets/bg.png", test_bg)
 EMBED("assets/music/song.mp3", test_song)
@@ -23,9 +24,11 @@ static Ichigo::AudioID   test_music_id      = 0;
 #define ANIMATION_TAG_PLAYER_IDLE 0
 #define ANIMATION_TAG_PLAYER_WALK 1
 #define ANIMATION_TAG_PLAYER_JUMP 2
+#define ANIMATION_TAG_PLAYER_FALL 3
 static Ichigo::Animation player_idle = {};
 static Ichigo::Animation player_walk = {};
 static Ichigo::Animation player_jump = {};
+static Ichigo::Animation player_fall = {};
 
 static void entity_collide_proc(Ichigo::Entity *entity, Ichigo::Entity *other_entity) {
     ICHIGO_INFO("I (%s) just collided with %s!", entity->name, other_entity->name);
@@ -35,7 +38,7 @@ static Ichigo::EntityID gert_id;
 
 void Ichigo::Game::init() {
     test_bg_texture_id    = Ichigo::load_texture(test_bg, test_bg_len);
-    player_texture_id     = Ichigo::load_texture(test_png_image, test_png_image_len);
+    player_texture_id     = Ichigo::load_texture(irisu_spritesheet_png, irisu_spritesheet_png_len);
     enemy_texture_id      = Ichigo::load_texture(enemy_png, enemy_png_len);
     test_music_id         = Ichigo::load_audio(test_song, test_song_len);
 
@@ -57,7 +60,7 @@ void Ichigo::Game::init() {
     Ichigo::Entity *player = Ichigo::spawn_entity();
 
     std::strcpy(player->name, "player");
-    player->col               = {{3.0f, 2.0f}, 0.5f, 1.0f};
+    player->col               = {{3.0f, 2.0f}, 0.3f, 1.1f};
     player->max_velocity      = {8.0f, 12.0f};
     player->movement_speed    = 22.0f;
     player->jump_acceleration = 128.0f;
@@ -75,9 +78,9 @@ void Ichigo::Game::init() {
 
     player_walk.tag                 = ANIMATION_TAG_PLAYER_WALK;
     player_walk.cell_of_first_frame = 10;
-    player_walk.cell_of_last_frame  = 15;
+    player_walk.cell_of_last_frame  = 14;
     player_walk.cell_of_loop_start  = 10;
-    player_walk.cell_of_loop_end    = 15;
+    player_walk.cell_of_loop_end    = 14;
     player_walk.seconds_per_frame   = 0.08f;
 
     player_jump.tag                 = ANIMATION_TAG_PLAYER_JUMP;
@@ -87,13 +90,20 @@ void Ichigo::Game::init() {
     player_jump.cell_of_loop_end    = 23;
     player_jump.seconds_per_frame   = 0.08f;
 
+    player_fall.tag                 = ANIMATION_TAG_PLAYER_FALL;
+    player_fall.cell_of_first_frame = 30;
+    player_fall.cell_of_last_frame  = 33;
+    player_fall.cell_of_loop_start  = 31;
+    player_fall.cell_of_loop_end    = 33;
+    player_fall.seconds_per_frame   = 0.08f;
+
     Ichigo::Sprite player_sprite    = {};
-    player_sprite.width             = pixels_to_metres(50.0f);
-    player_sprite.height            = pixels_to_metres(50.0f);
+    player_sprite.width             = pixels_to_metres(40.0f);
+    player_sprite.height            = pixels_to_metres(40.0f);
     player_sprite.pos_offset        = Util::calculate_centered_pos_offset(player->col, player_sprite.width, player_sprite.height);
     player_sprite.sheet.texture     = player_texture_id;
-    player_sprite.sheet.cell_width  = 50;
-    player_sprite.sheet.cell_height = 50;
+    player_sprite.sheet.cell_width  = 40;
+    player_sprite.sheet.cell_height = 40;
     player_sprite.animation         = player_idle;
 
     player->sprite = player_sprite;
@@ -180,7 +190,13 @@ void Ichigo::Game::update_and_render() {
                 else if (player->velocity.x == 0.0f)                player_state = 0;
             } break;
 
-            case 2: { // in air
+            case 2: { // jumping
+                if      ( FLAG_IS_SET(player->flags, EF_ON_GROUND) && player->velocity.x == 0.0f) player_state = 0;
+                else if ( FLAG_IS_SET(player->flags, EF_ON_GROUND) && player->velocity.x != 0.0f) player_state = 1;
+                else if (!FLAG_IS_SET(player->flags, EF_ON_GROUND) && player->velocity.y > 0.0f)  player_state = 3;
+            } break;
+
+            case 3: { // falling
                 if      (FLAG_IS_SET(player->flags, EF_ON_GROUND) && player->velocity.x == 0.0f) player_state = 0;
                 else if (FLAG_IS_SET(player->flags, EF_ON_GROUND) && player->velocity.x != 0.0f) player_state = 1;
             } break;
@@ -195,6 +211,10 @@ void Ichigo::Game::update_and_render() {
             player->sprite.elapsed_animation_frame_time = 0.0f;
         } else if (player_state == 0 && player->sprite.animation.tag != ANIMATION_TAG_PLAYER_IDLE) {
             player->sprite.animation                    = player_idle;
+            player->sprite.current_animation_frame      = 0;
+            player->sprite.elapsed_animation_frame_time = 0.0f;
+        } else if (player_state == 3 && player->sprite.animation.tag != ANIMATION_TAG_PLAYER_FALL) {
+            player->sprite.animation                    = player_fall;
             player->sprite.current_animation_frame      = 0;
             player->sprite.elapsed_animation_frame_time = 0.0f;
         }

@@ -71,10 +71,15 @@
 - ~~Adding new tiles to tileset editor~~
 - ~~Render all tiles in one draw call~~
 - Perfect pixel graphics (Casey lecture)
+- Look into weird texture shifting on player sprite in specific x positions (float error?)
 - Increase tile name length
 - Tileset editor UI revamp
 - Particle system
-- Look into weird texture shifting on player sprite in specific x positions (float error?)
+- Level format (include entities?)
+- More level editor features
+- - Pick tile
+- - Move selection
+- - Duplicate selection
 
 ## Wishlist
 - Fixed number of timesteps? (fixed ~200hz physics?)
