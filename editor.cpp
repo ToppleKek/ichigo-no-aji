@@ -374,6 +374,15 @@ void Ichigo::Editor::render_ui() {
         if (!tangible) CLEAR_FLAG(current_tile_info.flags, TileFlag::TANGIBLE);
         else           SET_FLAG(current_tile_info.flags, TileFlag::TANGIBLE);
 
+        if (ImGui::Button("New tile")) {
+            tile_being_edited = tilemap_working_copy.tile_info_count;
+            ++tilemap_working_copy.tile_info_count;
+            // FIXME: Hack. See other notes about this.
+            Ichigo::Internal::current_tilemap.tile_info_count = tilemap_working_copy.tile_info_count;
+
+            std::strcpy(tilemap_working_copy.tile_info[tile_being_edited].name, "new");
+        }
+
         if (ImGui::Button("Close")) {
             tileset_editor_is_open = false;
         }

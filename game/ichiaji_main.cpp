@@ -12,7 +12,7 @@ EMBED("assets/music/song.mp3", test_song)
 EMBED("assets/tiles.png", tileset_png)
 
 // Tilemaps
-EMBED("assets/test_tilemap.ichigotm", level1_tilemap);
+EMBED("assets/level1_flowers.ichigotm", level1_tilemap);
 
 static Ichigo::TextureID tileset_texture = 0;
 static Ichigo::TextureID player_texture_id  = 0;
@@ -54,80 +54,6 @@ void Ichigo::Game::init() {
     Ichigo::game_state.background_layers[0].flags          = Ichigo::BG_REPEAT_X;
     Ichigo::game_state.background_layers[0].start_position = {0.0f, 0.0f};
     Ichigo::game_state.background_layers[0].scroll_speed   = {0.5f, 0.6f};
-
-    // std::strcpy(tile_info_map[0].name, "air");
-    // tile_info_map[0].cell = -1;
-    // std::strcpy(tile_info_map[1].name, "grass");
-    // tile_info_map[1].cell = 0;
-    // tile_info_map[1].friction   = 8.0f;
-    // SET_FLAG(tile_info_map[1].flags, TileFlag::TANGIBLE);
-
-    // std::strcpy(tile_info_map[2].name, "2tile");
-    // tile_info_map[2].cell = 0;
-    // tile_info_map[2].friction   = 8.0f;
-    // SET_FLAG(tile_info_map[2].flags, TileFlag::TANGIBLE);
-
-    // std::strcpy(tile_info_map[3].name, "3tile");
-    // tile_info_map[3].cell = 0;
-    // tile_info_map[3].friction   = 8.0f;
-    // SET_FLAG(tile_info_map[3].flags, TileFlag::TANGIBLE);
-
-
-    // std::strcpy(tile_info_map[4].name, "gr_1x1");
-    // tile_info_map[4].cell = 0;
-    // tile_info_map[4].friction   = 8.0f;
-    // SET_FLAG(tile_info_map[4].flags, TileFlag::TANGIBLE);
-
-
-    // std::strcpy(tile_info_map[5].name, "gr_bl");
-    // tile_info_map[5].cell = 17;
-    // tile_info_map[5].friction   = 8.0f;
-    // SET_FLAG(tile_info_map[5].flags, TileFlag::TANGIBLE);
-
-
-    // std::strcpy(tile_info_map[6].name, "gr_bm");
-    // tile_info_map[6].cell = 18;
-    // tile_info_map[6].friction   = 8.0f;
-    // SET_FLAG(tile_info_map[6].flags, TileFlag::TANGIBLE);
-
-
-    // std::strcpy(tile_info_map[7].name, "gr_br");
-    // tile_info_map[7].cell = 19;
-    // tile_info_map[7].friction   = 8.0f;
-    // SET_FLAG(tile_info_map[7].flags, TileFlag::TANGIBLE);
-
-
-    // std::strcpy(tile_info_map[8].name, "gr_l");
-    // tile_info_map[8].cell = 9;
-    // tile_info_map[8].friction   = 8.0f;
-    // SET_FLAG(tile_info_map[8].flags, TileFlag::TANGIBLE);
-
-
-    // std::strcpy(tile_info_map[9].name, "gr_m");
-    // tile_info_map[9].cell = 10;
-    // tile_info_map[9].friction   = 8.0f;
-    // SET_FLAG(tile_info_map[9].flags, TileFlag::TANGIBLE);
-
-
-    // std::strcpy(tile_info_map[10].name, "gr_r");
-    // tile_info_map[10].cell = 11;
-    // tile_info_map[10].friction   = 8.0f;
-    // SET_FLAG(tile_info_map[10].flags, TileFlag::TANGIBLE);
-
-    // std::strcpy(tile_info_map[11].name, "gr_tl");
-    // tile_info_map[11].cell = 1;
-    // tile_info_map[11].friction   = 8.0f;
-    // SET_FLAG(tile_info_map[11].flags, TileFlag::TANGIBLE);
-
-    // std::strcpy(tile_info_map[12].name, "gr_tm");
-    // tile_info_map[12].cell = 2;
-    // tile_info_map[12].friction   = 8.0f;
-    // SET_FLAG(tile_info_map[12].flags, TileFlag::TANGIBLE);
-
-    // std::strcpy(tile_info_map[13].name, "gr_tr");
-    // tile_info_map[13].cell = 3;
-    // tile_info_map[13].friction   = 8.0f;
-    // SET_FLAG(tile_info_map[13].flags, TileFlag::TANGIBLE);
 
     Ichigo::SpriteSheet tileset_sheet = {};
     tileset_sheet.cell_width  = 32;

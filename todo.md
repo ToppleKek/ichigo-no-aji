@@ -66,8 +66,11 @@
 - - ~~Entry/exit animations~~
 - - - ~~Add `cell_of_loop_start`~~
 - - - ~~Add `cell_of_loop_end`~~
-- Tilemap editor saving to a file
-- Tiles use spritesheet
+- ~~Tilemap editor saving to a file~~
+- ~~Tiles use spritesheet~~
+- Adding new tiles to tileset editor
+- Increase tile name length
+- Tileset editor UI revamp
 - Particle system
 
 ## Wishlist
