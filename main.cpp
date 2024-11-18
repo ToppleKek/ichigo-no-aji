@@ -908,14 +908,6 @@ void Ichigo::Internal::do_frame() {
         }
 
         if (ImGui::CollapsingHeader("Entities", ImGuiTreeNodeFlags_DefaultOpen)) {
-            ImGui::SeparatorText("Player");
-            Ichigo::Entity *player_entity = Ichigo::get_entity(Ichigo::game_state.player_entity_id);
-            assert(player_entity);
-            ImGui::Text("player pos=%f,%f", player_entity->col.pos.x, player_entity->col.pos.y);
-            ImGui::Text("player velocity=%f,%f", player_entity->velocity.x, player_entity->velocity.y);
-            ImGui::Text("player on ground?=%d", FLAG_IS_SET(player_entity->flags, Ichigo::EntityFlag::EF_ON_GROUND));
-            ImGui::Text("left_standing_tile=%d,%d", player_entity->left_standing_tile.x, player_entity->left_standing_tile.y);
-            ImGui::Text("right_standing_tile=%d,%d", player_entity->right_standing_tile.x, player_entity->right_standing_tile.y);
             ImGui::SeparatorText("Entity List");
             for (u32 i = 0; i < Ichigo::Internal::entities.size; ++i) {
                 Ichigo::Entity &entity = Ichigo::Internal::entities.at(i);
@@ -933,6 +925,7 @@ void Ichigo::Internal::do_frame() {
                         ImGui::PopID();
 
                         ImGui::Text("pos=%f,%f", entity.col.pos.x, entity.col.pos.y);
+                        ImGui::Text("acceleration=%f,%f", entity.acceleration.x, entity.acceleration.y);
                         ImGui::Text("velocity=%f,%f", entity.velocity.x, entity.velocity.y);
                         ImGui::Text("on ground?=%d", FLAG_IS_SET(entity.flags, Ichigo::EntityFlag::EF_ON_GROUND));
                         ImGui::Text("left_standing_tile=%d,%d", entity.left_standing_tile.x, entity.left_standing_tile.y);

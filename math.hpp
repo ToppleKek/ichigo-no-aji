@@ -302,3 +302,7 @@ inline T clamp(T value, T min, T max) {
 inline f32 ichigo_lerp(f32 a, f32 t, f32 b) {
     return a + t * (b - a);
 }
+
+inline f32 signof(f32 value) {
+    return value < 0.0f ? -1.0f : 1.0f;
+}

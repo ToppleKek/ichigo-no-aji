@@ -15,9 +15,6 @@ EMBED("assets/level1_flowers.ichigotm", level1_tilemap);
 static Ichigo::TextureID tileset_texture = 0;
 static Ichigo::TextureID player_texture_id  = 0;
 static Ichigo::TextureID enemy_texture_id   = 0;
-static Ichigo::TextureID grass_texture_id   = 0;
-static Ichigo::TextureID other_tile_texture_id   = 0;
-static Ichigo::TextureID three_tile_texture_id   = 0;
 static Ichigo::TextureID test_bg_texture_id = 0;
 static Ichigo::AudioID   test_music_id      = 0;
 
@@ -62,9 +59,8 @@ void Ichigo::Game::init() {
     std::strcpy(player->name, "player");
     player->col               = {{3.0f, 2.0f}, 0.3f, 1.1f};
     player->max_velocity      = {8.0f, 12.0f};
-    player->movement_speed    = 22.0f;
+    player->movement_speed    = 40.0f;
     player->jump_acceleration = 128.0f;
-    player->friction          = 8.0f; // TODO: Friction should be a property of the ground maybe?
     player->gravity           = 12.0f; // TODO: gravity should be a property of the level?
     player->update_proc       = Ichigo::EntityControllers::player_controller;
     player->collide_proc      = entity_collide_proc;
@@ -118,8 +114,7 @@ void Ichigo::Game::init() {
     std::strcpy(enemy->name, "gert");
     enemy->col            = {{9.0f, 2.0f}, 0.5f, 0.5f};
     enemy->max_velocity   = {2.0f, 12.0f};
-    enemy->movement_speed = 4.0f;
-    enemy->friction       = 8.0f;
+    enemy->movement_speed = 20.0f;
     enemy->gravity        = 12.0f;
     enemy->update_proc    = Ichigo::EntityControllers::patrol_controller;
     enemy->collide_proc   = entity_collide_proc;
@@ -182,12 +177,12 @@ void Ichigo::Game::update_and_render() {
         switch (player_state) {
             case 0: { // idle
                 if      (!FLAG_IS_SET(player->flags, EF_ON_GROUND)) player_state = 2;
-                else if (player->velocity.x != 0.0f)                player_state = 1;
+                else if (player->velocity.x != 0.0f) player_state = 1;
             } break;
 
             case 1: { // walking
                 if      (!FLAG_IS_SET(player->flags, EF_ON_GROUND)) player_state = 2;
-                else if (player->velocity.x == 0.0f)                player_state = 0;
+                else if (player->velocity.x == 0.0f) player_state = 0;
             } break;
 
             case 2: { // jumping

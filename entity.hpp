@@ -70,7 +70,6 @@ struct Entity {
     f32 movement_speed;
     f32 jump_acceleration;
     f32 gravity;
-    f32 friction;
     EntityFlags flags;
     EntityRenderProc *render_proc;
     EntityUpdateProc *update_proc;

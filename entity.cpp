@@ -71,11 +71,36 @@ static inline Vec2<f32> calculate_projected_next_position(Ichigo::Entity *entity
 }
 
 void Ichigo::move_entity_in_world(Ichigo::Entity *entity) {
+    // i32 direction = entity->velocity.x < 0 ? -1 : 1;
+
+    // TODO: Which standing tile do we pick to get friction from?
+    const TileInfo &standing_tile_info = Internal::current_tilemap.tile_info[tile_at(entity->left_standing_tile)];
+    if (fabs(entity->velocity.x) < 0.1f) {
+        entity->velocity.x = 0.0f;
+    }
+
+    if (FLAG_IS_SET(entity->flags, EF_ON_GROUND)) {
+        // entity->acceleration += {-standing_tile_info.friction * entity->velocity.x, 0.0f};
+        entity->acceleration += {-standing_tile_info.friction * entity->velocity.x, 0.0f};
+        // i32 new_direction = entity->velocity.x < 0 ? -1 : 1;
+
+        // if (new_direction != direction) {
+        //     entity->velocity.x = 0.0f;
+        // }
+    } else if (!FLAG_IS_SET(entity->flags, EF_ON_GROUND)) {
+        // Drag
+        // TODO: Make drag configurable.
+        entity->acceleration += {-8.0f * entity->velocity.x, 0.0f};
+    }
+
+    // Apply friction to keyboard input and velocity (you can't get as much traction on lower friction surfaces)
+
     Vec2<f32> entity_delta = 0.5f * entity->acceleration * (Ichigo::Internal::dt * Ichigo::Internal::dt) + entity->velocity * Ichigo::Internal::dt;
     Rect<f32> potential_next_col = entity->col;
     potential_next_col.pos = entity_delta + entity->col.pos;
 
     entity->velocity += entity->acceleration * Ichigo::Internal::dt;
+    // entity->velocity.x += -signof(entity->velocity.x)  * (safe_ratio_0(50.0f, standing_tile_info.friction) * Ichigo::Internal::dt);
     entity->velocity.x = clamp(entity->velocity.x, -entity->max_velocity.x, entity->max_velocity.x);
     entity->velocity.y = clamp(entity->velocity.y, -entity->max_velocity.y, entity->max_velocity.y);
 
@@ -234,17 +259,6 @@ void Ichigo::EntityControllers::player_controller(Ichigo::Entity *player_entity)
         jump_t -= effective_dt;
     }
 
-    i32 direction = player_entity->velocity.x < 0 ? -1 : 1;
-
-    if (player_entity->velocity.x != 0.0f) {
-        player_entity->velocity += {player_entity->friction * Ichigo::Internal::dt * -direction, 0.0f};
-        i32 new_direction = player_entity->velocity.x < 0 ? -1 : 1;
-
-        if (new_direction != direction) {
-            player_entity->velocity.x = 0.0f;
-        }
-    }
-
     // p' = 1/2 at^2 + vt + p
     // v' = at + v
     // a
@@ -261,8 +275,9 @@ void Ichigo::EntityControllers::patrol_controller(Entity *entity) {
     Vec2<u32> projected_left_standing_tile  = { (u32) projected_next_pos.x, (u32) (projected_next_pos.y + entity->col.h) + 1 };
     Vec2<u32> projected_right_standing_tile = { (u32) (projected_next_pos.x + entity->col.w), (u32) (projected_next_pos.y + entity->col.h) + 1 };
 
-    // FIXME: This is hardcoding 0 as being the only non-solid tile!
-    if (Ichigo::tile_at(projected_left_standing_tile) == 0 && Ichigo::tile_at(projected_right_standing_tile) == 0) {
+    const TileInfo &left_info  = Internal::current_tilemap.tile_info[Ichigo::tile_at(projected_left_standing_tile)];
+    const TileInfo &right_info = Internal::current_tilemap.tile_info[Ichigo::tile_at(projected_right_standing_tile)];
+    if (!FLAG_IS_SET(left_info.flags, TANGIBLE) && !FLAG_IS_SET(right_info.flags, TANGIBLE)) {
         entity->acceleration.x = -entity->acceleration.x;
         entity->velocity.x = 0.0f;
     }
