@@ -26,18 +26,48 @@ static SDL_Window *window;
 static SDL_GLContext gl_context;
 static bool init_completed = false;
 
-std::FILE *Ichigo::Internal::platform_open_file(const std::string &path, const std::string &mode) {
-    return fopen(path.c_str(), mode.c_str());
+struct Ichigo::Internal::PlatformFile {
+    std::FILE *file_fd;
+};
+
+static Ichigo::Internal::PlatformFile open_files[32] = {};
+
+Ichigo::Internal::PlatformFile *Ichigo::Internal::platform_open_file_write(const char *path) {
+    std::FILE *fd = std::fopen(path, "wb");
+
+    if (!fd) {
+        ICHIGO_ERROR("Failed to open file for writing!");
+        return nullptr;
+    }
+
+    for (u32 i = 0; i < ARRAY_LEN(open_files); ++i) {
+        if (open_files[i].file_fd == nullptr) {
+            open_files[i].file_fd = fd;
+            return &open_files[i];
+        }
+    }
+
+    ICHIGO_ERROR("Too many files open!");
+    return nullptr;
 }
 
-// TODO: Implement
-[[maybe_unused]] bool Ichigo::Internal::platform_file_exists([[maybe_unused]] const char *path) {
-    return true;
+void Ichigo::Internal::platform_write_entire_file_sync(const char *path, const u8 *data, usize data_size) {
+    std::FILE *fd = std::fopen(path, "wb");
+    if (!fd) {
+        ICHIGO_ERROR("Failed to open file for writing!");
+        return;
+    }
+
+    std::fwrite(data, 1, data_size, fd);
+    std::fclose(fd);
 }
 
-// TODO: Implement
-[[maybe_unused]] Util::IchigoVector<std::string> Ichigo::Internal::platform_recurse_directory([[maybe_unused]] const std::string &path, [[maybe_unused]] const char **extension_filter, [[maybe_unused]] const u16 extension_filter_count) {
-    return {};
+void Ichigo::Internal::platform_append_file_sync(Ichigo::Internal::PlatformFile *file, const u8 *data, usize data_size) {
+    std::fwrite(data, 1, data_size, file->file_fd);
+}
+
+void Ichigo::Internal::platform_close_file(Ichigo::Internal::PlatformFile *file) {
+    std::fclose(file->file_fd);
 }
 
 void Ichigo::Internal::platform_sleep(f64 t) {
