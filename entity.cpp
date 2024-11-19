@@ -79,18 +79,16 @@ void Ichigo::move_entity_in_world(Ichigo::Entity *entity) {
         entity->velocity.x = 0.0f;
     }
 
-    if (FLAG_IS_SET(entity->flags, EF_ON_GROUND)) {
+    i32 direction = (i32) signof(entity->velocity.x);
+    if (FLAG_IS_SET(entity->flags, EF_ON_GROUND) && entity->velocity.x != 0.0f) {
         // entity->acceleration += {-standing_tile_info.friction * entity->velocity.x, 0.0f};
-        entity->acceleration += {-standing_tile_info.friction * entity->velocity.x, 0.0f};
-        // i32 new_direction = entity->velocity.x < 0 ? -1 : 1;
+        entity->acceleration += {-standing_tile_info.friction * direction, 0.0f};
 
-        // if (new_direction != direction) {
-        //     entity->velocity.x = 0.0f;
-        // }
-    } else if (!FLAG_IS_SET(entity->flags, EF_ON_GROUND)) {
+        // i32 new_direction = entity->velocity.x < 0 ? -1 : 1;
+    } else if (!FLAG_IS_SET(entity->flags, EF_ON_GROUND) && entity->velocity.x != 0.0f) {
         // Drag
         // TODO: Make drag configurable.
-        entity->acceleration += {-8.0f * entity->velocity.x, 0.0f};
+        entity->acceleration += {-24.0f * signof(entity->velocity.x), 0.0f};
     }
 
     // Apply friction to keyboard input and velocity (you can't get as much traction on lower friction surfaces)
@@ -100,6 +98,11 @@ void Ichigo::move_entity_in_world(Ichigo::Entity *entity) {
     potential_next_col.pos = entity_delta + entity->col.pos;
 
     entity->velocity += entity->acceleration * Ichigo::Internal::dt;
+
+    // if (signof(entity->velocity.x) != direction) {
+    //     entity->velocity.x = 0.0f;
+    // }
+
     // entity->velocity.x += -signof(entity->velocity.x)  * (safe_ratio_0(50.0f, standing_tile_info.friction) * Ichigo::Internal::dt);
     entity->velocity.x = clamp(entity->velocity.x, -entity->max_velocity.x, entity->max_velocity.x);
     entity->velocity.y = clamp(entity->velocity.y, -entity->max_velocity.y, entity->max_velocity.y);

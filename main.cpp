@@ -433,7 +433,11 @@ void default_entity_render_proc(Ichigo::Entity *entity) {
     }
 
     Ichigo::Animation &anim = entity->sprite.animation;
-    entity->sprite.elapsed_animation_frame_time += Ichigo::Internal::dt;
+
+    if (anim.cell_of_first_frame != anim.cell_of_last_frame) {
+        entity->sprite.elapsed_animation_frame_time += Ichigo::Internal::dt;
+    }
+
     u32 frames_advanced = (u32) safe_ratio_0(entity->sprite.elapsed_animation_frame_time, anim.seconds_per_frame);
 
     if (frames_advanced > 0) {
