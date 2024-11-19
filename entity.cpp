@@ -71,39 +71,38 @@ static inline Vec2<f32> calculate_projected_next_position(Ichigo::Entity *entity
 }
 
 void Ichigo::move_entity_in_world(Ichigo::Entity *entity) {
-    // i32 direction = entity->velocity.x < 0 ? -1 : 1;
 
     // TODO: Which standing tile do we pick to get friction from?
     const TileInfo &standing_tile_info = Internal::current_tilemap.tile_info[tile_at(entity->left_standing_tile)];
-    if (fabs(entity->velocity.x) < 0.1f) {
-        entity->velocity.x = 0.0f;
-    }
 
     i32 direction = (i32) signof(entity->velocity.x);
-    if (FLAG_IS_SET(entity->flags, EF_ON_GROUND) && entity->velocity.x != 0.0f) {
-        // entity->acceleration += {-standing_tile_info.friction * entity->velocity.x, 0.0f};
-        entity->acceleration += {-standing_tile_info.friction * direction, 0.0f};
+    if (FLAG_IS_SET(entity->flags, EF_ON_GROUND) && entity->acceleration.x != 0.0f) {
+        // On a high friction surface, you would keep a lot of accelreation. On a low friction surface, you would lose a lot of your acceleration.
+        entity->acceleration.x += std::fabs(entity->acceleration.x) * (safe_ratio_0(1.0f, safe_ratio_1(standing_tile_info.friction, 2.0f)) * -signof(entity->acceleration.x));
 
-        // i32 new_direction = entity->velocity.x < 0 ? -1 : 1;
-    } else if (!FLAG_IS_SET(entity->flags, EF_ON_GROUND) && entity->velocity.x != 0.0f) {
+    } else if (!FLAG_IS_SET(entity->flags, EF_ON_GROUND) && entity->acceleration.x != 0.0f) {
         // Drag
         // TODO: Make drag configurable.
-        entity->acceleration += {-24.0f * signof(entity->velocity.x), 0.0f};
+        entity->acceleration += {-8.0f * signof(entity->velocity.x), 0.0f};
     }
 
-    // Apply friction to keyboard input and velocity (you can't get as much traction on lower friction surfaces)
+    if (entity->acceleration.x == 0.0f && entity->velocity.x != 0.0f) {
+        entity->acceleration.x = -standing_tile_info.friction * direction;
+    }
 
     Vec2<f32> entity_delta = 0.5f * entity->acceleration * (Ichigo::Internal::dt * Ichigo::Internal::dt) + entity->velocity * Ichigo::Internal::dt;
     Rect<f32> potential_next_col = entity->col;
     potential_next_col.pos = entity_delta + entity->col.pos;
 
-    entity->velocity += entity->acceleration * Ichigo::Internal::dt;
+    if (entity->velocity.x != 0.0f) {
+        entity->velocity += entity->acceleration * Ichigo::Internal::dt;
+        if (signof(entity->velocity.x) != direction) {
+            entity->velocity.x = 0.0f;
+        }
+    } else {
+        entity->velocity += entity->acceleration * Ichigo::Internal::dt;
+    }
 
-    // if (signof(entity->velocity.x) != direction) {
-    //     entity->velocity.x = 0.0f;
-    // }
-
-    // entity->velocity.x += -signof(entity->velocity.x)  * (safe_ratio_0(50.0f, standing_tile_info.friction) * Ichigo::Internal::dt);
     entity->velocity.x = clamp(entity->velocity.x, -entity->max_velocity.x, entity->max_velocity.x);
     entity->velocity.y = clamp(entity->velocity.y, -entity->max_velocity.y, entity->max_velocity.y);
 

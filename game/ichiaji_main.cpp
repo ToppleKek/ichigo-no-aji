@@ -59,7 +59,7 @@ void Ichigo::Game::init() {
     std::strcpy(player->name, "player");
     player->col               = {{3.0f, 2.0f}, 0.3f, 1.1f};
     player->max_velocity      = {8.0f, 12.0f};
-    player->movement_speed    = 40.0f;
+    player->movement_speed    = 30.0f;
     player->jump_acceleration = 128.0f;
     player->gravity           = 12.0f; // TODO: gravity should be a property of the level?
     player->update_proc       = Ichigo::EntityControllers::player_controller;
@@ -73,24 +73,24 @@ void Ichigo::Game::init() {
     player_idle.seconds_per_frame   = 0.08f;
 
     player_walk.tag                 = ANIMATION_TAG_PLAYER_WALK;
-    player_walk.cell_of_first_frame = 10;
-    player_walk.cell_of_last_frame  = 14;
-    player_walk.cell_of_loop_start  = 10;
-    player_walk.cell_of_loop_end    = 14;
+    player_walk.cell_of_first_frame = 12;
+    player_walk.cell_of_last_frame  = 16;
+    player_walk.cell_of_loop_start  = 12;
+    player_walk.cell_of_loop_end    = 16;
     player_walk.seconds_per_frame   = 0.08f;
 
     player_jump.tag                 = ANIMATION_TAG_PLAYER_JUMP;
-    player_jump.cell_of_first_frame = 20;
-    player_jump.cell_of_last_frame  = 23;
-    player_jump.cell_of_loop_start  = 21;
-    player_jump.cell_of_loop_end    = 23;
+    player_jump.cell_of_first_frame = 24;
+    player_jump.cell_of_last_frame  = 27;
+    player_jump.cell_of_loop_start  = 25;
+    player_jump.cell_of_loop_end    = 27;
     player_jump.seconds_per_frame   = 0.08f;
 
     player_fall.tag                 = ANIMATION_TAG_PLAYER_FALL;
-    player_fall.cell_of_first_frame = 30;
-    player_fall.cell_of_last_frame  = 33;
-    player_fall.cell_of_loop_start  = 31;
-    player_fall.cell_of_loop_end    = 33;
+    player_fall.cell_of_first_frame = 36;
+    player_fall.cell_of_last_frame  = 39;
+    player_fall.cell_of_loop_start  = 37;
+    player_fall.cell_of_loop_end    = 39;
     player_fall.seconds_per_frame   = 0.08f;
 
     Ichigo::Sprite player_sprite    = {};
@@ -182,17 +182,17 @@ void Ichigo::Game::update_and_render() {
 
             case 1: { // walking
                 if      (!FLAG_IS_SET(player->flags, EF_ON_GROUND)) player_state = 2;
-                else if (player->velocity.x == 0.0f) player_state = 0;
+                else if (player->velocity.x == 0.0f && player->acceleration.x == 0.0f) player_state = 0;
             } break;
 
             case 2: { // jumping
-                if      ( FLAG_IS_SET(player->flags, EF_ON_GROUND) && player->velocity.x == 0.0f) player_state = 0;
+                if      ( FLAG_IS_SET(player->flags, EF_ON_GROUND) && player->velocity.x == 0.0f && player->acceleration.x == 0.0f) player_state = 0;
                 else if ( FLAG_IS_SET(player->flags, EF_ON_GROUND) && player->velocity.x != 0.0f) player_state = 1;
                 else if (!FLAG_IS_SET(player->flags, EF_ON_GROUND) && player->velocity.y > 0.0f)  player_state = 3;
             } break;
 
             case 3: { // falling
-                if      (FLAG_IS_SET(player->flags, EF_ON_GROUND) && player->velocity.x == 0.0f) player_state = 0;
+                if      (FLAG_IS_SET(player->flags, EF_ON_GROUND) && player->velocity.x == 0.0f && player->acceleration.x == 0.0f) player_state = 0;
                 else if (FLAG_IS_SET(player->flags, EF_ON_GROUND) && player->velocity.x != 0.0f) player_state = 1;
             } break;
         }
