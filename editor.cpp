@@ -319,16 +319,25 @@ void Ichigo::Editor::render_ui() {
     if (tiles_selected) {
         if (selected_region.w == 1 && selected_region.h == 1) {
             if (ImGui::CollapsingHeader("Selected Tile", ImGuiTreeNodeFlags_DefaultOpen)) {
-                Vec2<i32> selected_tile   = selected_region.pos;
-                TileID tile               = Ichigo::tile_at(vector_cast<u32>(selected_tile));
-                const TileInfo &tile_info = Internal::current_tilemap.tile_info[tile];
+                Vec2<i32> selected_tile     = selected_region.pos;
+                TileID tile                 = Ichigo::tile_at(vector_cast<u32>(selected_tile));
+                TileInfo &current_tile_info = Internal::current_tilemap.tile_info[tile];
 
-                ImGui::Text("%u, %u",            selected_tile.x, selected_tile.y);
-                ImGui::Text("Name: %s",          tile_info.name);
-                ImGui::Text("Friction: %f",      tile_info.friction);
-                ImGui::Text("FLAG Tangible: %d", FLAG_IS_SET(tile_info.flags, TileFlag::TANGIBLE));
-                ImGui::Text("Cell in sheet: %d", tile_info.cell);
-                ImGui::Text("Tile ID: %u",       tile);
+                i32 i32_one = 1;
+                f32 f32_one = 1.0f;
+
+                // FLAGS
+                bool tangible = FLAG_IS_SET(current_tile_info.flags, TileFlag::TANGIBLE);
+
+                ImGui::InputText("Name", current_tile_info.name, ARRAY_LEN(current_tile_info.name));
+                ImGui::InputScalar("Friction", ImGuiDataType_Float, &current_tile_info.friction, &f32_one, nullptr, "%f");
+                ImGui::Checkbox("FLAG Tangible", &tangible);
+                ImGui::InputScalar("Cell in sheet", ImGuiDataType_S32, &current_tile_info.cell, &i32_one, nullptr, "%d");
+                ImGui::Text("Tile ID: %u", tile);
+
+                if (!tangible) CLEAR_FLAG(current_tile_info.flags, TileFlag::TANGIBLE);
+                else           SET_FLAG(current_tile_info.flags, TileFlag::TANGIBLE);
+
             }
         } else {
             if (ImGui::CollapsingHeader("Selected Tiles", ImGuiTreeNodeFlags_DefaultOpen)) {
