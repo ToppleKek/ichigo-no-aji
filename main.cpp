@@ -635,8 +635,8 @@ static void draw_info_log() {
         Vec2<f32> pos = {SCREEN_TILE_WIDTH / 2.0f, 4.0f - (j * 0.5f)};
         render_text(pos, msg.data, msg.length, Ichigo::CoordinateSystem::CAMERA, style);
 
-        style.colour = {1.0f, 1.0f, 1.0f, alpha};
-        render_text(pos + Vec2<f32>{0.005, 0.005}, msg.data, msg.length, Ichigo::CoordinateSystem::CAMERA, style);
+        style.colour = {0.9f, 0.9f, 0.9f, alpha};
+        render_text(pos + Vec2<f32>{0.007, 0.007}, msg.data, msg.length, Ichigo::CoordinateSystem::CAMERA, style);
     }
 }
 

@@ -90,6 +90,10 @@ void Ichigo::move_entity_in_world(Ichigo::Entity *entity) {
         entity->acceleration.x = -standing_tile_info.friction * direction;
     }
 
+    if (!FLAG_IS_SET(entity->flags, Ichigo::EntityFlag::EF_ON_GROUND)) {
+        entity->acceleration.y += entity->gravity;
+    }
+
     Vec2<f32> entity_delta = 0.5f * entity->acceleration * (Ichigo::Internal::dt * Ichigo::Internal::dt) + entity->velocity * Ichigo::Internal::dt;
     Rect<f32> potential_next_col = entity->col;
     potential_next_col.pos = entity_delta + entity->col.pos;
@@ -106,9 +110,9 @@ void Ichigo::move_entity_in_world(Ichigo::Entity *entity) {
     entity->velocity.x = clamp(entity->velocity.x, -entity->max_velocity.x, entity->max_velocity.x);
     entity->velocity.y = clamp(entity->velocity.y, -entity->max_velocity.y, entity->max_velocity.y);
 
-    if (!FLAG_IS_SET(entity->flags, Ichigo::EntityFlag::EF_ON_GROUND)) {
-        entity->velocity.y += entity->gravity * Ichigo::Internal::dt;
-    }
+    // if (!FLAG_IS_SET(entity->flags, Ichigo::EntityFlag::EF_ON_GROUND)) {
+    //     entity->velocity.y += entity->gravity * Ichigo::Internal::dt;
+    // }
 
     if (entity->velocity.x == 0.0f && entity->velocity.y == 0.0f) {
         return;

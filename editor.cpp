@@ -467,6 +467,20 @@ void Ichigo::Editor::update() {
         fill_selected_region(ICHIGO_AIR_TILE);
     }
 
+    if (Internal::mouse.right_button.down_this_frame) {
+        auto t = tile_at_mouse_coordinate(Internal::mouse.pos);
+        if (t.has_value) {
+            TileID tile_id       = tile_at(t.value);
+            const TileInfo &info = Internal::current_tilemap.tile_info[tile_id];
+            selected_brush_tile  = tile_id;
+            char *str            = (char *) platform_alloca(64);
+
+            std::snprintf(str, 64, "Selected: %s", info.name);
+            show_info(str, std::strlen(str));
+
+        }
+    }
+
     if (Internal::keyboard_state[IK_LEFT_CONTROL].down && Internal::keyboard_state[IK_LEFT_SHIFT].down && Internal::keyboard_state[IK_Z].down_this_frame) {
         auto ra = undo_stack.redo();
         if (ra.has_value) {
