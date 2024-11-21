@@ -133,8 +133,6 @@ void Ichigo::Game::update_and_render() {
     test_draw_command3.text_style        = style;
 
     Ichigo::push_draw_command(test_draw_command3);
-
-    Irisu::update();
 }
 
 void Ichigo::Game::frame_end() {

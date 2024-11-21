@@ -3,5 +3,5 @@
 
 namespace Irisu {
 void init(Ichigo::Entity *entity);
-void update();
+void update(Ichigo::Entity *irisu);
 }

@@ -71,7 +71,6 @@ static inline Vec2<f32> calculate_projected_next_position(Ichigo::Entity *entity
 }
 
 void Ichigo::move_entity_in_world(Ichigo::Entity *entity) {
-
     // TODO: Which standing tile do we pick to get friction from?
     const TileInfo &standing_tile_info = Internal::current_tilemap.tile_info[tile_at(entity->left_standing_tile)];
 
@@ -83,7 +82,7 @@ void Ichigo::move_entity_in_world(Ichigo::Entity *entity) {
     } else if (!FLAG_IS_SET(entity->flags, EF_ON_GROUND) && entity->acceleration.x != 0.0f) {
         // Drag
         // TODO: Make drag configurable.
-        entity->acceleration += {-8.0f * signof(entity->velocity.x), 0.0f};
+        entity->acceleration += {-4.0f * signof(entity->velocity.x), 0.0f};
     }
 
     if (entity->acceleration.x == 0.0f && entity->velocity.x != 0.0f) {
@@ -166,7 +165,6 @@ void Ichigo::move_entity_in_world(Ichigo::Entity *entity) {
         //     ICHIGO_INFO("FINAL wall normal: %f,%f best_t=%f", wall_normal.x, wall_normal.y, best_t);
 
         if (!FLAG_IS_SET(entity->flags, Ichigo::EntityFlag::EF_ON_GROUND) && wall_normal.y == -1.0f) {
-            ICHIGO_INFO("ENTITY %s HIT GROUND at tile: %f,%f", Internal::entity_id_as_string(entity->id), wall_position.x, wall_position.y);
             SET_FLAG(entity->flags, Ichigo::EntityFlag::EF_ON_GROUND);
             // TODO: Bug where you stop at 0.0000001 units away from the ground
             //       Floating point precision error? Maybe we will just snap to the floor when we touch it?
@@ -177,16 +175,9 @@ void Ichigo::move_entity_in_world(Ichigo::Entity *entity) {
 
             // Solutions:
             // 1: Snap to the floor
-            //    This would probably be the best? We could save the position of the floor that the player hit, and then
-            //    determine what to do with the player with that information. If the tile is a bouncy tile, we would bounce the player.
-            //    If the tile is a regular floor, snap the player to the floors position.
             // 2: Round the player's y position if they hit a floor
             //    Can't really do half tiles very well (is that a real problem? -NO!)
-            // 3: Epsilon error correction?
-            // 4: Fix gravity velocity problem?
-
-            // We went with solutions 1 and 2 and 3
-            // TODO: This is also a problem where you can get 0.0000002 units into a wall. We can probably lose the last 2 digits of the float and still be happy.
+            // 3: Epsilon error correction
         }
 
         Vec2<f32> final_delta{};

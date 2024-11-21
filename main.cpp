@@ -937,6 +937,7 @@ void Ichigo::Internal::do_frame() {
                         ImGui::Text("animation_tag=%u", entity.sprite.animation.tag);
                         ImGui::Text("current_anim_frame=%u", entity.sprite.current_animation_frame);
                         ImGui::Text("anim_t=%f", entity.sprite.elapsed_animation_frame_time);
+                        ImGui::Text("anim_t_per_frame=%f", entity.sprite.animation.seconds_per_frame);
                         ImGui::TreePop();
                     }
                 }
