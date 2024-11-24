@@ -8,7 +8,7 @@ namespace Ichigo {
 struct Entity;
 using EntityRenderProc  = void (Entity *);
 using EntityUpdateProc  = void (Entity *);
-using EntityCollideProc = void (Entity *, Entity *, Vec2<f32>, f32);
+using EntityCollideProc = void (Entity *, Entity *, Vec2<f32>, Vec2<f32>);
 using EntityFlags       = u64;
 
 namespace EntityControllers {

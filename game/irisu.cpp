@@ -29,9 +29,9 @@ static Ichigo::TextureID irisu_texture_id = 0;
 static Ichigo::EntityID irisu_id = {};
 static Ichigo::AudioID boo_womp_id = {};
 
-static void on_collide(Ichigo::Entity *irisu, Ichigo::Entity *other, Vec2<f32> normal, f32 best_t) {
-    ICHIGO_INFO("IRISU collide with %s: normal=%f,%f", other->name, normal.x, normal.y);
-    if (normal.y == -1.0f) {
+static void on_collide(Ichigo::Entity *irisu, Ichigo::Entity *other, Vec2<f32> normal, Vec2<f32> collision_pos) {
+    ICHIGO_INFO("IRISU collide with %s: normal=%f,%f pos=%f,%f", other->name, normal.x, normal.y, collision_pos.x, collision_pos.y);
+    if (normal.y == -1.0f && std::strcmp(other->name, "gert") == 0) {
         ICHIGO_INFO("Bounce!");
         irisu->velocity.y -= 15.0f;
         Ichigo::kill_entity(other->id);

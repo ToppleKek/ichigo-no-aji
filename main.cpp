@@ -37,11 +37,12 @@ static Ichigo::AudioID test_sound_id = 0;
 // END DEBUG
 #define MAX_DRAW_COMMANDS 4096
 
-static f32 last_dpi_scale = 1.0f;
 static ImGuiStyle initial_style;
 static ImFontConfig font_config;
-static bool show_debug_menu = true;
-static bool DEBUG_draw_colliders = false;
+static f32 last_dpi_scale             = 1.0f;
+static bool show_debug_menu           = true;
+static bool DEBUG_draw_colliders      = true;
+static bool DEBUG_hide_entity_sprites = false;
 
 static GLuint texture_shader_program;
 static GLuint text_shader_program;
@@ -464,70 +465,72 @@ static void render_text(Vec2<f32> pos, const char *str, usize length, Ichigo::Co
 }
 
 void default_entity_render_proc(Ichigo::Entity *entity) {
-    const Ichigo::Texture &texture = Ichigo::Internal::textures.at(entity->sprite.sheet.texture);
+    if (!DEBUG_hide_entity_sprites) {
+        const Ichigo::Texture &texture = Ichigo::Internal::textures.at(entity->sprite.sheet.texture);
 
-    Ichigo::Internal::gl.glUseProgram(texture_shader_program);
-    Ichigo::Internal::gl.glBindBuffer(GL_ARRAY_BUFFER, draw_data_textured.vertex_buffer_id);
-    Ichigo::Internal::gl.glBindVertexArray(draw_data_textured.vertex_array_id);
-    Ichigo::Internal::gl.glBindTexture(GL_TEXTURE_2D, texture.id);
+        Ichigo::Internal::gl.glUseProgram(texture_shader_program);
+        Ichigo::Internal::gl.glBindBuffer(GL_ARRAY_BUFFER, draw_data_textured.vertex_buffer_id);
+        Ichigo::Internal::gl.glBindVertexArray(draw_data_textured.vertex_array_id);
+        Ichigo::Internal::gl.glBindTexture(GL_TEXTURE_2D, texture.id);
 
-    u32 current_cell  = entity->sprite.animation.cell_of_first_frame + entity->sprite.current_animation_frame;
-    u32 cells_per_row = texture.width / entity->sprite.sheet.cell_width;
-    u32 row_of_cell   = current_cell  / cells_per_row;
-    u32 col_of_cell   = current_cell  % cells_per_row;
-    u32 cell_x_px     = col_of_cell   * entity->sprite.sheet.cell_width;
-    u32 cell_y_px     = row_of_cell   * entity->sprite.sheet.cell_height;
+        u32 current_cell  = entity->sprite.animation.cell_of_first_frame + entity->sprite.current_animation_frame;
+        u32 cells_per_row = texture.width / entity->sprite.sheet.cell_width;
+        u32 row_of_cell   = current_cell  / cells_per_row;
+        u32 col_of_cell   = current_cell  % cells_per_row;
+        u32 cell_x_px     = col_of_cell   * entity->sprite.sheet.cell_width;
+        u32 cell_y_px     = row_of_cell   * entity->sprite.sheet.cell_height;
 
-    f32 u0 = (f32) cell_x_px / (f32) texture.width;
-    f32 v0 = (f32) (texture.height - cell_y_px) / (f32) texture.height;
-    f32 u1 = u0 + ((f32) entity->sprite.sheet.cell_width  / (f32) texture.width);
-    f32 v1 = v0 - ((f32) entity->sprite.sheet.cell_height / (f32) texture.height);
+        f32 u0 = (f32) cell_x_px / (f32) texture.width;
+        f32 v0 = (f32) (texture.height - cell_y_px) / (f32) texture.height;
+        f32 u1 = u0 + ((f32) entity->sprite.sheet.cell_width  / (f32) texture.width);
+        f32 v1 = v0 - ((f32) entity->sprite.sheet.cell_height / (f32) texture.height);
 
-    if (FLAG_IS_SET(entity->flags, Ichigo::EF_FLIP_H)) {
-        f32 temp = u0;
-        u0       = u1;
-        u1       = temp;
-    }
-
-    Ichigo::Animation &anim = entity->sprite.animation;
-
-    if (anim.cell_of_first_frame != anim.cell_of_last_frame) {
-        entity->sprite.elapsed_animation_frame_time += Ichigo::Internal::dt;
-    }
-
-    u32 frames_advanced = (u32) safe_ratio_0(entity->sprite.elapsed_animation_frame_time, anim.seconds_per_frame);
-
-    if (frames_advanced > 0) {
-        entity->sprite.elapsed_animation_frame_time -= (frames_advanced * anim.seconds_per_frame);
-        u32 anim_duration = anim.cell_of_last_frame - anim.cell_of_first_frame + 1;
-
-        if (entity->sprite.current_animation_frame + frames_advanced >= anim_duration) {
-            entity->sprite.current_animation_frame = anim.cell_of_loop_start - anim.cell_of_first_frame;
-        } else {
-            entity->sprite.current_animation_frame += frames_advanced;
+        if (FLAG_IS_SET(entity->flags, Ichigo::EF_FLIP_H)) {
+            f32 temp = u0;
+            u0       = u1;
+            u1       = temp;
         }
+
+        Ichigo::Animation &anim = entity->sprite.animation;
+
+        if (anim.cell_of_first_frame != anim.cell_of_last_frame) {
+            entity->sprite.elapsed_animation_frame_time += Ichigo::Internal::dt;
+        }
+
+        u32 frames_advanced = (u32) safe_ratio_0(entity->sprite.elapsed_animation_frame_time, anim.seconds_per_frame);
+
+        if (frames_advanced > 0) {
+            entity->sprite.elapsed_animation_frame_time -= (frames_advanced * anim.seconds_per_frame);
+            u32 anim_duration = anim.cell_of_last_frame - anim.cell_of_first_frame + 1;
+
+            if (entity->sprite.current_animation_frame + frames_advanced >= anim_duration) {
+                entity->sprite.current_animation_frame = anim.cell_of_loop_start - anim.cell_of_first_frame;
+            } else {
+                entity->sprite.current_animation_frame += frames_advanced;
+            }
+        }
+
+        Vec2<f32> draw_pos = { entity->col.pos.x + entity->sprite.pos_offset.x, entity->col.pos.y + entity->sprite.pos_offset.y };
+        TexturedVertex vertices[] = {
+            {{draw_pos.x, draw_pos.y, 0.0f},                                                {u0, v0}}, // top left
+            {{draw_pos.x + entity->sprite.width, draw_pos.y, 0.0f},                         {u1, v0}}, // top right
+            {{draw_pos.x, draw_pos.y + entity->sprite.height, 0.0f},                        {u0, v1}}, // bottom left
+            {{draw_pos.x + entity->sprite.width, draw_pos.y + entity->sprite.height, 0.0f}, {u1, v1}}, // bottom right
+        };
+
+        Ichigo::Internal::gl.glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+        Ichigo::Internal::gl.glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(rectangle_indices), rectangle_indices, GL_STATIC_DRAW);
+
+        i32 texture_uniform = Ichigo::Internal::gl.glGetUniformLocation(texture_shader_program, "entity_texture");
+        i32 object_uniform  = Ichigo::Internal::gl.glGetUniformLocation(texture_shader_program, "object_transform");
+        i32 tint_uniform    = Ichigo::Internal::gl.glGetUniformLocation(texture_shader_program, "colour_tint");
+
+        Ichigo::Internal::gl.glUniform4f(tint_uniform, 1.0f, 1.0f, 1.0f, 1.0f);
+        Ichigo::Internal::gl.glUniform1i(texture_uniform, 0);
+        Ichigo::Internal::gl.glUniformMatrix4fv(object_uniform, 1, GL_TRUE, (GLfloat *) &identity_mat4);
+
+        Ichigo::Internal::gl.glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
     }
-
-    Vec2<f32> draw_pos = { entity->col.pos.x + entity->sprite.pos_offset.x, entity->col.pos.y + entity->sprite.pos_offset.y };
-    TexturedVertex vertices[] = {
-        {{draw_pos.x, draw_pos.y, 0.0f},                                                {u0, v0}}, // top left
-        {{draw_pos.x + entity->sprite.width, draw_pos.y, 0.0f},                         {u1, v0}}, // top right
-        {{draw_pos.x, draw_pos.y + entity->sprite.height, 0.0f},                        {u0, v1}}, // bottom left
-        {{draw_pos.x + entity->sprite.width, draw_pos.y + entity->sprite.height, 0.0f}, {u1, v1}}, // bottom right
-    };
-
-    Ichigo::Internal::gl.glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-    Ichigo::Internal::gl.glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(rectangle_indices), rectangle_indices, GL_STATIC_DRAW);
-
-    i32 texture_uniform = Ichigo::Internal::gl.glGetUniformLocation(texture_shader_program, "entity_texture");
-    i32 object_uniform  = Ichigo::Internal::gl.glGetUniformLocation(texture_shader_program, "object_transform");
-    i32 tint_uniform    = Ichigo::Internal::gl.glGetUniformLocation(texture_shader_program, "colour_tint");
-
-    Ichigo::Internal::gl.glUniform4f(tint_uniform, 1.0f, 1.0f, 1.0f, 1.0f);
-    Ichigo::Internal::gl.glUniform1i(texture_uniform, 0);
-    Ichigo::Internal::gl.glUniformMatrix4fv(object_uniform, 1, GL_TRUE, (GLfloat *) &identity_mat4);
-
-    Ichigo::Internal::gl.glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
     if (DEBUG_draw_colliders) {
         world_render_solid_colour_rect(entity->col, {1.0f, 0.2f, 0.2f, 0.6f});
@@ -988,6 +991,7 @@ void Ichigo::Internal::do_frame() {
         if (ImGui::CollapsingHeader("Entities", ImGuiTreeNodeFlags_DefaultOpen)) {
             ImGui::SeparatorText("Debug");
             ImGui::Checkbox("Draw colliders", &DEBUG_draw_colliders);
+            ImGui::Checkbox("Hide sprites", &DEBUG_hide_entity_sprites);
             ImGui::SeparatorText("Entity List");
             for (u32 i = 0; i < Ichigo::Internal::entities.size; ++i) {
                 Ichigo::Entity &entity = Ichigo::Internal::entities.at(i);
