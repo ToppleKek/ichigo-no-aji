@@ -74,39 +74,65 @@ void Ichigo::move_entity_in_world(Ichigo::Entity *entity) {
     // TODO: Which standing tile do we pick to get friction from?
     const TileInfo &standing_tile_info = Internal::current_tilemap.tile_info[tile_at(entity->left_standing_tile)];
 
+    Vec2<f32> external_acceleration = {};
     i32 direction = (i32) signof(entity->velocity.x);
     if (FLAG_IS_SET(entity->flags, EF_ON_GROUND) && entity->acceleration.x != 0.0f) {
         // On a high friction surface, you would keep a lot of accelreation. On a low friction surface, you would lose a lot of your acceleration.
-        entity->acceleration.x += std::fabs(entity->acceleration.x) * (safe_ratio_0(1.0f, safe_ratio_1(standing_tile_info.friction, 2.0f)) * -signof(entity->acceleration.x));
+        external_acceleration.x = entity->acceleration.x + (std::fabsf(entity->acceleration.x) * (safe_ratio_0(1.0f, safe_ratio_1(standing_tile_info.friction, 2.0f)) * -signof(entity->acceleration.x)));
 
     } else if (!FLAG_IS_SET(entity->flags, EF_ON_GROUND) && entity->acceleration.x != 0.0f) {
         // Drag
         // TODO: Make drag configurable.
-        entity->acceleration += {-4.0f * signof(entity->velocity.x), 0.0f};
+        external_acceleration.x += -4.0f * signof(entity->velocity.x);
     }
 
     if (entity->acceleration.x == 0.0f && entity->velocity.x != 0.0f) {
-        entity->acceleration.x = -standing_tile_info.friction * direction;
+        external_acceleration.x = -standing_tile_info.friction * direction;
     }
 
     if (!FLAG_IS_SET(entity->flags, Ichigo::EntityFlag::EF_ON_GROUND)) {
-        entity->acceleration.y += entity->gravity;
+        external_acceleration.y = entity->gravity;
     }
 
-    Vec2<f32> entity_delta = 0.5f * entity->acceleration * (Ichigo::Internal::dt * Ichigo::Internal::dt) + entity->velocity * Ichigo::Internal::dt;
+    Vec2<f32> final_acceleration = {};
+    // final_acceleration.x = external_acceleration.x + entity->acceleration.x;
+    bool was_limited = false;
+    if (std::fabsf(entity->velocity.x) > entity->max_velocity.x) {
+        external_acceleration.x = -standing_tile_info.friction * direction;
+        final_acceleration.x = external_acceleration.x;
+        if (signof(entity->acceleration.x) != signof(entity->velocity.x)) {
+            final_acceleration.x += entity->acceleration.x;
+        }
+
+        was_limited = true;
+    } else {
+        final_acceleration.x = external_acceleration.x + entity->acceleration.x;
+    }
+
+    final_acceleration.y = entity->acceleration.y + external_acceleration.y;
+    // entity->acceleration = final_acceleration;
+
+    Vec2<f32> entity_delta = 0.5f * final_acceleration * (Ichigo::Internal::dt * Ichigo::Internal::dt) + entity->velocity * Ichigo::Internal::dt;
     Rect<f32> potential_next_col = entity->col;
     potential_next_col.pos = entity_delta + entity->col.pos;
 
     if (entity->velocity.x != 0.0f) {
-        entity->velocity += entity->acceleration * Ichigo::Internal::dt;
+        entity->velocity += final_acceleration * Ichigo::Internal::dt;
         if (signof(entity->velocity.x) != direction) {
             entity->velocity.x = 0.0f;
         }
     } else {
-        entity->velocity += entity->acceleration * Ichigo::Internal::dt;
+        entity->velocity += final_acceleration * Ichigo::Internal::dt;
     }
 
-    entity->velocity.x = clamp(entity->velocity.x, -entity->max_velocity.x, entity->max_velocity.x);
+    bool should_clamp_due_to_decel = was_limited && std::fabsf(entity->velocity.x) < entity->max_velocity.x && (entity->acceleration.x != 0.0f && signof(entity->acceleration.x) == signof(entity->velocity.x));
+    bool should_clamp_due_to_accel = !was_limited && std::fabsf(entity->velocity.x) > entity->max_velocity.x;
+
+    if (should_clamp_due_to_decel || should_clamp_due_to_accel) {
+        entity->velocity.x = entity->max_velocity.x * signof(entity->velocity.x);
+    }
+
+    // entity->velocity.x = clamp(entity->velocity.x, -entity->max_velocity.x, entity->max_velocity.x);
     entity->velocity.y = clamp(entity->velocity.y, -entity->max_velocity.y, entity->max_velocity.y);
 
     // if (!FLAG_IS_SET(entity->flags, Ichigo::EntityFlag::EF_ON_GROUND)) {
@@ -219,13 +245,14 @@ void Ichigo::move_entity_in_world(Ichigo::Entity *entity) {
         // }
     }
 
-    // if (entity->velocity.y != 0.0f)
-    //     CLEAR_FLAG(entity->flags, Ichigo::EntityFlag::EF_ON_GROUND);
+    if (entity->velocity.y != 0.0f) {
+        CLEAR_FLAG(entity->flags, Ichigo::EntityFlag::EF_ON_GROUND);
+    }
 
     if (FLAG_IS_SET(entity->flags, Ichigo::EntityFlag::EF_ON_GROUND)) {
         entity->left_standing_tile  = { (u32) entity->col.pos.x, (u32) (entity->col.pos.y + entity->col.h) + 1 };
         entity->right_standing_tile = { (u32) (entity->col.pos.x + entity->col.w), (u32) (entity->col.pos.y + entity->col.h) + 1 };
-        if (Ichigo::tile_at(entity->left_standing_tile) == 0 && Ichigo::tile_at(entity->right_standing_tile) == 0) {
+        if (Ichigo::tile_at(entity->left_standing_tile) == ICHIGO_AIR_TILE && Ichigo::tile_at(entity->right_standing_tile) == ICHIGO_AIR_TILE) {
             ICHIGO_INFO("ENTITY %s BECAME AIRBORNE!", Internal::entity_id_as_string(entity->id));
             CLEAR_FLAG(entity->flags, Ichigo::EntityFlag::EF_ON_GROUND);
         }
@@ -264,11 +291,7 @@ void Ichigo::EntityControllers::player_controller(Ichigo::Entity *player_entity)
 }
 
 void Ichigo::EntityControllers::patrol_controller(Entity *entity) {
-    if (entity->acceleration.x < 0.0f) {
-        entity->acceleration.x = -entity->movement_speed;
-    } else {
-        entity->acceleration.x = entity->movement_speed;
-    }
+    entity->acceleration = {entity->movement_speed * signof(entity->acceleration.x), 0.0f};
 
     Vec2<f32> projected_next_pos = calculate_projected_next_position(entity);
 

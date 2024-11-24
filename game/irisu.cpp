@@ -80,6 +80,14 @@ void Irisu::init(Ichigo::Entity *entity) {
     entity->sprite = irisu_sprite;
 }
 
+static inline void maybe_enter_animation(Ichigo::Entity *entity, Ichigo::Animation animation) {
+    if (entity->sprite.animation.tag != animation.tag) {
+        entity->sprite.animation = animation;
+        entity->sprite.current_animation_frame = 0;
+        entity->sprite.elapsed_animation_frame_time = 0.0f;
+    }
+}
+
 #define IRISU_MAX_JUMP_T 0.35f
 void Irisu::update(Ichigo::Entity *irisu) {
     static f32 applied_t = 0.0f;
@@ -98,60 +106,53 @@ void Irisu::update(Ichigo::Entity *irisu) {
 
     bool jump_button_down_this_frame = Ichigo::Internal::keyboard_state[Ichigo::IK_SPACE].down_this_frame || Ichigo::Internal::gamepad.a.down_this_frame || Ichigo::Internal::gamepad.b.down_this_frame;
     bool jump_button_down            = Ichigo::Internal::keyboard_state[Ichigo::IK_SPACE].down || Ichigo::Internal::gamepad.a.down || Ichigo::Internal::gamepad.b.down;
-
     bool run_button_down = Ichigo::Internal::keyboard_state[Ichigo::IK_LEFT_SHIFT].down || Ichigo::Internal::gamepad.x.down || Ichigo::Internal::gamepad.y.down;
-    if (run_button_down && FLAG_IS_SET(irisu->flags, Ichigo::EntityFlag::EF_ON_GROUND)) {
-        irisu->max_velocity.x = 8.0f;
-        // irisu_walk.seconds_per_frame = 0.06f;
-    } else if (irisu_state != JUMP && irisu_state != FALL) {
-        irisu->max_velocity.x = 4.0f;
-        // irisu_walk.seconds_per_frame = 0.08f;
-    }
 
     switch (irisu_state) {
         case IDLE: {
             if      (!FLAG_IS_SET(irisu->flags, Ichigo::EF_ON_GROUND)) irisu_state = JUMP;
             else if (irisu->velocity.x != 0.0f)                        irisu_state = WALK;
-            else if (irisu->sprite.animation.tag != IDLE) {
-                irisu->sprite.animation                    = irisu_idle;
-                irisu->sprite.current_animation_frame      = 0;
-                irisu->sprite.elapsed_animation_frame_time = 0.0f;
-            }
+            maybe_enter_animation(irisu, irisu_idle);
 
             if (jump_button_down_this_frame) {
-                released_jump = false;
-                applied_t     = 0.0f;
+                released_jump     = false;
+                applied_t         = 0.0f;
+                irisu_state       = JUMP;
                 irisu->velocity.y = -irisu->jump_acceleration;
-                irisu_state   = JUMP;
+                maybe_enter_animation(irisu, irisu_jump);
             }
         } break;
 
         case WALK: {
             if      (!FLAG_IS_SET(irisu->flags, Ichigo::EF_ON_GROUND))           irisu_state = JUMP;
-            else if (irisu->velocity.x == 0.0f && irisu->acceleration.x == 0.0f) irisu_state = IDLE;
-            else if (irisu->sprite.animation.tag != WALK) {
-                irisu->sprite.animation                    = irisu_walk;
-                irisu->sprite.current_animation_frame      = 0;
-                irisu->sprite.elapsed_animation_frame_time = 0.0f;
-            }
+            else if (irisu->velocity.x == 0.0f)                                  irisu_state = IDLE;
+
+            maybe_enter_animation(irisu, irisu_walk);
 
             if (jump_button_down_this_frame) {
-                released_jump = false;
-                applied_t     = 0.0f;
+                released_jump     = false;
+                applied_t         = 0.0f;
+                irisu_state       = JUMP;
                 irisu->velocity.y = -irisu->jump_acceleration;
-                irisu_state   = JUMP;
+                maybe_enter_animation(irisu, irisu_jump);
+            }
+
+            if (run_button_down) {
+                irisu->max_velocity.x = 8.0f;
+                // irisu_walk.seconds_per_frame = 0.06f;
+            } else {
+                irisu->max_velocity.x = 4.0f;
+                // irisu_walk.seconds_per_frame = 0.08f;
             }
         } break;
 
         case JUMP: {
-            if      ( FLAG_IS_SET(irisu->flags, Ichigo::EF_ON_GROUND) && irisu->velocity.x == 0.0f && irisu->acceleration.x == 0.0f) irisu_state = IDLE;
+            if      ( FLAG_IS_SET(irisu->flags, Ichigo::EF_ON_GROUND) && irisu->velocity.x == 0.0f) irisu_state = IDLE;
             else if ( FLAG_IS_SET(irisu->flags, Ichigo::EF_ON_GROUND) && irisu->velocity.x != 0.0f) irisu_state = WALK;
             else if (!FLAG_IS_SET(irisu->flags, Ichigo::EF_ON_GROUND) && irisu->velocity.y > 0.0f)  irisu_state = FALL;
-            else if (irisu->sprite.animation.tag != JUMP) {
-                irisu->sprite.animation                    = irisu_jump;
-                irisu->sprite.current_animation_frame      = 0;
-                irisu->sprite.elapsed_animation_frame_time = 0.0f;
-            }
+
+            maybe_enter_animation(irisu, irisu_jump);
+
             if (!jump_button_down && !released_jump) {
                 released_jump = true;
             }
@@ -165,13 +166,10 @@ void Irisu::update(Ichigo::Entity *irisu) {
         } break;
 
         case FALL: {
-            if      (FLAG_IS_SET(irisu->flags, Ichigo::EF_ON_GROUND) && irisu->velocity.x == 0.0f && irisu->acceleration.x == 0.0f) irisu_state = IDLE;
+            if      (FLAG_IS_SET(irisu->flags, Ichigo::EF_ON_GROUND) && irisu->velocity.x == 0.0f) irisu_state = IDLE;
             else if (FLAG_IS_SET(irisu->flags, Ichigo::EF_ON_GROUND) && irisu->velocity.x != 0.0f) irisu_state = WALK;
-            else if (irisu->sprite.animation.tag != FALL) {
-                irisu->sprite.animation                    = irisu_fall;
-                irisu->sprite.current_animation_frame      = 0;
-                irisu->sprite.elapsed_animation_frame_time = 0.0f;
-            }
+
+            maybe_enter_animation(irisu, irisu_fall);
         } break;
     }
 
