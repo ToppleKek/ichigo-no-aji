@@ -1096,8 +1096,9 @@ void Ichigo::Internal::do_frame() {
     if (program_mode == Ichigo::Internal::ProgramMode::GAME) {
         for (u32 i = 1; i < Ichigo::Internal::entities.size; ++i) {
             Ichigo::Entity &entity = Ichigo::Internal::entities.at(i);
-            if (entity.update_proc)
+            if (entity.id.index != 0 && entity.update_proc) {
                 entity.update_proc(&entity);
+            }
         }
 
         // TODO: Let the game update first? Not sure? Maybe they want to change something about an entity before it gets updated.
