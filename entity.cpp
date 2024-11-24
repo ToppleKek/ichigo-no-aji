@@ -150,11 +150,19 @@ Ichigo::EntityMoveResult Ichigo::move_entity_in_world(Ichigo::Entity *entity) {
 
     for (u32 i = 1; i < Ichigo::Internal::entities.size; ++i) {
         Ichigo::Entity &entity = Ichigo::Internal::entities.at(i);
+        if (entity.id.index == 0) {
+            continue;
+        }
+
         Vec2<f32> centered_entity_p = entity.col.pos + Vec2<f32>{entity.col.w / 2.0f, entity.col.h / 2.0f};
         f32 best_t = 1.0f;
 
         for (u32 j = i; j < Ichigo::Internal::entities.size; ++j) {
             Ichigo::Entity &other_entity = Ichigo::Internal::entities.at(j);
+            if (other_entity.id.index == 0) {
+                continue;
+            }
+
             Vec2<f32> centered_other_entity_p = other_entity.col.pos + Vec2<f32>{other_entity.col.w / 2.0f, other_entity.col.h / 2.0f};
             Vec2<f32> min_corner = {centered_other_entity_p.x - entity.col.w / 2.0f, centered_other_entity_p.y - entity.col.h / 2.0f};
             Vec2<f32> max_corner = {centered_other_entity_p.x + other_entity.col.w + entity.col.w / 2.0f, centered_other_entity_p.y + other_entity.col.h + entity.col.h / 2.0f};

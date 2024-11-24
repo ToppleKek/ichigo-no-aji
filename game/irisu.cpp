@@ -10,6 +10,7 @@
 #include "irisu.hpp"
 
 EMBED("assets/irisu.png", irisu_spritesheet_png)
+EMBED("assets/music/boo_womp441.mp3", boo_womp_mp3)
 
 enum IrisuState {
     IDLE,
@@ -26,9 +27,21 @@ static Ichigo::Animation irisu_fall = {};
 
 static Ichigo::TextureID irisu_texture_id = 0;
 static Ichigo::EntityID irisu_id = {};
+static Ichigo::AudioID boo_womp_id = {};
+
+static void on_collide(Ichigo::Entity *irisu, Ichigo::Entity *other, Vec2<f32> normal, f32 best_t) {
+    ICHIGO_INFO("IRISU collide with %s: normal=%f,%f", other->name, normal.x, normal.y);
+    if (normal.y == -1.0f) {
+        ICHIGO_INFO("Bounce!");
+        irisu->velocity.y -= 15.0f;
+        Ichigo::kill_entity(other->id);
+        Ichigo::Mixer::play_audio_oneshot(boo_womp_id, 1.0f, 1.0f, 1.0f);
+    }
+}
 
 void Irisu::init(Ichigo::Entity *entity) {
     irisu_texture_id = Ichigo::load_texture(irisu_spritesheet_png, irisu_spritesheet_png_len);
+    boo_womp_id = Ichigo::load_audio(boo_womp_mp3, boo_womp_mp3_len);
     irisu_id = entity->id;
 
     std::strcpy(entity->name, "player");
@@ -38,7 +51,7 @@ void Irisu::init(Ichigo::Entity *entity) {
     entity->jump_acceleration = 4.5f;
     entity->gravity           = 14.0f; // TODO: gravity should be a property of the level?
     entity->update_proc       = Irisu::update;
-    entity->collide_proc      = nullptr;
+    entity->collide_proc      = on_collide;
 
     irisu_idle.tag                 = IrisuState::IDLE;
     irisu_idle.cell_of_first_frame = 0;

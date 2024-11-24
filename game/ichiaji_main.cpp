@@ -58,7 +58,7 @@ void Ichigo::Game::init() {
     enemy->movement_speed = 6.0f;
     enemy->gravity        = 9.8f;
     enemy->update_proc    = Ichigo::EntityControllers::patrol_controller;
-    enemy->collide_proc   = entity_collide_proc;
+    // enemy->collide_proc   = entity_collide_proc;
 
     Ichigo::Animation gert_idle   = {};
     gert_idle.cell_of_first_frame = 0;
@@ -77,6 +77,8 @@ void Ichigo::Game::init() {
     gert_sprite.animation         = gert_idle;
 
     enemy->sprite = gert_sprite;
+
+    Ichigo::Mixer::master_volume = 0.4f;
 
     Ichigo::Mixer::play_audio(test_music_id, 1.0f, 1.0f, 1.0f, 0.864f, 54.188f);
 }

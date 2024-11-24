@@ -234,6 +234,62 @@ static void world_render_solid_colour_rect(Rect<f32> rect, Vec4<f32> colour) {
     Ichigo::Internal::gl.glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 }
 
+static f32 get_text_width(const char *str, usize length, Ichigo::TextStyle style) {
+    f32 width = 0.0f;
+    const u8 *unsigned_str = (const u8 *) str;
+    for (u32 i = 0; i < length;) {
+        if (unsigned_str[i] == ' ') {
+            width += 10.0f * style.scale;
+            ++i;
+            continue;
+        }
+
+        // TODO: Factor this out so both functions can use the same code?
+        stbtt_packedchar pc;
+        u32 codepoint = 0;
+        if (unsigned_str[i] <= 0x7F) {
+            codepoint = unsigned_str[i];
+            ++i;
+        } else if ((unsigned_str[i] & 0b11110000) == 0b11110000) {
+            codepoint = ((unsigned_str[i] & 0b00000111) << 18) | ((unsigned_str[i + 1] & 0b00111111) << 12) | ((unsigned_str[i + 2] & 0b00111111) << 6) | (unsigned_str[i + 3] & 0b00111111);
+            i += 4;
+        } else if ((unsigned_str[i] & 0b11100000) == 0b11100000) {
+            codepoint = ((unsigned_str[i] & 0b00001111) << 12) | ((unsigned_str[i + 1] & 0b00111111) << 6) | ((unsigned_str[i + 2] & 0b00111111));
+            i += 3;
+        } else if ((unsigned_str[i] & 0b11000000) == 0b11000000) {
+            codepoint = ((unsigned_str[i] & 0b00011111) << 6) | ((unsigned_str[i + 1] & 0b00111111));
+            i += 2;
+        } else {
+            ICHIGO_ERROR("Not a valid utf8 character: %u", unsigned_str[i]);
+            ++i;
+            continue;
+        }
+
+        if (codepoint >= character_ranges[0].first_codepoint && codepoint <= character_ranges[0].first_codepoint + character_ranges[0].length) {
+            pc = printable_ascii_pack_data[codepoint - character_ranges[0].first_codepoint];
+        } else if (codepoint >= character_ranges[1].first_codepoint && codepoint <= character_ranges[1].first_codepoint + character_ranges[1].length) {
+            pc = cjk_pack_data[codepoint - character_ranges[1].first_codepoint];
+        } else if (codepoint >= character_ranges[2].first_codepoint && codepoint <= character_ranges[2].first_codepoint + character_ranges[2].length) {
+            i64 index = kanji_hash_map.get(codepoint);
+            if (index == -1) {
+                ICHIGO_ERROR("Unsupported CJK ideograph: 0x%X", codepoint);
+                continue;
+            }
+
+            pc = kanji_pack_data[index];
+        } else if (codepoint >= character_ranges[3].first_codepoint && codepoint <= character_ranges[3].first_codepoint + character_ranges[3].length) {
+            pc = half_and_full_width_pack_data[codepoint - character_ranges[3].first_codepoint];
+        } else {
+            // This characer is not in the font atlas.
+            continue;
+        }
+
+        width += pc.xadvance * style.scale;
+    }
+
+    return width * pixels_to_metres(0.2f);
+}
+
 static void render_text(Vec2<f32> pos, const char *str, usize length, Ichigo::CoordinateSystem coordinate_system, Ichigo::TextStyle style) {
     assert(Util::utf8_char_count(str, length) < MAX_TEXT_STRING_LENGTH);
 
@@ -475,13 +531,17 @@ void default_entity_render_proc(Ichigo::Entity *entity) {
 
     if (DEBUG_draw_colliders) {
         world_render_solid_colour_rect(entity->col, {1.0f, 0.2f, 0.2f, 0.6f});
+
         Ichigo::TextStyle style;
         style.scale     = 0.5f;
         style.alignment = Ichigo::TextAlignment::LEFT;
-        style.colour    = {1.0f, 0.0f, 1.0f, 1.0f};
+        style.colour    = {1.0f, 0.0f, 1.0f, 0.8f};
 
+        usize name_len = std::strlen(entity->name);
+        f32 text_width = get_text_width(entity->name, name_len, style);
         Vec2<f32> pos = entity->col.pos + Vec2<f32>{0.0f, -0.05f};
-        render_text(pos, entity->name, std::strlen(entity->name), Ichigo::CoordinateSystem::WORLD, style);
+        world_render_solid_colour_rect({pos + Vec2<f32>{0.0f, -0.15f}, text_width, 0.2f}, {0.0f, 0.0f, 0.0f, 0.8f});
+        render_text(pos, entity->name, name_len, Ichigo::CoordinateSystem::WORLD, style);
     }
 }
 
@@ -801,10 +861,12 @@ static void frame_render() {
     // == Entities ==
     for (u32 i = 1; i < Ichigo::Internal::entities.size; ++i) {
         Ichigo::Entity &entity = Ichigo::Internal::entities.at(i);
-        if (entity.render_proc)
-            entity.render_proc(&entity);
-        else
-            default_entity_render_proc(&entity);
+        if (entity.id.index != 0) {
+            if (entity.render_proc)
+                entity.render_proc(&entity);
+            else
+                default_entity_render_proc(&entity);
+        }
     }
     // == End entities ==
 
