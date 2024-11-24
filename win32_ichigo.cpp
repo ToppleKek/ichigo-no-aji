@@ -277,12 +277,11 @@ static void win32_write_samples(u8 *buffer, u32 offset, u32 bytes_to_write) {
 static void win32_do_frame() {
     f64 frame_start_time = Ichigo::Internal::platform_get_current_time();
 
-    static bool controller_connected = false;
     XINPUT_STATE controller0_state = {};
     if (XInputGetState(0, &controller0_state) == ERROR_SUCCESS) {
-        if (!controller_connected) {
+        if (!Ichigo::Internal::gamepad.connected) {
             ICHIGO_INFO("XInput: Controller 0 connected");
-            controller_connected = true;
+            Ichigo::Internal::gamepad.connected = true;
         }
 
 #define WAS_DOWN(BTN) Ichigo::Internal::gamepad.BTN.down
@@ -355,9 +354,9 @@ static void win32_do_frame() {
             Ichigo::Internal::gamepad.stick_right = {0.0f, 0.0f};
         }
     } else {
-        if (controller_connected) {
+        if (Ichigo::Internal::gamepad.connected) {
             ICHIGO_INFO("XInput: Controller 0 disconnected");
-            controller_connected = false;
+            Ichigo::Internal::gamepad.connected = false;
         }
     }
 

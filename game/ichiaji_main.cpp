@@ -16,11 +16,12 @@ static Ichigo::TextureID enemy_texture_id   = 0;
 static Ichigo::TextureID test_bg_texture_id = 0;
 static Ichigo::AudioID   test_music_id      = 0;
 
-static void entity_collide_proc(Ichigo::Entity *entity, Ichigo::Entity *other_entity) {
-    ICHIGO_INFO("I (%s) just collided with %s!", entity->name, other_entity->name);
+static void entity_collide_proc(Ichigo::Entity *entity, Ichigo::Entity *other_entity, Vec2<f32> collision_normal, f32 best_t) {
+    ICHIGO_INFO("I (%s) just collided with %s! Normal=%f,%f best_t=%f", entity->name, other_entity->name, collision_normal.x, collision_normal.y, best_t);
 }
 
 static Ichigo::EntityID gert_id;
+static bool controller_connected = false;
 
 void Ichigo::Game::init() {
     test_bg_texture_id    = Ichigo::load_texture(test_bg, test_bg_len);
@@ -80,12 +81,19 @@ void Ichigo::Game::init() {
     Ichigo::Mixer::play_audio(test_music_id, 1.0f, 1.0f, 1.0f, 0.864f, 54.188f);
 }
 
+// Runs at the beginning of a new frame
 void Ichigo::Game::frame_begin() {
-    // Runs at the beginning of a new frame
 }
 
+// Runs right before the engine begins to render
 void Ichigo::Game::update_and_render() {
-    // Runs right before the engine begins to render
+    if (!controller_connected && Internal::gamepad.connected) {
+        show_info("Controller connected!");
+        controller_connected = true;
+    } else if (controller_connected && !Internal::gamepad.connected) {
+        show_info("Controller disconnected!");
+        controller_connected = false;
+    }
 
     Ichigo::DrawCommand test_draw_command;
     test_draw_command.coordinate_system = Ichigo::CoordinateSystem::WORLD;
@@ -98,18 +106,6 @@ void Ichigo::Game::update_and_render() {
     style.scale     = 0.8f;
     style.alignment = Ichigo::TextAlignment::LEFT;
     style.colour    = {0.0f, 0.0f, 0.0f, 1.0f};
-
-    Ichigo::Entity *gert = Ichigo::get_entity(gert_id);
-    if (gert) {
-        Ichigo::DrawCommand test_draw_command2;
-        test_draw_command2.coordinate_system = Ichigo::CoordinateSystem::WORLD;
-        test_draw_command2.type              = Ichigo::DrawCommandType::TEXT;
-        test_draw_command2.string            = "gert";
-        test_draw_command2.string_length     = 4;
-        test_draw_command2.string_pos        = gert->col.pos;
-        test_draw_command2.text_style        = style;
-        Ichigo::push_draw_command(test_draw_command2);
-    }
 
     const char *ichiaji = "Ichigo no Aji! いちごのあじ！ イチゴノアジ！ 苺の味！ Ｉｃｈｉｇｏ ｎｏ Ａｊｉ！";
     Ichigo::DrawCommand test_draw_command2;
@@ -135,6 +131,6 @@ void Ichigo::Game::update_and_render() {
     Ichigo::push_draw_command(test_draw_command3);
 }
 
+// Runs at the end of the fame (Thinking about this interface still, maybe we don't need these?)
 void Ichigo::Game::frame_end() {
-    // Runs at the end of the fame (Thinking about this interface still, maybe we don't need these?)
 }

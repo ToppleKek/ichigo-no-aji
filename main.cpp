@@ -41,6 +41,7 @@ static f32 last_dpi_scale = 1.0f;
 static ImGuiStyle initial_style;
 static ImFontConfig font_config;
 static bool show_debug_menu = true;
+static bool DEBUG_draw_colliders = false;
 
 static GLuint texture_shader_program;
 static GLuint text_shader_program;
@@ -471,6 +472,17 @@ void default_entity_render_proc(Ichigo::Entity *entity) {
     Ichigo::Internal::gl.glUniformMatrix4fv(object_uniform, 1, GL_TRUE, (GLfloat *) &identity_mat4);
 
     Ichigo::Internal::gl.glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+
+    if (DEBUG_draw_colliders) {
+        world_render_solid_colour_rect(entity->col, {1.0f, 0.2f, 0.2f, 0.6f});
+        Ichigo::TextStyle style;
+        style.scale     = 0.5f;
+        style.alignment = Ichigo::TextAlignment::LEFT;
+        style.colour    = {1.0f, 0.0f, 1.0f, 1.0f};
+
+        Vec2<f32> pos = entity->col.pos + Vec2<f32>{0.0f, -0.05f};
+        render_text(pos, entity->name, std::strlen(entity->name), Ichigo::CoordinateSystem::WORLD, style);
+    }
 }
 
 void Ichigo::set_tilemap(Tilemap *tilemap) {
@@ -912,6 +924,8 @@ void Ichigo::Internal::do_frame() {
         }
 
         if (ImGui::CollapsingHeader("Entities", ImGuiTreeNodeFlags_DefaultOpen)) {
+            ImGui::SeparatorText("Debug");
+            ImGui::Checkbox("Draw colliders", &DEBUG_draw_colliders);
             ImGui::SeparatorText("Entity List");
             for (u32 i = 0; i < Ichigo::Internal::entities.size; ++i) {
                 Ichigo::Entity &entity = Ichigo::Internal::entities.at(i);
@@ -1022,19 +1036,6 @@ void Ichigo::Internal::do_frame() {
             Ichigo::Entity &entity = Ichigo::Internal::entities.at(i);
             if (entity.update_proc)
                 entity.update_proc(&entity);
-        }
-
-        for (u32 i = 1; i < Ichigo::Internal::entities.size; ++i) {
-            Ichigo::Entity &entity = Ichigo::Internal::entities.at(i);
-            for (u32 j = i; j < Ichigo::Internal::entities.size; ++j) {
-                Ichigo::Entity &other_entity = Ichigo::Internal::entities.at(j);
-                if (rectangles_intersect(entity.col, other_entity.col)) {
-                    if (entity.collide_proc)
-                        entity.collide_proc(&entity, &other_entity);
-                    if (other_entity.collide_proc)
-                        other_entity.collide_proc(&other_entity, &entity);
-                }
-            }
         }
 
         // TODO: Let the game update first? Not sure? Maybe they want to change something about an entity before it gets updated.

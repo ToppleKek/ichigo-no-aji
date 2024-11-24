@@ -66,6 +66,7 @@ static bool test_wall(f32 x, f32 x0, f32 dx, f32 py, f32 dy, f32 ty0, f32 ty1, f
 }
 
 static inline Vec2<f32> calculate_projected_next_position(Ichigo::Entity *entity) {
+    // FIXME: maybe this should consider friction...?
     Vec2<f32> entity_delta = 0.5f * entity->acceleration * (Ichigo::Internal::dt * Ichigo::Internal::dt) + entity->velocity * Ichigo::Internal::dt;
     return entity_delta + entity->col.pos;
 }
@@ -146,6 +147,44 @@ Ichigo::EntityMoveResult Ichigo::move_entity_in_world(Ichigo::Entity *entity) {
 
     // ICHIGO_INFO("Nearby tiles this frame:");
     f32 t_remaining = 1.0f;
+
+    for (u32 i = 1; i < Ichigo::Internal::entities.size; ++i) {
+        Ichigo::Entity &entity = Ichigo::Internal::entities.at(i);
+        Vec2<f32> centered_entity_p = entity.col.pos + Vec2<f32>{entity.col.w / 2.0f, entity.col.h / 2.0f};
+        f32 best_t = 1.0f;
+
+        for (u32 j = i; j < Ichigo::Internal::entities.size; ++j) {
+            Ichigo::Entity &other_entity = Ichigo::Internal::entities.at(j);
+            Vec2<f32> centered_other_entity_p = other_entity.col.pos + Vec2<f32>{other_entity.col.w / 2.0f, other_entity.col.h / 2.0f};
+            Vec2<f32> min_corner = {centered_other_entity_p.x - entity.col.w / 2.0f, centered_other_entity_p.y - entity.col.h / 2.0f};
+            Vec2<f32> max_corner = {centered_other_entity_p.x + other_entity.col.w + entity.col.w / 2.0f, centered_other_entity_p.y + other_entity.col.h + entity.col.h / 2.0f};
+            Vec2<f32> normal = {};
+
+            if (test_wall(min_corner.x, centered_entity_p.x, entity_delta.x, centered_entity_p.y, entity_delta.y, min_corner.y, max_corner.y, &best_t)) {
+                normal = { -1, 0 };
+            }
+            if (test_wall(max_corner.x, centered_entity_p.x, entity_delta.x, centered_entity_p.y, entity_delta.y, min_corner.y, max_corner.y, &best_t)) {
+                normal = { 1, 0 };
+            }
+            if (test_wall(min_corner.y, centered_entity_p.y, entity_delta.y, centered_entity_p.x, entity_delta.x, min_corner.x, max_corner.x, &best_t)) {
+                normal = { 0, -1 };
+            }
+            if (test_wall(max_corner.y, centered_entity_p.y, entity_delta.y, centered_entity_p.x, entity_delta.x, min_corner.x, max_corner.x, &best_t)) {
+                normal = { 0, 1 };
+            }
+
+            if (normal.x != 0.0f || normal.y != 0.0f) {
+                // We guarantee that the first entity parameter is can always be considered the "self" entity.
+                if (entity.collide_proc) {
+                    entity.collide_proc(&entity, &other_entity, normal, best_t);
+                }
+
+                if (other_entity.collide_proc) {
+                    other_entity.collide_proc(&other_entity, &entity, normal, best_t);
+                }
+            }
+        }
+    }
 
     for (u32 i = 0; i < 4 && t_remaining > 0.0f; ++i) {
         u32 max_tile_y = std::ceil(MAX(potential_next_col.pos.y + entity->col.h, entity->col.pos.y + entity->col.h));

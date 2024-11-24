@@ -8,7 +8,7 @@ namespace Ichigo {
 struct Entity;
 using EntityRenderProc  = void (Entity *);
 using EntityUpdateProc  = void (Entity *);
-using EntityCollideProc = void (Entity *, Entity *);
+using EntityCollideProc = void (Entity *, Entity *, Vec2<f32>, f32);
 using EntityFlags       = u64;
 
 namespace EntityControllers {
@@ -89,8 +89,9 @@ Entity *spawn_entity();
 Entity *get_entity(EntityID id);
 void kill_entity(EntityID id);
 EntityMoveResult move_entity_in_world(Entity *entity);
+Vec2<f32> get_collision_normal(Entity *entity, Entity *other_entity);
 namespace Internal {
 extern Util::IchigoVector<Ichigo::Entity> entities;
-char *entity_id_as_string(EntityID entity_id); // TODO: NOT THREAD SAFE!!
+char *entity_id_as_string(EntityID entity_id); // TODO: NOT THREAD SAFE!! - message to past me- nothing really is lol. Who cares right now? We are a 2D game engine that runs at ~3000fps.
 }
 }

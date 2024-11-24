@@ -134,6 +134,8 @@ struct Gamepad {
     KeyState stick_right_click;
     Vec2<f32> stick_left;
     Vec2<f32> stick_right;
+
+    bool connected;
 };
 
 struct Mouse {
