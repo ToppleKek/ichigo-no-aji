@@ -32,6 +32,15 @@ enum EntityFlag {
     // EF_ANIM_LOOPING = 1 << 2, // TODO: Not sure if this makes sense?
 };
 
+enum EntityMoveResult {
+    NO_MOVE,
+    NOTHING_SPECIAL,
+    HIT_GROUND,
+    HIT_WALL,
+    HIT_CEILING,
+    BECAME_AIRBORNE,
+};
+
 struct SpriteSheet {
     u32 cell_width;
     u32 cell_height;
@@ -79,7 +88,7 @@ struct Entity {
 Entity *spawn_entity();
 Entity *get_entity(EntityID id);
 void kill_entity(EntityID id);
-void move_entity_in_world(Entity *entity);
+EntityMoveResult move_entity_in_world(Entity *entity);
 namespace Internal {
 extern Util::IchigoVector<Ichigo::Entity> entities;
 char *entity_id_as_string(EntityID entity_id); // TODO: NOT THREAD SAFE!!

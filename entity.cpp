@@ -70,7 +70,8 @@ static inline Vec2<f32> calculate_projected_next_position(Ichigo::Entity *entity
     return entity_delta + entity->col.pos;
 }
 
-void Ichigo::move_entity_in_world(Ichigo::Entity *entity) {
+Ichigo::EntityMoveResult Ichigo::move_entity_in_world(Ichigo::Entity *entity) {
+    EntityMoveResult result = NOTHING_SPECIAL;
     // TODO: Which standing tile do we pick to get friction from?
     const TileInfo &standing_tile_info = Internal::current_tilemap.tile_info[tile_at(entity->left_standing_tile)];
 
@@ -140,7 +141,7 @@ void Ichigo::move_entity_in_world(Ichigo::Entity *entity) {
     // }
 
     if (entity->velocity.x == 0.0f && entity->velocity.y == 0.0f) {
-        return;
+        return NO_MOVE;
     }
 
     // ICHIGO_INFO("Nearby tiles this frame:");
@@ -187,10 +188,14 @@ void Ichigo::move_entity_in_world(Ichigo::Entity *entity) {
             }
         }
 
-        // if (wall_normal.x != 0.0f || wall_normal.y != 0.0f)
-        //     ICHIGO_INFO("FINAL wall normal: %f,%f best_t=%f", wall_normal.x, wall_normal.y, best_t);
+        if (wall_normal.x != 0.0f) {
+            result = HIT_WALL;
+        } else if (wall_normal.y == 1.0f) {
+            result = HIT_CEILING;
+        }
 
         if (!FLAG_IS_SET(entity->flags, Ichigo::EntityFlag::EF_ON_GROUND) && wall_normal.y == -1.0f) {
+            result = HIT_GROUND;
             SET_FLAG(entity->flags, Ichigo::EntityFlag::EF_ON_GROUND);
             // TODO: Bug where you stop at 0.0000001 units away from the ground
             //       Floating point precision error? Maybe we will just snap to the floor when we touch it?
@@ -246,6 +251,7 @@ void Ichigo::move_entity_in_world(Ichigo::Entity *entity) {
     }
 
     if (entity->velocity.y != 0.0f) {
+        result = BECAME_AIRBORNE;
         CLEAR_FLAG(entity->flags, Ichigo::EntityFlag::EF_ON_GROUND);
     }
 
@@ -253,10 +259,12 @@ void Ichigo::move_entity_in_world(Ichigo::Entity *entity) {
         entity->left_standing_tile  = { (u32) entity->col.pos.x, (u32) (entity->col.pos.y + entity->col.h) + 1 };
         entity->right_standing_tile = { (u32) (entity->col.pos.x + entity->col.w), (u32) (entity->col.pos.y + entity->col.h) + 1 };
         if (Ichigo::tile_at(entity->left_standing_tile) == ICHIGO_AIR_TILE && Ichigo::tile_at(entity->right_standing_tile) == ICHIGO_AIR_TILE) {
-            ICHIGO_INFO("ENTITY %s BECAME AIRBORNE!", Internal::entity_id_as_string(entity->id));
+            result = BECAME_AIRBORNE;
             CLEAR_FLAG(entity->flags, Ichigo::EntityFlag::EF_ON_GROUND);
         }
     }
+
+    return result;
 }
 
 void Ichigo::EntityControllers::player_controller(Ichigo::Entity *player_entity) {
