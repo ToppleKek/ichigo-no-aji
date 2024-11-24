@@ -54,7 +54,7 @@ void Ichigo::Game::init() {
     std::strcpy(enemy->name, "gert");
     enemy->col            = {{9.0f, 2.0f}, 0.5f, 0.5f};
     enemy->max_velocity   = {2.0f, 12.0f};
-    enemy->movement_speed = 20.0f;
+    enemy->movement_speed = 6.0f;
     enemy->gravity        = 9.8f;
     enemy->update_proc    = Ichigo::EntityControllers::patrol_controller;
     enemy->collide_proc   = entity_collide_proc;
