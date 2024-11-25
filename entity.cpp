@@ -73,14 +73,17 @@ static inline Vec2<f32> calculate_projected_next_position(Ichigo::Entity *entity
 
 Ichigo::EntityMoveResult Ichigo::move_entity_in_world(Ichigo::Entity *entity) {
     EntityMoveResult result = NOTHING_SPECIAL;
-    // TODO: Which standing tile do we pick to get friction from?
-    const TileInfo &standing_tile_info = Internal::current_tilemap.tile_info[tile_at(entity->left_standing_tile)];
+
+    // The friction used in all calculations will be the tile with the highest friction.
+    const TileInfo &left_standing_tile_info  = Internal::current_tilemap.tile_info[tile_at(entity->left_standing_tile)];
+    const TileInfo &right_standing_tile_info = Internal::current_tilemap.tile_info[tile_at(entity->right_standing_tile)];
+    f32 friction = MAX(left_standing_tile_info.friction, right_standing_tile_info.friction);
 
     Vec2<f32> external_acceleration = {};
     i32 direction = (i32) signof(entity->velocity.x);
     if (FLAG_IS_SET(entity->flags, EF_ON_GROUND) && entity->acceleration.x != 0.0f) {
         // On a high friction surface, you would keep a lot of accelreation. On a low friction surface, you would lose a lot of your acceleration.
-        external_acceleration.x = entity->acceleration.x + (std::fabsf(entity->acceleration.x) * (safe_ratio_0(1.0f, safe_ratio_1(standing_tile_info.friction, 2.0f)) * -signof(entity->acceleration.x)));
+        external_acceleration.x = entity->acceleration.x + (std::fabsf(entity->acceleration.x) * (safe_ratio_0(1.0f, safe_ratio_1(friction, 2.0f)) * -signof(entity->acceleration.x)));
 
     } else if (!FLAG_IS_SET(entity->flags, EF_ON_GROUND) && entity->acceleration.x != 0.0f) {
         // Drag
@@ -89,7 +92,7 @@ Ichigo::EntityMoveResult Ichigo::move_entity_in_world(Ichigo::Entity *entity) {
     }
 
     if (entity->acceleration.x == 0.0f && entity->velocity.x != 0.0f) {
-        external_acceleration.x = -standing_tile_info.friction * direction;
+        external_acceleration.x = -friction * direction;
     }
 
     if (!FLAG_IS_SET(entity->flags, Ichigo::EntityFlag::EF_ON_GROUND)) {
@@ -100,7 +103,7 @@ Ichigo::EntityMoveResult Ichigo::move_entity_in_world(Ichigo::Entity *entity) {
     // final_acceleration.x = external_acceleration.x + entity->acceleration.x;
     bool was_limited = false;
     if (std::fabsf(entity->velocity.x) > entity->max_velocity.x) {
-        external_acceleration.x = -standing_tile_info.friction * direction;
+        external_acceleration.x = -friction * direction;
         final_acceleration.x = external_acceleration.x;
         if (signof(entity->acceleration.x) != signof(entity->velocity.x)) {
             final_acceleration.x += entity->acceleration.x;
