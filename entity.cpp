@@ -145,6 +145,7 @@ Ichigo::EntityMoveResult Ichigo::move_entity_in_world(Ichigo::Entity *entity) {
 
     if (entity->velocity.x != 0.0f) {
         entity->velocity += final_acceleration * Ichigo::Internal::dt;
+        // Stop the velocity at 0 before changing direction. This prevents the friction force from pushing back infinitely.
         if (signof(entity->velocity.x) != direction) {
             entity->velocity.x = 0.0f;
         }
@@ -183,6 +184,12 @@ Ichigo::EntityMoveResult Ichigo::move_entity_in_world(Ichigo::Entity *entity) {
         for (u32 j = i + 1; j < Ichigo::Internal::entities.size; ++j) {
             Ichigo::Entity &other_entity = Ichigo::Internal::entities.at(j);
             if (other_entity.id.index == 0) {
+                continue;
+            }
+
+            // Skip this entity if the colliders already intersect. We only run the collide procedure on collider enter.
+            // TODO: Call the collide procedure on exit as well? We would just have to mirror the normal vector.
+            if (rectangles_intersect(entity.col, other_entity.col)) {
                 continue;
             }
 

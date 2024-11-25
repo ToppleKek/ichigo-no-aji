@@ -23,33 +23,7 @@ static void entity_collide_proc(Ichigo::Entity *entity, Ichigo::Entity *other_en
 static Ichigo::EntityID gert_id;
 static bool controller_connected = false;
 
-void Ichigo::Game::init() {
-    test_bg_texture_id    = Ichigo::load_texture(test_bg, test_bg_len);
-    enemy_texture_id      = Ichigo::load_texture(enemy_png, enemy_png_len);
-    test_music_id         = Ichigo::load_audio(test_song, test_song_len);
-    tileset_texture       = Ichigo::load_texture(tileset_png, tileset_png_len);
-
-    Ichigo::game_state.background_colour = {0.54f, 0.84f, 1.0f, 1.0f};
-    Ichigo::game_state.background_layers[0].texture_id     = test_bg_texture_id;
-    Ichigo::game_state.background_layers[0].flags          = Ichigo::BG_REPEAT_X;
-    Ichigo::game_state.background_layers[0].start_position = {0.0f, 0.0f};
-    Ichigo::game_state.background_layers[0].scroll_speed   = {0.5f, 0.6f};
-
-    Ichigo::SpriteSheet tileset_sheet = {};
-    tileset_sheet.cell_width  = 32;
-    tileset_sheet.cell_height = 32;
-    tileset_sheet.texture     = tileset_texture;
-
-    Ichigo::set_tilemap((u8 *) level1_tilemap, tileset_sheet);
-
-    Ichigo::Entity *player = Ichigo::spawn_entity();
-    Irisu::init(player);
-
-    Ichigo::game_state.player_entity_id = player->id;
-
-    Ichigo::Camera::mode = Ichigo::Camera::Mode::FOLLOW;
-    Ichigo::Camera::follow(player->id);
-
+static void spawn_gert() {
     Ichigo::Entity *enemy = Ichigo::spawn_entity();
     gert_id = enemy->id;
     std::strcpy(enemy->name, "gert");
@@ -77,6 +51,36 @@ void Ichigo::Game::init() {
     gert_sprite.animation         = gert_idle;
 
     enemy->sprite = gert_sprite;
+}
+
+void Ichigo::Game::init() {
+    test_bg_texture_id    = Ichigo::load_texture(test_bg, test_bg_len);
+    enemy_texture_id      = Ichigo::load_texture(enemy_png, enemy_png_len);
+    test_music_id         = Ichigo::load_audio(test_song, test_song_len);
+    tileset_texture       = Ichigo::load_texture(tileset_png, tileset_png_len);
+
+    Ichigo::game_state.background_colour = {0.54f, 0.84f, 1.0f, 1.0f};
+    Ichigo::game_state.background_layers[0].texture_id     = test_bg_texture_id;
+    Ichigo::game_state.background_layers[0].flags          = Ichigo::BG_REPEAT_X;
+    Ichigo::game_state.background_layers[0].start_position = {0.0f, 0.0f};
+    Ichigo::game_state.background_layers[0].scroll_speed   = {0.5f, 0.6f};
+
+    Ichigo::SpriteSheet tileset_sheet = {};
+    tileset_sheet.cell_width  = 32;
+    tileset_sheet.cell_height = 32;
+    tileset_sheet.texture     = tileset_texture;
+
+    Ichigo::set_tilemap((u8 *) level1_tilemap, tileset_sheet);
+
+    Ichigo::Entity *player = Ichigo::spawn_entity();
+    Irisu::init(player);
+
+    spawn_gert();
+
+    Ichigo::game_state.player_entity_id = player->id;
+
+    Ichigo::Camera::mode = Ichigo::Camera::Mode::FOLLOW;
+    Ichigo::Camera::follow(player->id);
 
     Ichigo::Mixer::master_volume = 0.4f;
 
@@ -131,6 +135,10 @@ void Ichigo::Game::update_and_render() {
     test_draw_command3.text_style        = style;
 
     Ichigo::push_draw_command(test_draw_command3);
+
+    if (Internal::keyboard_state[IK_G].down_this_frame) {
+        spawn_gert();
+    }
 }
 
 // Runs at the end of the fame (Thinking about this interface still, maybe we don't need these?)
