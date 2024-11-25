@@ -1,5 +1,6 @@
 #include "../ichigo.hpp"
 #include "irisu.hpp"
+#include "coin.hpp"
 
 EMBED("assets/enemy.png", enemy_png)
 EMBED("assets/bg.png", test_bg)
@@ -53,6 +54,8 @@ static void spawn_gert() {
     enemy->sprite = gert_sprite;
 }
 
+static Ichigo::EntityID coins[3] = {};
+
 void Ichigo::Game::init() {
     test_bg_texture_id    = Ichigo::load_texture(test_bg, test_bg_len);
     enemy_texture_id      = Ichigo::load_texture(enemy_png, enemy_png_len);
@@ -72,9 +75,11 @@ void Ichigo::Game::init() {
 
     Ichigo::set_tilemap((u8 *) level1_tilemap, tileset_sheet);
 
+    Coin::init();
     Ichigo::Entity *player = Ichigo::spawn_entity();
     Irisu::init(player);
 
+    coins[0] = Coin::spawn({18.0f, 14.0f});
     spawn_gert();
 
     Ichigo::game_state.player_entity_id = player->id;
