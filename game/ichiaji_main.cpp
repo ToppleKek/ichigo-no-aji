@@ -9,7 +9,7 @@ EMBED("assets/music/song.mp3", test_song)
 EMBED("assets/tiles.png", tileset_png)
 
 // Tilemaps
-EMBED("assets/level1_flowers.ichigotm", level1_tilemap);
+EMBED("assets/lvl1.ichigotm", level1_tilemap);
 
 static Ichigo::TextureID tileset_texture = 0;
 static Ichigo::TextureID enemy_texture_id   = 0;
@@ -53,7 +53,7 @@ void Ichigo::Game::init() {
     Ichigo::Entity *enemy = Ichigo::spawn_entity();
     gert_id = enemy->id;
     std::strcpy(enemy->name, "gert");
-    enemy->col            = {{9.0f, 2.0f}, 0.5f, 0.5f};
+    enemy->col            = {{18.0f, 14.0f}, 0.5f, 0.5f};
     enemy->max_velocity   = {2.0f, 12.0f};
     enemy->movement_speed = 6.0f;
     enemy->gravity        = 9.8f;

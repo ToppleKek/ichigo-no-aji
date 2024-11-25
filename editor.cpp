@@ -306,7 +306,7 @@ void Ichigo::Editor::render_ui() {
             ImGui::EndCombo();
         }
 
-        ImGui::Text("Brush tile: %u", selected_brush_tile);
+        ImGui::Text("Selected at: %d,%d", selected_region.pos.x, selected_region.pos.y);
         if (ImGui::Button("Fill region (f)")) {
             fill_selected_region(selected_brush_tile);
         }
