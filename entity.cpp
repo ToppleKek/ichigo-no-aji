@@ -1,3 +1,12 @@
+/*
+    Ichigo! A simple, from scratch, minimal dependency game engine for 2D side scrolling games.
+
+    Entity functions.
+
+    Author:      Braeden Hong
+    Last edited: 2024/11/25
+*/
+
 #include "entity.hpp"
 #include "ichigo.hpp"
 
@@ -44,13 +53,15 @@ void Ichigo::kill_entity(EntityID id) {
     entity->id.index = 0;
 }
 
+// Perform a sort of "reverse lerp" to find the time, "best_t", at which the dx vector would collide with the wall at x.
+// Ensure that this collision is valid by verifying that the y value, "py" ("player y"), would actually hit this wall: ty0 and ty1 ("tile y 0" and "tile y 1").
 // x = a + t*(b-a)
 static bool test_wall(f32 x, f32 x0, f32 dx, f32 py, f32 dy, f32 ty0, f32 ty1, f32 *best_t) {
     // SEARCH IN T (x - x_0)/(x_1 - x_0) = t
     f32 t = safe_ratio_1(x - x0, dx);
     f32 y = t * dy + py;
 
-// TODO: Error value?
+// TODO: Is this ok?
 #define T_EPSILON 0.00999f
     if (t >= 0 && t < *best_t) {
         if ((y > ty0 && y < ty1)) {
@@ -71,6 +82,7 @@ static inline Vec2<f32> calculate_projected_next_position(Ichigo::Entity *entity
     return entity_delta + entity->col.pos;
 }
 
+// Move the entity in the world, considering all external forces (gravity, friction) and performing all collision detection (other entities and tilemap).
 Ichigo::EntityMoveResult Ichigo::move_entity_in_world(Ichigo::Entity *entity) {
     EntityMoveResult result = NOTHING_SPECIAL;
 
@@ -81,28 +93,35 @@ Ichigo::EntityMoveResult Ichigo::move_entity_in_world(Ichigo::Entity *entity) {
 
     Vec2<f32> external_acceleration = {};
     i32 direction = (i32) signof(entity->velocity.x);
+
+    // Traction.
     if (FLAG_IS_SET(entity->flags, EF_ON_GROUND) && entity->acceleration.x != 0.0f) {
         // On a high friction surface, you would keep a lot of accelreation. On a low friction surface, you would lose a lot of your acceleration.
         external_acceleration.x = entity->acceleration.x + (std::fabsf(entity->acceleration.x) * (safe_ratio_0(1.0f, safe_ratio_1(friction, 2.0f)) * -signof(entity->acceleration.x)));
-
     } else if (!FLAG_IS_SET(entity->flags, EF_ON_GROUND) && entity->acceleration.x != 0.0f) {
-        // Drag
+        // Drag/air resistance
         // TODO: Make drag configurable.
         external_acceleration.x += -4.0f * signof(entity->velocity.x);
     }
 
+    // Friction deceleration. Only applies when you are not trying to move.
+    // NOTE: Kind of confusing. entity->acceleration is ONLY the "applied acceleration" by the entity. Does NOT include the external acceleration values.
     if (entity->acceleration.x == 0.0f && entity->velocity.x != 0.0f) {
         external_acceleration.x = -friction * direction;
     }
 
+    // Gravity.
     if (!FLAG_IS_SET(entity->flags, Ichigo::EntityFlag::EF_ON_GROUND)) {
         external_acceleration.y = entity->gravity;
     }
 
     Vec2<f32> final_acceleration = {};
-    // final_acceleration.x = external_acceleration.x + entity->acceleration.x;
+
+    // If the entity is above its maximum velocity, do not apply any of the entity's acceleration, and only apply external forces.
+    // This allows the entity to naturally slow down to the max velocity instead of immediately getting clamped to the max.
     bool was_limited = false;
     if (std::fabsf(entity->velocity.x) > entity->max_velocity.x) {
+        // FIXME: Stupid hack. Since the entity is likely still applying acceleration, we forcibly apply friction here.
         external_acceleration.x = -friction * direction;
         final_acceleration.x = external_acceleration.x;
         if (signof(entity->acceleration.x) != signof(entity->velocity.x)) {
@@ -117,6 +136,9 @@ Ichigo::EntityMoveResult Ichigo::move_entity_in_world(Ichigo::Entity *entity) {
     final_acceleration.y = entity->acceleration.y + external_acceleration.y;
     // entity->acceleration = final_acceleration;
 
+    // Equations of motion!
+    // p' = 1/2 at^2 + vt + p
+    // v' = at + v
     Vec2<f32> entity_delta = 0.5f * final_acceleration * (Ichigo::Internal::dt * Ichigo::Internal::dt) + entity->velocity * Ichigo::Internal::dt;
     Rect<f32> potential_next_col = entity->col;
     potential_next_col.pos = entity_delta + entity->col.pos;
@@ -148,9 +170,7 @@ Ichigo::EntityMoveResult Ichigo::move_entity_in_world(Ichigo::Entity *entity) {
         return NO_MOVE;
     }
 
-    // ICHIGO_INFO("Nearby tiles this frame:");
-    f32 t_remaining = 1.0f;
-
+    // Check entity collisions.
     for (u32 i = 1; i < Ichigo::Internal::entities.size; ++i) {
         Ichigo::Entity &entity = Ichigo::Internal::entities.at(i);
         if (entity.id.index == 0) {
@@ -191,12 +211,13 @@ Ichigo::EntityMoveResult Ichigo::move_entity_in_world(Ichigo::Entity *entity) {
                 }
 
                 if (other_entity.collide_proc) {
-                    other_entity.collide_proc(&other_entity, &entity, normal, entity.col.pos + entity_delta * best_t);
+                    other_entity.collide_proc(&other_entity, &entity, normal * Vec2<f32>{-1.0f, -1.0f}, entity.col.pos + entity_delta * best_t);
                 }
             }
         }
     }
 
+    f32 t_remaining = 1.0f;
     for (u32 i = 0; i < 4 && t_remaining > 0.0f; ++i) {
         u32 max_tile_y = std::ceil(MAX(potential_next_col.pos.y + entity->col.h, entity->col.pos.y + entity->col.h));
         u32 max_tile_x = std::ceil(MAX(potential_next_col.pos.x + entity->col.w, entity->col.pos.x + entity->col.w));
@@ -340,10 +361,6 @@ void Ichigo::EntityControllers::player_controller(Ichigo::Entity *player_entity)
         player_entity->acceleration.y = -player_entity->jump_acceleration * (effective_dt / Ichigo::Internal::dt);
         jump_t -= effective_dt;
     }
-
-    // p' = 1/2 at^2 + vt + p
-    // v' = at + v
-    // a
 
     Ichigo::move_entity_in_world(player_entity);
 }

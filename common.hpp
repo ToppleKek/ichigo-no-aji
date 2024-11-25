@@ -60,6 +60,6 @@ using f64 = double;
 #ifdef _WIN32
 #define platform_alloca _alloca
 #endif
-#ifdef _UNIX
+#ifdef unix
 #define platform_alloca alloca
 #endif

@@ -1,3 +1,13 @@
+/*
+    Ichigo! A simple, from scratch, minimal dependency game engine for 2D side scrolling games.
+
+    Tilemap and tileset editor.
+
+    Author:      Braeden Hong
+    Last edited: 2024/11/25
+*/
+
+
 #include "editor.hpp"
 #include "ichigo.hpp"
 #include "thirdparty/imgui/imgui.h"
@@ -25,6 +35,7 @@ struct EditorAction {
     };
 };
 
+// TODO: @heap
 struct UndoStack {
     UndoStack(u64 initial_capacity) :
         top(0),
@@ -80,6 +91,8 @@ static bool tileset_editor_is_open = false;
 static Ichigo::TileID tiles_working_copy[ICHIGO_MAX_TILEMAP_SIZE] = {};
 static Ichigo::TileInfo tile_info_working_copy[ICHIGO_MAX_UNIQUE_TILES] = {};
 static Ichigo::Tilemap saved_tilemap;
+
+// The working copy of the tilemap. This copy is edited by the editor, and then copied back to the engine when you exit the editor (in before_close()).
 static Ichigo::Tilemap tilemap_working_copy = {
     tiles_working_copy,
     0,
@@ -91,8 +104,17 @@ static Ichigo::Tilemap tilemap_working_copy = {
 
 static bool tiles_selected                = false;
 static Rect<i32> selected_region          = {};
+
+// The "brush_tile" is the current tile that you are "painting" with. This is the tile type that will be filled when using the fill tool.
 static Ichigo::TileID selected_brush_tile = 0;
 
+// Save the tilemap to a ichigotm file. The file format is as follows:
+// u16 version number
+// u32 number of unique tiles, n
+// n TileInfo structures
+// u32 tilemap width
+// u32 tilemap height
+// width * height TileIDs
 static void save_tilemap(const char *path) {
     Ichigo::Internal::PlatformFile *file = Ichigo::Internal::platform_open_file_write(path);
 
@@ -110,9 +132,11 @@ static void save_tilemap(const char *path) {
     Ichigo::Internal::platform_close_file(file);
 }
 
+// Commit a tilemap resize. Called when the tilemap actually needs to be resized. Eg. the undo stack is rebuilding the tilemap.
 static void actually_resize_tilemap(u16 new_width, u16 new_height) {
     ICHIGO_INFO("New tilemap size: %ux%u (%u)", new_width, new_height, new_width * new_height);
 
+    // Change the width of the tilemap by padding the end of the rows with 0s.
     if (new_width != tilemap_working_copy.width) {
         if (new_width > tilemap_working_copy.width) {
             u32 width_delta = new_width - tilemap_working_copy.width;
@@ -134,6 +158,7 @@ static void actually_resize_tilemap(u16 new_width, u16 new_height) {
         }
     }
 
+    // NOTE: If the new height is larger, nothing needs to be done since we make sure to zero out all height reductions here.
     if (new_height < tilemap_working_copy.height) {
         std::memset(
             &tilemap_working_copy.tiles[new_width * new_height],
@@ -148,6 +173,7 @@ static void actually_resize_tilemap(u16 new_width, u16 new_height) {
     Ichigo::Internal::current_tilemap.height = new_height;
 }
 
+// Apply some editor action to the tilemap. Called when performing an action, and when the undo stack rebuilds the tilemap.
 static void apply_action(EditorAction action) {
     switch (action.type) {
         case FILL: {
@@ -168,6 +194,7 @@ static void apply_action(EditorAction action) {
     }
 }
 
+// Rebuild the tilemap. The tilemap is rebuilt when you undo; minus the action on the top of the undo stack.
 static void rebuild_tilemap() {
     Ichigo::Internal::current_tilemap.width  = saved_tilemap.width;
     Ichigo::Internal::current_tilemap.height = saved_tilemap.height;
@@ -183,6 +210,7 @@ static void rebuild_tilemap() {
     }
 }
 
+// Push a tilemap resize action onto the undo stack and apply the action.
 static void resize_tilemap(u16 new_width, u16 new_height) {
     EditorAction action;
     action.type                           = RESIZE_TILEMAP;
@@ -193,6 +221,7 @@ static void resize_tilemap(u16 new_width, u16 new_height) {
     apply_action(action);
 }
 
+// Push a fill region action onto the undo stack and apply the action.
 static void fill_selected_region(Ichigo::TileID brush) {
     if (!tiles_selected) {
         Ichigo::show_info("Nothing selected.");
@@ -400,6 +429,7 @@ void Ichigo::Editor::render_ui() {
     }
 }
 
+// NOTE: Actual "screen space". Eg. the mouse cursor position.
 static Util::Optional<Vec2<f32>> screen_space_to_camera_space(Vec2<i32> screen_space_coord) {
     Vec2<i32> viewport_pos = screen_space_coord - vector_cast<i32>(Ichigo::Internal::viewport_origin);
     if (viewport_pos.x < 0 || viewport_pos.y < 0) {
@@ -414,6 +444,7 @@ static Util::Optional<Vec2<f32>> screen_space_to_camera_space(Vec2<i32> screen_s
     return {true, camera_space};
 }
 
+// NOTE: Actual "screen space". Eg. the mouse cursor position.
 static Util::Optional<Vec2<f32>> screen_space_to_world_space(Vec2<i32> screen_space_coord) {
     auto cs = screen_space_to_camera_space(screen_space_coord);
     if (!cs.has_value) {
@@ -446,10 +477,13 @@ static Util::Optional<Vec2<u32>> tile_at_mouse_coordinate(Vec2<i32> mouse_coord)
 #define BASE_CAMERA_SPEED 10.0f
 void Ichigo::Editor::update() {
     f32 camera_speed = BASE_CAMERA_SPEED;
+
+    // Triple the camera speed if shift is held.
     if (Internal::keyboard_state[IK_LEFT_SHIFT].down) {
         camera_speed *= 3.0f;
     }
 
+    // Move the camera with WSAD
     if (Internal::keyboard_state[IK_W].down)
         Ichigo::Camera::manual_focus_point.y -= camera_speed * Ichigo::Internal::dt;
     if (Internal::keyboard_state[IK_LEFT_CONTROL].up && Internal::keyboard_state[IK_S].down) // FIXME: Stupid hack
@@ -459,6 +493,7 @@ void Ichigo::Editor::update() {
     if (Internal::keyboard_state[IK_D].down)
         Ichigo::Camera::manual_focus_point.x += camera_speed * Ichigo::Internal::dt;
 
+    // Keyboard shortcuts
     if (Internal::keyboard_state[IK_F].down_this_frame) {
         fill_selected_region(selected_brush_tile);
     }
@@ -467,20 +502,21 @@ void Ichigo::Editor::update() {
         fill_selected_region(ICHIGO_AIR_TILE);
     }
 
+    // Pick-tile ("eyedropper") tool. Select the tile you right click as the brush tile.
     if (Internal::mouse.right_button.down_this_frame) {
         auto t = tile_at_mouse_coordinate(Internal::mouse.pos);
         if (t.has_value) {
             TileID tile_id       = tile_at(t.value);
             const TileInfo &info = Internal::current_tilemap.tile_info[tile_id];
             selected_brush_tile  = tile_id;
-            char *str            = (char *) platform_alloca(64);
+            char str[64]         = {};
 
-            std::snprintf(str, 64, "Selected: %s", info.name);
+            std::snprintf(str, ARRAY_LEN(str), "Selected: %s", info.name);
             show_info(str, std::strlen(str));
-
         }
     }
 
+    // Undo/redo keybinds.
     if (Internal::keyboard_state[IK_LEFT_CONTROL].down && Internal::keyboard_state[IK_LEFT_SHIFT].down && Internal::keyboard_state[IK_Z].down_this_frame) {
         auto ra = undo_stack.redo();
         if (ra.has_value) {
@@ -493,6 +529,7 @@ void Ichigo::Editor::update() {
         wants_to_save = true;
     }
 
+    // Mouse panning. Drag with the middle mouse button to pan the camera.
     static Vec2<f32> pan_start_pos;
     static Vec2<f32> saved_focus_point;
     if (Internal::mouse.middle_button.down_this_frame) {
@@ -511,6 +548,7 @@ void Ichigo::Editor::update() {
         }
     }
 
+    // Tile selection.
     static Vec2<u32> mouse_down_tile;
     if (Internal::mouse.left_button.down_this_frame) {
         auto t = tile_at_mouse_coordinate(Internal::mouse.pos);
@@ -527,8 +565,10 @@ void Ichigo::Editor::update() {
             tiles_selected = false;
         }
     } else if (Internal::mouse.left_button.down) {
+        // The left button is still down, so select a region.
         auto t = tile_at_mouse_coordinate(Internal::mouse.pos);
         if (t.has_value) {
+            // NOTE: The "pos" of the region rectangle is always at the top left.
             selected_region.pos.x = MIN(t.value.x, mouse_down_tile.x);
             selected_region.pos.y = MIN(t.value.y, mouse_down_tile.y);
             u32 w                 = DISTANCE(t.value.x, mouse_down_tile.x);
@@ -538,6 +578,7 @@ void Ichigo::Editor::update() {
         }
     }
 
+    // Draw pulsing red selection region rectangle.
     if (tiles_selected) {
         Ichigo::DrawCommand c = {};
         c.coordinate_system   = Ichigo::CoordinateSystem::WORLD;
@@ -557,8 +598,9 @@ void Ichigo::Editor::update() {
     }
 }
 
-// TODO: We can use this to clear all changes as well. It is just used to restore the original current_tilemap tiles pointer.
+// Run before the tilemap editor opens. Copy the current tilemap information to our working copy.
 void Ichigo::Editor::before_open() {
+    // TODO: We can use this to clear all changes as well. It is just used to restore the original current_tilemap tiles pointer.
     std::memcpy(&saved_tilemap, &Internal::current_tilemap, sizeof(Tilemap));
 
     tilemap_working_copy.width           = Internal::current_tilemap.width;
@@ -573,6 +615,7 @@ void Ichigo::Editor::before_open() {
     Internal::current_tilemap.tile_info = tilemap_working_copy.tile_info;
 }
 
+// Run before the tilemap editor closes. Copy the working copy data to the current tilemap.
 void Ichigo::Editor::before_close() {
     Internal::current_tilemap.width           = tilemap_working_copy.width;
     Internal::current_tilemap.height          = tilemap_working_copy.height;
