@@ -343,6 +343,7 @@
 #define GL_UNSIGNED_INT                   0x1405
 #define GL_LINE                           0x1B01
 #define GL_FILL                           0x1B02
+#define GL_RED                            0x1903
 
 using GLbyte     = i8;
 using GLshort    = i16;

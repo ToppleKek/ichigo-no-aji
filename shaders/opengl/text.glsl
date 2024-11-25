@@ -8,5 +8,5 @@ uniform float alpha_adjust;
 uniform sampler2D font_atlas;
 
 void main() {
-    frag_colour = vec4(colour, texture(font_atlas, tex_coord).a * alpha_adjust);
+    frag_colour = vec4(colour, texture(font_atlas, tex_coord).r * alpha_adjust);
 }

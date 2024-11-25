@@ -153,6 +153,8 @@ Ichigo::EntityMoveResult Ichigo::move_entity_in_world(Ichigo::Entity *entity) {
         entity->velocity += final_acceleration * Ichigo::Internal::dt;
     }
 
+    // Should the entity's velocity actually be clamped? If the entity is approaching from below the maximum velocity, then yes.
+    // If the entity is decelerating, then only if they just fell below the max.
     bool should_clamp_due_to_decel = was_limited && std::fabsf(entity->velocity.x) < entity->max_velocity.x && (entity->acceleration.x != 0.0f && signof(entity->acceleration.x) == signof(entity->velocity.x));
     bool should_clamp_due_to_accel = !was_limited && std::fabsf(entity->velocity.x) > entity->max_velocity.x;
 
