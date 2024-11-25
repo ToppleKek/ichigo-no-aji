@@ -108,7 +108,7 @@ void Irisu::init(Ichigo::Entity *entity) {
     irisu_get_up_slow.cell_of_last_frame  = irisu_get_up_slow.cell_of_first_frame + 4;
     irisu_get_up_slow.cell_of_loop_start  = irisu_get_up_slow.cell_of_first_frame;
     irisu_get_up_slow.cell_of_loop_end    = irisu_get_up_slow.cell_of_last_frame;
-    irisu_get_up_slow.seconds_per_frame   = 0.08f;
+    irisu_get_up_slow.seconds_per_frame   = 0.12f;
 
     Ichigo::Sprite irisu_sprite    = {};
     irisu_sprite.width             = pixels_to_metres(60.0f);
@@ -152,7 +152,7 @@ void Irisu::update(Ichigo::Entity *irisu) {
     bool jump_button_down_this_frame = Ichigo::Internal::keyboard_state[Ichigo::IK_SPACE].down_this_frame || Ichigo::Internal::gamepad.a.down_this_frame || Ichigo::Internal::gamepad.b.down_this_frame;
     bool jump_button_down            = Ichigo::Internal::keyboard_state[Ichigo::IK_SPACE].down || Ichigo::Internal::gamepad.a.down || Ichigo::Internal::gamepad.b.down;
     bool run_button_down             = Ichigo::Internal::keyboard_state[Ichigo::IK_LEFT_SHIFT].down || Ichigo::Internal::gamepad.x.down || Ichigo::Internal::gamepad.y.down;
-    bool dive_button_down_this_frame = Ichigo::Internal::keyboard_state[Ichigo::IK_Z].down_this_frame;
+    bool dive_button_down_this_frame = Ichigo::Internal::keyboard_state[Ichigo::IK_Z].down_this_frame || Ichigo::Internal::gamepad.lb.down_this_frame || Ichigo::Internal::gamepad.rb.down_this_frame;
 
     switch (irisu_state) {
         case IDLE: {
@@ -201,21 +201,21 @@ void Irisu::update(Ichigo::Entity *irisu) {
             else if (!FLAG_IS_SET(irisu->flags, Ichigo::EF_ON_GROUND) && irisu->velocity.y > 0.0f)  irisu_state = FALL;
             else if (dive_button_down_this_frame) {
                 irisu->velocity.y -= 5.0f;
-                irisu->velocity.x += 5.0f * signof(irisu->velocity.x);
+                irisu->velocity.x += 5.0f * (FLAG_IS_SET(irisu->flags, Ichigo::EF_FLIP_H) ? 1 : -1);
                 irisu_state = DIVE;
-            }
+            } else {
+                process_movement_keys();
 
-            process_movement_keys();
+                if (!jump_button_down && !released_jump) {
+                    released_jump = true;
+                }
 
-            if (!jump_button_down && !released_jump) {
-                released_jump = true;
-            }
-
-            if (jump_button_down && !released_jump && applied_t < IRISU_MAX_JUMP_T) {
-                CLEAR_FLAG(irisu->flags, Ichigo::EntityFlag::EF_ON_GROUND);
-                f32 effective_dt = MIN(Ichigo::Internal::dt, IRISU_MAX_JUMP_T - applied_t);
-                irisu->velocity.y = -irisu->jump_acceleration;
-                applied_t += effective_dt;
+                if (jump_button_down && !released_jump && applied_t < IRISU_MAX_JUMP_T) {
+                    CLEAR_FLAG(irisu->flags, Ichigo::EntityFlag::EF_ON_GROUND);
+                    f32 effective_dt = MIN(Ichigo::Internal::dt, IRISU_MAX_JUMP_T - applied_t);
+                    irisu->velocity.y = -irisu->jump_acceleration;
+                    applied_t += effective_dt;
+                }
             }
         } break;
 
@@ -225,21 +225,20 @@ void Irisu::update(Ichigo::Entity *irisu) {
             else if (FLAG_IS_SET(irisu->flags, Ichigo::EF_ON_GROUND) && irisu->velocity.x != 0.0f) irisu_state = WALK;
             else if (dive_button_down_this_frame) {
                 irisu->velocity.y -= 5.0f;
-                irisu->velocity.x += 5.0f * signof(irisu->velocity.x);
+                irisu->velocity.x += 5.0f * (FLAG_IS_SET(irisu->flags, Ichigo::EF_FLIP_H) ? 1 : -1);
                 irisu_state = DIVE;
                 maybe_enter_animation(irisu, irisu_dive);
+            } else {
+                process_movement_keys();
             }
-
-            process_movement_keys();
         } break;
 
         case DIVE: {
+            maybe_enter_animation(irisu, irisu_dive);
             if (FLAG_IS_SET(irisu->flags, Ichigo::EF_ON_GROUND)) {
                 irisu_state = LAY_DOWN;
                 maybe_enter_animation(irisu, irisu_lay_down);
             }
-
-            maybe_enter_animation(irisu, irisu_dive);
         } break;
 
         case LAY_DOWN: {
