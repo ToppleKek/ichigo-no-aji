@@ -215,7 +215,6 @@ Ichigo::EntityMoveResult Ichigo::move_entity_in_world(Ichigo::Entity *entity) {
                 continue;
             }
 
-            Vec2<f32> centered_other_entity_p = other_entity.col.pos + Vec2<f32>{other_entity.col.w / 2.0f, other_entity.col.h / 2.0f};
             Vec2<f32> min_corner = {other_entity.col.pos.x - entity.col.w / 2.0f, other_entity.col.pos.y - entity.col.h / 2.0f};
             Vec2<f32> max_corner = {other_entity.col.pos.x + other_entity.col.w + entity.col.w / 2.0f, other_entity.col.pos.y + other_entity.col.h + entity.col.h / 2.0f};
             Vec2<f32> normal = {};

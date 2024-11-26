@@ -888,8 +888,47 @@ static void frame_render() {
         Ichigo::DrawCommand &cmd = Ichigo::game_state.this_frame_data.draw_commands[i];
         switch (cmd.type) {
             case Ichigo::DrawCommandType::SOLID_COLOUR_RECT: {
-                if      (cmd.coordinate_system == Ichigo::WORLD)  world_render_solid_colour_rect(cmd.rect, cmd.colour);
-                else if (cmd.coordinate_system == Ichigo::SCREEN) screen_render_solid_colour_rect(cmd.rect, cmd.colour);
+                switch (cmd.coordinate_system) {
+                    case Ichigo::WORLD: {
+                        world_render_solid_colour_rect(cmd.rect, cmd.colour);
+                    } break;
+
+                    case Ichigo::CAMERA: {
+                        Rect<f32> draw_rect = cmd.rect;
+                        draw_rect.pos = cmd.rect.pos - get_translation2d(Ichigo::Camera::transform);
+                        world_render_solid_colour_rect(draw_rect, cmd.colour);
+                    } break;
+
+                    case Ichigo::SCREEN: {
+                        screen_render_solid_colour_rect(cmd.rect, cmd.colour);
+                    } break;
+
+                    default: {
+                        ICHIGO_ERROR("Invalid coordinate system!");
+                    }
+                }
+            } break;
+
+            case Ichigo::DrawCommandType::TEXTURED_RECT: {
+                switch (cmd.coordinate_system) {
+                    case Ichigo::WORLD: {
+                        world_render_textured_rect(cmd.rect, cmd.texture_id);
+                    } break;
+
+                    case Ichigo::CAMERA: {
+                        Rect<f32> draw_rect = cmd.rect;
+                        draw_rect.pos = cmd.rect.pos - get_translation2d(Ichigo::Camera::transform);
+                        world_render_textured_rect(draw_rect, cmd.texture_id);
+                    } break;
+
+                    case Ichigo::SCREEN: {
+                        screen_render_textured_rect(cmd.rect, cmd.texture_id);
+                    } break;
+
+                    default: {
+                        ICHIGO_ERROR("Invalid coordinate system!");
+                    }
+                }
             } break;
 
             case Ichigo::DrawCommandType::TEXT: {

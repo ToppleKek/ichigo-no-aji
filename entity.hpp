@@ -19,11 +19,11 @@ void patrol_controller(Entity *entity);
 struct EntityID {
     u32 generation;
     u32 index;
-
-    bool operator==(const EntityID &rhs) {
-        return generation == rhs.generation && index == rhs.index;
-    }
 };
+
+inline bool operator==(const Ichigo::EntityID &lhs, const Ichigo::EntityID &rhs) {
+    return lhs.generation == rhs.generation && lhs.index == rhs.index;
+}
 
 // TODO: NOTE: The flag EF_ANIM_LOOPING is used to signal that the animation has played out and will now loop
 //             from loop_start to loop_end. Do we need this? Right now, the animation plays from the first frame

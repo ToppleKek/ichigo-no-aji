@@ -151,6 +151,7 @@ struct Mouse {
 
 enum DrawCommandType {
     SOLID_COLOUR_RECT,
+    TEXTURED_RECT,
     TEXT
 };
 
@@ -181,6 +182,12 @@ struct DrawCommand {
         struct {
             Rect<f32> rect;
             Vec4<f32> colour;
+        };
+
+        // TEXTURED_RECT
+        struct {
+            Rect<f32> texture_rect; // FIXME: stupid as fuck
+            TextureID texture_id;
         };
 
         // TEXT

@@ -1,8 +1,8 @@
 #include "../ichigo.hpp"
 #include "irisu.hpp"
-#include "coin.hpp"
 
 EMBED("assets/enemy.png", enemy_png)
+EMBED("assets/coin.png", coin_spritesheet_png)
 EMBED("assets/bg.png", test_bg)
 EMBED("assets/music/song.mp3", test_song)
 
@@ -10,24 +10,40 @@ EMBED("assets/music/song.mp3", test_song)
 EMBED("assets/tiles.png", tileset_png)
 
 // Tilemaps
-EMBED("assets/lvl1.ichigotm", level1_tilemap);
+EMBED("assets/lvl1.ichigotm", level1_tilemap)
 
-static Ichigo::TextureID tileset_texture = 0;
+// UI
+EMBED("assets/coin-collected.png", ui_collected_coin_png)
+EMBED("assets/coin-uncollected.png", ui_uncollected_coin_png)
+EMBED("assets/coin-ui-bg.png", ui_coin_background_png)
+
+static Ichigo::TextureID tileset_texture    = 0;
 static Ichigo::TextureID enemy_texture_id   = 0;
+static Ichigo::TextureID coin_texture_id    = 0;
 static Ichigo::TextureID test_bg_texture_id = 0;
 static Ichigo::AudioID   test_music_id      = 0;
 
-struct CoinData {
+static Ichigo::TextureID ui_collected_coin_texture   = 0;
+static Ichigo::TextureID ui_uncollected_coin_texture = 0;
+static Ichigo::TextureID ui_coin_background          = 0;
+
+static f32 ui_coin_background_width_in_metres  = 0.0f;
+static f32 ui_coin_background_height_in_metres = 0.0f;
+
+struct Coin {
     bool collected;
     Ichigo::EntityID id;
 };
 
-static CoinData coins[3] = {};
+static Coin coins[3] = {};
 
-static void on_coin_collide(Ichigo::Entity *coin, Ichigo::Entity *other, Vec2<f32> normal, Vec2<f32> collision_pos) {
+static void on_coin_collide(Ichigo::Entity *coin, Ichigo::Entity *other, [[maybe_unused]] Vec2<f32> normal, [[maybe_unused]] Vec2<f32> collision_pos) {
     if (std::strcmp(other->name, "player") == 0) {
-        if (coin->id == coins[0].id) {
-            coins[0].collected = true;
+        for (u32 i = 0; i < ARRAY_LEN(coins); ++i) {
+            if (coin->id == coins[i].id) {
+                coins[i].collected = true;
+                break;
+            }
         }
 
         Ichigo::kill_entity_deferred(coin->id);
@@ -46,7 +62,6 @@ static void spawn_gert() {
     enemy->movement_speed = 6.0f;
     enemy->gravity        = 9.8f;
     enemy->update_proc    = Ichigo::EntityControllers::patrol_controller;
-    // enemy->collide_proc   = entity_collide_proc;
 
     Ichigo::Animation gert_idle   = {};
     gert_idle.cell_of_first_frame = 0;
@@ -67,11 +82,42 @@ static void spawn_gert() {
     enemy->sprite = gert_sprite;
 }
 
+static Ichigo::EntityID spawn_coin(Vec2<f32> pos) {
+    Ichigo::Entity *coin = Ichigo::spawn_entity();
+
+    std::strcpy(coin->name, "coin");
+
+    coin->col                                  = {pos, 1.0f, 1.0f};
+    coin->sprite.width                         = 1.0f;
+    coin->sprite.height                        = 1.0f;
+    coin->sprite.sheet.texture                 = coin_texture_id;
+    coin->collide_proc                         = on_coin_collide;
+    coin->sprite.sheet.cell_width              = 32;
+    coin->sprite.sheet.cell_height             = 32;
+    coin->sprite.animation.cell_of_first_frame = 0;
+    coin->sprite.animation.cell_of_last_frame  = 7;
+    coin->sprite.animation.cell_of_loop_start  = 0;
+    coin->sprite.animation.cell_of_loop_end    = 7;
+    coin->sprite.animation.seconds_per_frame   = 0.12f;
+
+    return coin->id;
+}
+
 void Ichigo::Game::init() {
+    // == Load assets ==
     test_bg_texture_id    = Ichigo::load_texture(test_bg, test_bg_len);
     enemy_texture_id      = Ichigo::load_texture(enemy_png, enemy_png_len);
+    coin_texture_id       = Ichigo::load_texture(coin_spritesheet_png, coin_spritesheet_png_len);
     test_music_id         = Ichigo::load_audio(test_song, test_song_len);
     tileset_texture       = Ichigo::load_texture(tileset_png, tileset_png_len);
+
+    ui_collected_coin_texture   = Ichigo::load_texture(ui_collected_coin_png, ui_collected_coin_png_len);
+    ui_uncollected_coin_texture = Ichigo::load_texture(ui_uncollected_coin_png, ui_uncollected_coin_png_len);
+    ui_coin_background          = Ichigo::load_texture(ui_coin_background_png, ui_coin_background_png_len);
+
+    const Ichigo::Texture &t = Ichigo::Internal::textures.at(ui_coin_background);
+    ui_coin_background_width_in_metres  = pixels_to_metres(t.width);
+    ui_coin_background_height_in_metres = pixels_to_metres(t.height);
 
     Ichigo::game_state.background_colour = {0.54f, 0.84f, 1.0f, 1.0f};
     Ichigo::game_state.background_layers[0].texture_id     = test_bg_texture_id;
@@ -86,13 +132,17 @@ void Ichigo::Game::init() {
 
     Ichigo::set_tilemap((u8 *) level1_tilemap, tileset_sheet);
 
-    Coin::init();
+    // == Spawn entities in world ==
     Ichigo::Entity *player = Ichigo::spawn_entity();
     Irisu::init(player);
 
-    coins[0].id = Coin::spawn({18.0f, 14.0f}, on_coin_collide);
+    coins[0].id = spawn_coin({42.0f, 4.0f});
+    coins[1].id = spawn_coin({42.0f, 14.0f});
+    coins[2].id = spawn_coin({52.0f, 4.0f});
+
     spawn_gert();
 
+    // == Setup initial game state ==
     Ichigo::game_state.player_entity_id = player->id;
 
     Ichigo::Camera::mode = Ichigo::Camera::Mode::FOLLOW;
@@ -117,40 +167,54 @@ void Ichigo::Game::update_and_render() {
         controller_connected = false;
     }
 
-    Ichigo::DrawCommand test_draw_command;
-    test_draw_command.coordinate_system = Ichigo::CoordinateSystem::WORLD;
-    test_draw_command.type              = Ichigo::DrawCommandType::SOLID_COLOUR_RECT;
-    test_draw_command.rect              = {{0.5f, 0.0f}, 0.1f, 0.1f};
-    test_draw_command.colour            = {0.2f, 0.3f, 0.5f, 1.0f};
-    Ichigo::push_draw_command(test_draw_command);
-
     Ichigo::TextStyle style;
     style.scale     = 0.8f;
     style.alignment = Ichigo::TextAlignment::LEFT;
     style.colour    = {0.0f, 0.0f, 0.0f, 1.0f};
 
-    const char *ichiaji = "Ichigo no Aji! いちごのあじ！ イチゴノアジ！ 苺の味！ Ｉｃｈｉｇｏ ｎｏ Ａｊｉ！";
-    Ichigo::DrawCommand test_draw_command2;
-    test_draw_command2.coordinate_system = Ichigo::CoordinateSystem::CAMERA;
-    test_draw_command2.type              = Ichigo::DrawCommandType::TEXT;
-    test_draw_command2.string            = ichiaji;
-    test_draw_command2.string_length     = std::strlen(ichiaji);
-    test_draw_command2.string_pos        = {0.0f, 1.0f};
-    test_draw_command2.text_style        = style;
+    // const char *ichiaji = "Ichigo no Aji! いちごのあじ！ イチゴノアジ！ 苺の味！ Ｉｃｈｉｇｏ ｎｏ Ａｊｉ！";
+    // Ichigo::DrawCommand test_draw_command2;
+    // test_draw_command2.coordinate_system = Ichigo::CoordinateSystem::CAMERA;
+    // test_draw_command2.type              = Ichigo::DrawCommandType::TEXT;
+    // test_draw_command2.string            = ichiaji;
+    // test_draw_command2.string_length     = std::strlen(ichiaji);
+    // test_draw_command2.string_pos        = {0.0f, 1.0f};
+    // test_draw_command2.text_style        = style;
 
-    Ichigo::push_draw_command(test_draw_command2);
+    // Ichigo::push_draw_command(test_draw_command2);
 
-    const char *kanji_test = "一番、二番、三番、四番。「ラムネは子供っぽくないです。青春の飲み物ですから」世界一美味しい苺パスタを作るアイドル";
-    Ichigo::DrawCommand test_draw_command3;
-    style.alignment = Ichigo::TextAlignment::CENTER;
-    test_draw_command3.coordinate_system = Ichigo::CoordinateSystem::CAMERA;
-    test_draw_command3.type              = Ichigo::DrawCommandType::TEXT;
-    test_draw_command3.string            = kanji_test;
-    test_draw_command3.string_length     = std::strlen(kanji_test);
-    test_draw_command3.string_pos        = {8.0f, 3.0f};
-    test_draw_command3.text_style        = style;
+    // const char *kanji_test = "一番、二番、三番、四番。「ラムネは子供っぽくないです。青春の飲み物ですから」世界一美味しい苺パスタを作るアイドル";
+    // Ichigo::DrawCommand test_draw_command3;
+    // style.alignment = Ichigo::TextAlignment::CENTER;
+    // test_draw_command3.coordinate_system = Ichigo::CoordinateSystem::CAMERA;
+    // test_draw_command3.type              = Ichigo::DrawCommandType::TEXT;
+    // test_draw_command3.string            = kanji_test;
+    // test_draw_command3.string_length     = std::strlen(kanji_test);
+    // test_draw_command3.string_pos        = {8.0f, 3.0f};
+    // test_draw_command3.text_style        = style;
 
-    Ichigo::push_draw_command(test_draw_command3);
+    // Ichigo::push_draw_command(test_draw_command3);
+
+    // == UI ==
+    static Ichigo::DrawCommand coins_background_cmd = {
+        .type = TEXTURED_RECT,
+        .coordinate_system = CAMERA,
+        .texture_rect = {{0.1f, 0.1f}, ui_coin_background_width_in_metres, ui_coin_background_height_in_metres},
+        .texture_id = ui_coin_background
+    };
+
+    Ichigo::push_draw_command(coins_background_cmd);
+
+    for (u32 i = 0; i < ARRAY_LEN(coins); ++i) {
+        Ichigo::DrawCommand coin_cmd = {
+            .type = TEXTURED_RECT,
+            .coordinate_system = CAMERA,
+            .texture_rect = {{0.25f + i + (i * 0.1f), 0.37f}, 1.0f, 1.0f},
+            .texture_id = coins[i].collected ? ui_collected_coin_texture : ui_uncollected_coin_texture
+        };
+
+        Ichigo::push_draw_command(coin_cmd);
+    }
 
     if (Internal::keyboard_state[IK_G].down_this_frame) {
         spawn_gert();
