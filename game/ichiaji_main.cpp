@@ -17,8 +17,21 @@ static Ichigo::TextureID enemy_texture_id   = 0;
 static Ichigo::TextureID test_bg_texture_id = 0;
 static Ichigo::AudioID   test_music_id      = 0;
 
-static void entity_collide_proc(Ichigo::Entity *entity, Ichigo::Entity *other_entity, Vec2<f32> collision_normal, f32 best_t) {
-    ICHIGO_INFO("I (%s) just collided with %s! Normal=%f,%f best_t=%f", entity->name, other_entity->name, collision_normal.x, collision_normal.y, best_t);
+struct CoinData {
+    bool collected;
+    Ichigo::EntityID id;
+};
+
+static CoinData coins[3] = {};
+
+static void on_coin_collide(Ichigo::Entity *coin, Ichigo::Entity *other, Vec2<f32> normal, Vec2<f32> collision_pos) {
+    if (std::strcmp(other->name, "player") == 0) {
+        if (coin->id == coins[0].id) {
+            coins[0].collected = true;
+        }
+
+        Ichigo::kill_entity_deferred(coin->id);
+    }
 }
 
 static Ichigo::EntityID gert_id;
@@ -54,8 +67,6 @@ static void spawn_gert() {
     enemy->sprite = gert_sprite;
 }
 
-static Ichigo::EntityID coins[3] = {};
-
 void Ichigo::Game::init() {
     test_bg_texture_id    = Ichigo::load_texture(test_bg, test_bg_len);
     enemy_texture_id      = Ichigo::load_texture(enemy_png, enemy_png_len);
@@ -79,7 +90,7 @@ void Ichigo::Game::init() {
     Ichigo::Entity *player = Ichigo::spawn_entity();
     Irisu::init(player);
 
-    coins[0] = Coin::spawn({18.0f, 14.0f});
+    coins[0].id = Coin::spawn({18.0f, 14.0f}, on_coin_collide);
     spawn_gert();
 
     Ichigo::game_state.player_entity_id = player->id;

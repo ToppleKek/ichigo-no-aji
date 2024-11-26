@@ -43,6 +43,16 @@ Ichigo::Entity *Ichigo::get_entity(Ichigo::EntityID id) {
     return &Internal::entities.at(id.index);
 }
 
+void Ichigo::conduct_end_of_frame_executions() {
+    for (u32 i = 1; i < Internal::entities.size; ++i) {
+        Entity &entity = Internal::entities.at(i);
+        if (entity.id.index != 0 && FLAG_IS_SET(entity.flags, EF_MARKED_FOR_DEATH)) {
+            entity.id.index = 0;
+            CLEAR_FLAG(entity.flags, EF_MARKED_FOR_DEATH);
+        }
+    }
+}
+
 void Ichigo::kill_entity(EntityID id) {
     Ichigo::Entity *entity = Ichigo::get_entity(id);
     if (!entity) {
@@ -51,6 +61,16 @@ void Ichigo::kill_entity(EntityID id) {
     }
 
     entity->id.index = 0;
+}
+
+void Ichigo::kill_entity_deferred(EntityID id) {
+    Ichigo::Entity *entity = Ichigo::get_entity(id);
+    if (!entity) {
+        ICHIGO_ERROR("Tried to kill a non-existant entity!");
+        return;
+    }
+
+    SET_FLAG(entity->flags, EF_MARKED_FOR_DEATH);
 }
 
 // Perform a sort of "reverse lerp" to find the time, "best_t", at which the dx vector would collide with the wall at x.

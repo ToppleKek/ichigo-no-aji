@@ -9,6 +9,14 @@
 #include <dsound.h>
 #include <xinput.h>
 
+#define WGL_CONTEXT_MAJOR_VERSION_ARB              0x2091
+#define WGL_CONTEXT_MINOR_VERSION_ARB              0x2092
+#define WGL_CONTEXT_LAYER_PLANE_ARB                0x2093
+#define WGL_CONTEXT_FLAGS_ARB                      0x2094
+#define WGL_CONTEXT_PROFILE_MASK_ARB               0x9126
+#define WGL_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB  0x0002
+#define WGL_CONTEXT_CORE_PROFILE_BIT_ARB           0x0001
+
 #include "thirdparty/imgui/imgui_impl_win32.h"
 
 #define AUDIO_SAMPLES_BUFFER_SIZE AUDIO_CHANNEL_COUNT * sizeof(i16) * AUDIO_SAMPLE_RATE * 4
@@ -687,7 +695,15 @@ i32 main() {
     assert(wglSwapIntervalEXT);
 
     wglDeleteContext(wgl_context);
-    wgl_context = wglCreateContextAttribsARB(hdc, 0, nullptr);
+
+    i32 attrib_list[] = {
+        WGL_CONTEXT_MAJOR_VERSION_ARB, 4,
+        WGL_CONTEXT_MINOR_VERSION_ARB, 6,
+        WGL_CONTEXT_PROFILE_MASK_ARB , WGL_CONTEXT_CORE_PROFILE_BIT_ARB,
+        0
+    };
+
+    wgl_context = wglCreateContextAttribsARB(hdc, 0, attrib_list);
     wglMakeCurrent(hdc, wgl_context);
     wglSwapIntervalEXT(0);
 

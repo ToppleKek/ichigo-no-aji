@@ -19,6 +19,10 @@ void patrol_controller(Entity *entity);
 struct EntityID {
     u32 generation;
     u32 index;
+
+    bool operator==(const EntityID &rhs) {
+        return generation == rhs.generation && index == rhs.index;
+    }
 };
 
 // TODO: NOTE: The flag EF_ANIM_LOOPING is used to signal that the animation has played out and will now loop
@@ -27,9 +31,10 @@ struct EntityID {
 //             play to the end again, but then the animation will just start over again. This doesn't seem ver
 //             useful.
 enum EntityFlag {
-    EF_ON_GROUND    = 1 << 0,
-    EF_FLIP_H       = 1 << 1,
-    // EF_ANIM_LOOPING = 1 << 2, // TODO: Not sure if this makes sense?
+    EF_MARKED_FOR_DEATH = 1 << 0,
+    EF_ON_GROUND        = 1 << 1,
+    EF_FLIP_H           = 1 << 2,
+    // EF_ANIM_LOOPING = 1 << 3, // TODO: Not sure if this makes sense?
 };
 
 enum EntityMoveResult {
@@ -87,9 +92,10 @@ struct Entity {
 
 Entity *spawn_entity();
 Entity *get_entity(EntityID id);
+void conduct_end_of_frame_executions();
 void kill_entity(EntityID id);
+void kill_entity_deferred(EntityID id);
 EntityMoveResult move_entity_in_world(Entity *entity);
-Vec2<f32> get_collision_normal(Entity *entity, Entity *other_entity);
 namespace Internal {
 extern Util::IchigoVector<Ichigo::Entity> entities;
 char *entity_id_as_string(EntityID entity_id); // TODO: NOT THREAD SAFE!! - message to past me- nothing really is lol. Who cares right now? We are a 2D game engine that runs at ~3000fps.

@@ -1133,6 +1133,7 @@ void Ichigo::Internal::do_frame() {
         frame_render();
     }
 
+    Ichigo::conduct_end_of_frame_executions();
     Ichigo::Game::frame_end();
 }
 
