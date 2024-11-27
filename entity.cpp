@@ -194,29 +194,28 @@ Ichigo::EntityMoveResult Ichigo::move_entity_in_world(Ichigo::Entity *entity) {
     }
 
     // Check entity collisions.
-    for (u32 i = 1; i < Ichigo::Internal::entities.size; ++i) {
-        Ichigo::Entity &entity = Ichigo::Internal::entities.at(i);
-        if (entity.id.index == 0 || entity.velocity == Vec2<f32>{0.0f, 0.0f}) {
-            continue;
-        }
-
-        Vec2<f32> centered_entity_p = entity.col.pos + Vec2<f32>{entity.col.w / 2.0f, entity.col.h / 2.0f};
+    // Do not check dead entities, or entities that are not moving (since the detection algorithm depends on checking if one collider is moving into another).
+    if (entity->id.index != 0 || entity->velocity != Vec2<f32>{0.0f, 0.0f}) {
+        Vec2<f32> centered_entity_p = entity->col.pos + Vec2<f32>{entity->col.w / 2.0f, entity->col.h / 2.0f};
         f32 best_t = 1.0f;
 
-        for (u32 j = 0; j < Ichigo::Internal::entities.size; ++j) {
-            Ichigo::Entity &other_entity = Ichigo::Internal::entities.at(j);
-            if (i == j || other_entity.id.index == 0 || entity.velocity == Vec2<f32>{0.0f, 0.0f}) {
+        for (u32 i = 1; i < Ichigo::Internal::entities.size; ++i) {
+            Ichigo::Entity &other_entity = Ichigo::Internal::entities.at(i);
+
+            // Do not check against ourselves or dead entites.
+            if (other_entity.id == entity->id || other_entity.id.index == 0) {
                 continue;
             }
 
             // Skip this entity if the colliders already intersect. We only run the collide procedure on collider enter.
             // TODO: Call the collide procedure on exit as well? We would just have to mirror the normal vector.
-            if (rectangles_intersect(entity.col, other_entity.col)) {
+            //       Or maybe have a separate callback for when they are already intersecting?
+            if (rectangles_intersect(entity->col, other_entity.col)) {
                 continue;
             }
 
-            Vec2<f32> min_corner = {other_entity.col.pos.x - entity.col.w / 2.0f, other_entity.col.pos.y - entity.col.h / 2.0f};
-            Vec2<f32> max_corner = {other_entity.col.pos.x + other_entity.col.w + entity.col.w / 2.0f, other_entity.col.pos.y + other_entity.col.h + entity.col.h / 2.0f};
+            Vec2<f32> min_corner = {other_entity.col.pos.x - entity->col.w / 2.0f, other_entity.col.pos.y - entity->col.h / 2.0f};
+            Vec2<f32> max_corner = {other_entity.col.pos.x + other_entity.col.w + entity->col.w / 2.0f, other_entity.col.pos.y + other_entity.col.h + entity->col.h / 2.0f};
             Vec2<f32> normal = {};
 
             if (test_wall(min_corner.x, centered_entity_p.x, entity_delta.x, centered_entity_p.y, entity_delta.y, min_corner.y, max_corner.y, &best_t)) {
@@ -234,12 +233,12 @@ Ichigo::EntityMoveResult Ichigo::move_entity_in_world(Ichigo::Entity *entity) {
 
             if (normal.x != 0.0f || normal.y != 0.0f) {
                 // We guarantee that the first entity parameter is can always be considered the "self" entity.
-                if (entity.collide_proc) {
-                    entity.collide_proc(&entity, &other_entity, normal, entity.col.pos + entity_delta * best_t);
+                if (entity->collide_proc) {
+                    entity->collide_proc(entity, &other_entity, normal, entity->col.pos + entity_delta * best_t);
                 }
 
                 if (other_entity.collide_proc) {
-                    other_entity.collide_proc(&other_entity, &entity, normal * Vec2<f32>{-1.0f, -1.0f}, entity.col.pos + entity_delta * best_t);
+                    other_entity.collide_proc(&other_entity, entity, normal * Vec2<f32>{-1.0f, -1.0f}, entity->col.pos + entity_delta * best_t);
                 }
             }
         }
