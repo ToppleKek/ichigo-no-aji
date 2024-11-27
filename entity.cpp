@@ -196,16 +196,16 @@ Ichigo::EntityMoveResult Ichigo::move_entity_in_world(Ichigo::Entity *entity) {
     // Check entity collisions.
     for (u32 i = 1; i < Ichigo::Internal::entities.size; ++i) {
         Ichigo::Entity &entity = Ichigo::Internal::entities.at(i);
-        if (entity.id.index == 0) {
+        if (entity.id.index == 0 || entity.velocity == Vec2<f32>{0.0f, 0.0f}) {
             continue;
         }
 
         Vec2<f32> centered_entity_p = entity.col.pos + Vec2<f32>{entity.col.w / 2.0f, entity.col.h / 2.0f};
         f32 best_t = 1.0f;
 
-        for (u32 j = i + 1; j < Ichigo::Internal::entities.size; ++j) {
+        for (u32 j = 0; j < Ichigo::Internal::entities.size; ++j) {
             Ichigo::Entity &other_entity = Ichigo::Internal::entities.at(j);
-            if (other_entity.id.index == 0) {
+            if (i == j || other_entity.id.index == 0 || entity.velocity == Vec2<f32>{0.0f, 0.0f}) {
                 continue;
             }
 

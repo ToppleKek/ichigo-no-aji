@@ -18,18 +18,20 @@ enum IrisuState {
     JUMP,
     FALL,
     DIVE,
+    HURT,
     LAY_DOWN,
     GET_UP_SLOW,
     DIVE_BOOST
 };
 
 static u32 irisu_state = IrisuState::IDLE;
-static Ichigo::Animation irisu_idle = {};
-static Ichigo::Animation irisu_walk = {};
-static Ichigo::Animation irisu_jump = {};
-static Ichigo::Animation irisu_fall = {};
-static Ichigo::Animation irisu_dive = {};
-static Ichigo::Animation irisu_lay_down = {};
+static Ichigo::Animation irisu_idle        = {};
+static Ichigo::Animation irisu_walk        = {};
+static Ichigo::Animation irisu_jump        = {};
+static Ichigo::Animation irisu_fall        = {};
+static Ichigo::Animation irisu_dive        = {};
+static Ichigo::Animation irisu_hurt        = {};
+static Ichigo::Animation irisu_lay_down    = {};
 static Ichigo::Animation irisu_get_up_slow = {};
 
 static Ichigo::TextureID irisu_texture_id = 0;
@@ -38,11 +40,18 @@ static Ichigo::AudioID boo_womp_id = {};
 
 static void on_collide(Ichigo::Entity *irisu, Ichigo::Entity *other, Vec2<f32> normal, Vec2<f32> collision_pos) {
     ICHIGO_INFO("IRISU collide with %s: normal=%f,%f pos=%f,%f", other->name, normal.x, normal.y, collision_pos.x, collision_pos.y);
-    if (normal.y == -1.0f && std::strcmp(other->name, "gert") == 0) {
-        ICHIGO_INFO("Bounce!");
-        irisu->velocity.y -= 15.0f;
-        Ichigo::kill_entity(other->id);
-        Ichigo::Mixer::play_audio_oneshot(boo_womp_id, 1.0f, 1.0f, 1.0f);
+
+    if (std::strcmp(other->name, "gert") == 0 && irisu_state != HURT) {
+        if (normal.y == -1.0f) {
+            irisu->velocity.y -= 15.0f;
+            Ichigo::kill_entity(other->id);
+            Ichigo::Mixer::play_audio_oneshot(boo_womp_id, 1.0f, 1.0f, 1.0f);
+        } else {
+            irisu->acceleration = {0.0f, 0.0f};
+            irisu->velocity.y = -5.0f;
+            irisu->velocity.x = 5.0f * (FLAG_IS_SET(irisu->flags, Ichigo::EF_FLIP_H) ? -1 : 1);
+            irisu_state = HURT;
+        }
     }
 }
 
@@ -61,28 +70,28 @@ void Irisu::init(Ichigo::Entity *entity) {
     entity->collide_proc      = on_collide;
 
     irisu_idle.tag                 = IrisuState::IDLE;
-    irisu_idle.cell_of_first_frame = 5 * 17;
+    irisu_idle.cell_of_first_frame = 6 * 17;
     irisu_idle.cell_of_last_frame  = irisu_idle.cell_of_first_frame + 7;
     irisu_idle.cell_of_loop_start  = irisu_idle.cell_of_first_frame;
     irisu_idle.cell_of_loop_end    = irisu_idle.cell_of_last_frame;
     irisu_idle.seconds_per_frame   = 0.08f;
 
     irisu_walk.tag                 = IrisuState::WALK;
-    irisu_walk.cell_of_first_frame = 4 * 17;
+    irisu_walk.cell_of_first_frame = 5 * 17;
     irisu_walk.cell_of_last_frame  = irisu_walk.cell_of_first_frame + 4;
     irisu_walk.cell_of_loop_start  = irisu_walk.cell_of_first_frame;
     irisu_walk.cell_of_loop_end    = irisu_walk.cell_of_last_frame;
     irisu_walk.seconds_per_frame   = 0.1f;
 
     irisu_jump.tag                 = IrisuState::JUMP;
-    irisu_jump.cell_of_first_frame = 3 * 17;
+    irisu_jump.cell_of_first_frame = 4 * 17;
     irisu_jump.cell_of_last_frame  = irisu_jump.cell_of_first_frame + 3;
     irisu_jump.cell_of_loop_start  = irisu_jump.cell_of_first_frame + 1;
     irisu_jump.cell_of_loop_end    = irisu_jump.cell_of_last_frame;
     irisu_jump.seconds_per_frame   = 0.08f;
 
     irisu_fall.tag                 = IrisuState::FALL;
-    irisu_fall.cell_of_first_frame = 2 * 17;
+    irisu_fall.cell_of_first_frame = 3 * 17;
     irisu_fall.cell_of_last_frame  = irisu_fall.cell_of_first_frame + 3;
     irisu_fall.cell_of_loop_start  = irisu_fall.cell_of_first_frame + 1;
     irisu_fall.cell_of_loop_end    = irisu_fall.cell_of_last_frame;
@@ -95,6 +104,13 @@ void Irisu::init(Ichigo::Entity *entity) {
     irisu_dive.cell_of_loop_end    = irisu_dive.cell_of_last_frame;
     irisu_dive.seconds_per_frame   = 0.08f;
 
+    irisu_hurt.tag                 = IrisuState::HURT;
+    irisu_hurt.cell_of_first_frame = 1 * 17;
+    irisu_hurt.cell_of_last_frame  = irisu_hurt.cell_of_first_frame + 1;
+    irisu_hurt.cell_of_loop_start  = irisu_hurt.cell_of_first_frame;
+    irisu_hurt.cell_of_loop_end    = irisu_hurt.cell_of_last_frame;
+    irisu_hurt.seconds_per_frame   = 0.08f;
+
     irisu_lay_down.tag                 = IrisuState::LAY_DOWN;
     // The "lay down" cell is one frame after the end of the dive animation.
     irisu_lay_down.cell_of_first_frame = irisu_dive.cell_of_last_frame + 1;
@@ -104,7 +120,7 @@ void Irisu::init(Ichigo::Entity *entity) {
     irisu_lay_down.seconds_per_frame   = 0.08f;
 
     irisu_get_up_slow.tag                 = IrisuState::GET_UP_SLOW;
-    irisu_get_up_slow.cell_of_first_frame = 1 * 17;
+    irisu_get_up_slow.cell_of_first_frame = 2 * 17;
     irisu_get_up_slow.cell_of_last_frame  = irisu_get_up_slow.cell_of_first_frame + 4;
     irisu_get_up_slow.cell_of_loop_start  = irisu_get_up_slow.cell_of_first_frame;
     irisu_get_up_slow.cell_of_loop_end    = irisu_get_up_slow.cell_of_last_frame;
@@ -238,6 +254,22 @@ void Irisu::update(Ichigo::Entity *irisu) {
             if (FLAG_IS_SET(irisu->flags, Ichigo::EF_ON_GROUND)) {
                 irisu_state = LAY_DOWN;
                 maybe_enter_animation(irisu, irisu_lay_down);
+            }
+        } break;
+
+        case HURT: {
+            static f32 hurt_t = 0.0f;
+            maybe_enter_animation(irisu, irisu_hurt);
+
+            if (hurt_t == 0.0f) {
+                hurt_t = 0.6f;
+            } else {
+                hurt_t -= Ichigo::Internal::dt;
+                if (hurt_t <= 0.0f) {
+                    hurt_t = 0.0f;
+                    irisu_state = IDLE;
+                    maybe_enter_animation(irisu, irisu_idle);
+                }
             }
         } break;
 
