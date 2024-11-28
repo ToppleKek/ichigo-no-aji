@@ -1,4 +1,5 @@
 #include "../ichigo.hpp"
+#include "strings.hpp"
 #include "irisu.hpp"
 
 EMBED("assets/enemy.png", enemy_png)
@@ -34,6 +35,15 @@ struct Coin {
     bool collected;
     Ichigo::EntityID id;
 };
+
+enum ProgramState {
+    MAIN_MENU,
+    GAME,
+    PAUSE,
+};
+
+static ProgramState program_state;
+static Language current_lang = ENGLISH;
 
 static Coin coins[3] = {};
 
@@ -118,7 +128,13 @@ void Ichigo::Game::init() {
     const Ichigo::Texture &t = Ichigo::Internal::textures.at(ui_coin_background);
     ui_coin_background_width_in_metres  = pixels_to_metres(t.width);
     ui_coin_background_height_in_metres = pixels_to_metres(t.height);
+}
 
+static void init_main_menu() {
+
+}
+
+static void init_game() {
     Ichigo::game_state.background_colour = {0.54f, 0.84f, 1.0f, 1.0f};
     Ichigo::game_state.background_layers[0].texture_id     = test_bg_texture_id;
     Ichigo::game_state.background_layers[0].flags          = Ichigo::BG_REPEAT_X;
@@ -159,6 +175,13 @@ void Ichigo::Game::frame_begin() {
 
 // Runs right before the engine begins to render
 void Ichigo::Game::update_and_render() {
+    if (Ichigo::Internal::keyboard_state[IK_F5].down_this_frame) {
+        if (current_lang == ENGLISH) current_lang = JAPANESE;
+        else                         current_lang = ENGLISH;
+
+        Ichigo::show_info(STRINGS[SWITCH_LANGUAGE][current_lang]);
+    }
+
     if (!controller_connected && Internal::gamepad.connected) {
         show_info("Controller connected!");
         controller_connected = true;
@@ -167,58 +190,180 @@ void Ichigo::Game::update_and_render() {
         controller_connected = false;
     }
 
-    Ichigo::TextStyle style;
-    style.scale     = 0.8f;
-    style.alignment = Ichigo::TextAlignment::LEFT;
-    style.colour    = {0.0f, 0.0f, 0.0f, 1.0f};
+    switch (program_state) {
+        case MAIN_MENU: {
+#define FADE_IN_DURATION 1.5f
+#define MENU_ITEM_COUNT 2
+            static Vec4<f32> colour_white = {1.0f, 1.0f, 1.0f, 1.0f};
+            static u32 selected_menu_item = 0;
+            static f32 fade_in_t = FADE_IN_DURATION;
 
-    // const char *ichiaji = "Ichigo no Aji! いちごのあじ！ イチゴノアジ！ 苺の味！ Ｉｃｈｉｇｏ ｎｏ Ａｊｉ！";
-    // Ichigo::DrawCommand test_draw_command2;
-    // test_draw_command2.coordinate_system = Ichigo::CoordinateSystem::CAMERA;
-    // test_draw_command2.type              = Ichigo::DrawCommandType::TEXT;
-    // test_draw_command2.string            = ichiaji;
-    // test_draw_command2.string_length     = std::strlen(ichiaji);
-    // test_draw_command2.string_pos        = {0.0f, 1.0f};
-    // test_draw_command2.text_style        = style;
+            static Ichigo::TextStyle title_style = {
+                .alignment = Ichigo::TextAlignment::CENTER,
+                .scale     = 1.5f,
+                .colour    = colour_white
+            };
 
-    // Ichigo::push_draw_command(test_draw_command2);
+            static Ichigo::TextStyle menu_item_style = {
+                .alignment = Ichigo::TextAlignment::CENTER,
+                .scale     = 1.0f,
+                .colour    = colour_white
+            };
 
-    // const char *kanji_test = "一番、二番、三番、四番。「ラムネは子供っぽくないです。青春の飲み物ですから」世界一美味しい苺パスタを作るアイドル";
-    // Ichigo::DrawCommand test_draw_command3;
-    // style.alignment = Ichigo::TextAlignment::CENTER;
-    // test_draw_command3.coordinate_system = Ichigo::CoordinateSystem::CAMERA;
-    // test_draw_command3.type              = Ichigo::DrawCommandType::TEXT;
-    // test_draw_command3.string            = kanji_test;
-    // test_draw_command3.string_length     = std::strlen(kanji_test);
-    // test_draw_command3.string_pos        = {8.0f, 3.0f};
-    // test_draw_command3.text_style        = style;
+            static Ichigo::TextStyle info_style = {
+                .alignment = Ichigo::TextAlignment::RIGHT,
+                .scale     = 0.5f,
+                .colour    = colour_white
+            };
 
-    // Ichigo::push_draw_command(test_draw_command3);
+            Ichigo::DrawCommand info_text_cmd = {
+                .type              = TEXT,
+                .coordinate_system = CAMERA,
+                .string            = STRINGS[INFO_TEXT][current_lang],
+                .string_length     = std::strlen(STRINGS[INFO_TEXT][current_lang]),
+                .string_pos        = {SCREEN_TILE_WIDTH, SCREEN_TILE_HEIGHT - 0.1f},
+                .text_style        = info_style
+            };
 
-    // == UI ==
-    static Ichigo::DrawCommand coins_background_cmd = {
-        .type = TEXTURED_RECT,
-        .coordinate_system = CAMERA,
-        .texture_rect = {{0.1f, 0.1f}, ui_coin_background_width_in_metres, ui_coin_background_height_in_metres},
-        .texture_id = ui_coin_background
-    };
+            Ichigo::push_draw_command(info_text_cmd);
 
-    Ichigo::push_draw_command(coins_background_cmd);
+            bool menu_down_button_down_this_frame = Ichigo::Internal::keyboard_state[Ichigo::IK_DOWN].down_this_frame;
+            bool menu_up_button_down_this_frame   = Ichigo::Internal::keyboard_state[Ichigo::IK_UP].down_this_frame;
 
-    for (u32 i = 0; i < ARRAY_LEN(coins); ++i) {
-        Ichigo::DrawCommand coin_cmd = {
-            .type = TEXTURED_RECT,
-            .coordinate_system = CAMERA,
-            .texture_rect = {{0.25f + i + (i * 0.1f), 0.37f}, 1.0f, 1.0f},
-            .texture_id = coins[i].collected ? ui_collected_coin_texture : ui_uncollected_coin_texture
-        };
+            if (menu_down_button_down_this_frame) {
+                selected_menu_item = (selected_menu_item + 1) % MENU_ITEM_COUNT;
+            } else if (menu_up_button_down_this_frame) {
+                selected_menu_item = DEC_POSITIVE_OR(selected_menu_item, MENU_ITEM_COUNT - 1);
+            }
 
-        Ichigo::push_draw_command(coin_cmd);
+            Ichigo::DrawCommand title_draw_cmd = {
+                .type              = TEXT,
+                .coordinate_system = CAMERA,
+                .string            = STRINGS[TITLE][current_lang],
+                .string_length     = std::strlen(STRINGS[TITLE][current_lang]),
+                .string_pos        = {SCREEN_TILE_WIDTH / 2.0f, SCREEN_TILE_HEIGHT / ichigo_lerp(6.0f, fade_in_t / FADE_IN_DURATION, 4.0f)},
+                .text_style        = title_style
+            };
+
+            Ichigo::push_draw_command(title_draw_cmd);
+
+            if (Ichigo::Internal::keyboard_state[IK_ENTER].down_this_frame) {
+                if (selected_menu_item == 0) {
+                    init_game();
+                    program_state = GAME;
+                } else if (selected_menu_item == 1) {
+                    std::exit(0);
+                }
+            }
+
+            if (fade_in_t > 0.0f) {
+                Ichigo::DrawCommand fade_in_cmd = {
+                    .type              = SOLID_COLOUR_RECT,
+                    .coordinate_system = SCREEN,
+                    .rect              = {{0.0f, 0.0f}, 1.0f, 1.0f},
+                    .colour            = {0.0f, 0.0f, 0.0f, fade_in_t / FADE_IN_DURATION}
+                };
+
+                Ichigo::push_draw_command(fade_in_cmd);
+
+                fade_in_t -= Ichigo::Internal::dt;
+
+                if (fade_in_t < 0.0f) {
+                    fade_in_t = 0.0f;
+                }
+            } else {
+                f64 t = std::sin(Internal::platform_get_current_time() * 2.0f);
+                t *= t;
+                t = 0.5f + 0.5f * t;
+                Vec4<f32> pulse_colour = {0.6f, 0.2f, ichigo_lerp(0.4f, t, 0.9f), 1.0f};
+
+                Ichigo::DrawCommand menu_draw_cmd = {
+                    .type              = TEXT,
+                    .coordinate_system = CAMERA,
+                    .string            = STRINGS[START_GAME][current_lang],
+                    .string_length     = std::strlen(STRINGS[START_GAME][current_lang]),
+                    .string_pos        = {SCREEN_TILE_WIDTH / 2.0f, SCREEN_TILE_HEIGHT / 1.5f},
+                    .text_style        = menu_item_style
+                };
+
+                if (selected_menu_item == 0) menu_draw_cmd.text_style.colour = pulse_colour;
+                else                         menu_draw_cmd.text_style.colour = colour_white;
+
+
+                Ichigo::push_draw_command(menu_draw_cmd);
+
+                if (selected_menu_item == 1) menu_draw_cmd.text_style.colour = pulse_colour;
+                else                         menu_draw_cmd.text_style.colour = colour_white;
+
+                menu_draw_cmd.string        = STRINGS[EXIT][current_lang];
+                menu_draw_cmd.string_length = std::strlen(STRINGS[EXIT][current_lang]),
+                menu_draw_cmd.string_pos    = {SCREEN_TILE_WIDTH / 2.0f, (SCREEN_TILE_HEIGHT / 1.5f) + 1.0f};
+
+                Ichigo::push_draw_command(menu_draw_cmd);
+            }
+        } break;
+
+        case GAME: {
+            // static Ichigo::TextStyle style = {
+            //     .alignment = Ichigo::TextAlignment::LEFT,
+            //     .scale     = 0.8f,
+            //     .colour    = {0.0f, 0.0f, 0.0f, 1.0f}
+            // };
+
+            // const char *ichiaji = "Ichigo no Aji! いちごのあじ！ イチゴノアジ！ 苺の味！ Ｉｃｈｉｇｏ ｎｏ Ａｊｉ！";
+            // Ichigo::DrawCommand test_draw_command2;
+            // test_draw_command2.coordinate_system = Ichigo::CoordinateSystem::CAMERA;
+            // test_draw_command2.type              = Ichigo::DrawCommandType::TEXT;
+            // test_draw_command2.string            = ichiaji;
+            // test_draw_command2.string_length     = std::strlen(ichiaji);
+            // test_draw_command2.string_pos        = {0.0f, 1.0f};
+            // test_draw_command2.text_style        = style;
+
+            // Ichigo::push_draw_command(test_draw_command2);
+
+            // const char *kanji_test = "一番、二番、三番、四番。「ラムネは子供っぽくないです。青春の飲み物ですから」世界一美味しい苺パスタを作るアイドル";
+            // Ichigo::DrawCommand test_draw_command3;
+            // style.alignment = Ichigo::TextAlignment::CENTER;
+            // test_draw_command3.coordinate_system = Ichigo::CoordinateSystem::CAMERA;
+            // test_draw_command3.type              = Ichigo::DrawCommandType::TEXT;
+            // test_draw_command3.string            = kanji_test;
+            // test_draw_command3.string_length     = std::strlen(kanji_test);
+            // test_draw_command3.string_pos        = {8.0f, 3.0f};
+            // test_draw_command3.text_style        = style;
+
+            // Ichigo::push_draw_command(test_draw_command3);
+
+            // == UI ==
+            static Ichigo::DrawCommand coins_background_cmd = {
+                .type              = TEXTURED_RECT,
+                .coordinate_system = CAMERA,
+                .texture_rect      = {{0.1f, 0.1f}, ui_coin_background_width_in_metres, ui_coin_background_height_in_metres},
+                .texture_id        = ui_coin_background
+            };
+
+            Ichigo::push_draw_command(coins_background_cmd);
+
+            for (u32 i = 0; i < ARRAY_LEN(coins); ++i) {
+                Ichigo::DrawCommand coin_cmd = {
+                    .type              = TEXTURED_RECT,
+                    .coordinate_system = CAMERA,
+                    .texture_rect      = {{0.25f + i + (i * 0.1f), 0.37f}, 1.0f, 1.0f},
+                    .texture_id        = coins[i].collected ? ui_collected_coin_texture : ui_uncollected_coin_texture
+                };
+
+                Ichigo::push_draw_command(coin_cmd);
+            }
+
+            if (Internal::keyboard_state[IK_G].down_this_frame) {
+                spawn_gert();
+            }
+        } break;
+
+        case PAUSE: {
+
+        } break;
     }
 
-    if (Internal::keyboard_state[IK_G].down_this_frame) {
-        spawn_gert();
-    }
 }
 
 // Runs at the end of the fame (Thinking about this interface still, maybe we don't need these?)

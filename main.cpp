@@ -40,7 +40,7 @@ static Ichigo::AudioID test_sound_id = 0;
 static ImGuiStyle initial_style;
 static ImFontConfig font_config;
 static f32 last_dpi_scale             = 1.0f;
-static bool show_debug_menu           = true;
+static bool show_debug_menu           = false;
 static bool DEBUG_draw_colliders      = true;
 static bool DEBUG_hide_entity_sprites = false;
 
@@ -625,9 +625,12 @@ Ichigo::TileID Ichigo::tile_at(Vec2<u32> tile_coord) {
 static void build_tile_draw_data(Vec2<u32> tile_pos, Util::BufferBuilder<TexturedVertex> &vertices, Util::BufferBuilder<u32> &indices) {
     Ichigo::TileID tile = Ichigo::tile_at(tile_pos);
 
-    // TODO: This is still done per-tile. But this codepath will only ever get lit up in the level editor. So, who cares, right?
     if (tile == INVALID_TILE) {
-        world_render_textured_rect({{(f32) tile_pos.x, (f32) tile_pos.y}, 1.0f, 1.0f}, invalid_tile_texture_id);
+        // TODO: This is still done per-tile. But this codepath will only ever get lit up in the level editor. So, who cares, right?
+        if (program_mode == Ichigo::Internal::EDITOR) {
+            world_render_textured_rect({{(f32) tile_pos.x, (f32) tile_pos.y}, 1.0f, 1.0f}, invalid_tile_texture_id);
+        }
+
         return;
     }
 
@@ -685,7 +688,7 @@ void Ichigo::show_info(const char *str, u32 length) {
     InfoLogMessage msg = {};
     msg.data           = data;
     msg.length         = length;
-    msg.t_remaining    = 4.0f;
+    msg.t_remaining    = 3.0f;
 
     info_log[info_log_top] = msg;
     info_log_top = (info_log_top + 1) % INFO_LOG_MAX_MESSAGES;
@@ -1368,6 +1371,10 @@ void Ichigo::Internal::init() {
     // DEBUG
     test_sound_id = Ichigo::load_audio(test_sound, test_sound_len);
     // END DEBUG
+
+#ifdef ICHIGO_DEBUG
+    show_info("You are running in debug mode. Press ESC for debug menu, F1 for editor.");
+#endif
 }
 
 void Ichigo::Internal::deinit() {}

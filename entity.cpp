@@ -28,7 +28,7 @@ Ichigo::Entity *Ichigo::spawn_entity() {
 
     // If no slots are available, append the entity to the end of the entity list
     Ichigo::Entity ret{};
-    ret.id = {0, (u32) Internal::entities.size };
+    ret.id = {0, (u32) Internal::entities.size};
     Internal::entities.append(ret);
     return &Internal::entities.at(Internal::entities.size - 1);
 }

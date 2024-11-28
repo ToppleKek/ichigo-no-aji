@@ -1,4 +1,4 @@
-# Unnamed Mystery Dungeon Type Game OR "Ichigo no Aji!" OR kekslop magical girl game OR simple single shade (puzzle?) game
+# Ichigo! and Ichigo no Aji!
 
 ## Programming (vulkan)
 - ~~Draw triangle~~
@@ -117,7 +117,6 @@ Something to think about. Maybe there is a "tileset" that can get swapped out de
 - RemedyBG (debugger)
 - Focus (editor)
 - RenderDoc (Graphics debugger)
-- NVIDIA Nsight graphics (Graphics debugger)
 - Ctime (Compile time analysis tool)
 
 ## Project Objective
