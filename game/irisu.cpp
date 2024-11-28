@@ -50,8 +50,8 @@ static void on_collide(Ichigo::Entity *irisu, Ichigo::Entity *other, Vec2<f32> n
             Ichigo::Mixer::play_audio_oneshot(boo_womp_id, 1.0f, 1.0f, 1.0f);
         } else if (invincibility_t == 0.0f) {
             irisu->acceleration = {0.0f, 0.0f};
-            irisu->velocity.y = -5.0f;
-            irisu->velocity.x = 5.0f * (FLAG_IS_SET(irisu->flags, Ichigo::EF_FLIP_H) ? -1 : 1);
+            irisu->velocity.y = -3.0f;
+            irisu->velocity.x = 3.0f * (FLAG_IS_SET(irisu->flags, Ichigo::EF_FLIP_H) ? -1 : 1);
             irisu_state = HURT;
         }
     }
@@ -149,6 +149,8 @@ static inline void maybe_enter_animation(Ichigo::Entity *entity, Ichigo::Animati
 }
 
 #define IRISU_MAX_JUMP_T 0.35f
+#define DIVE_X_VELOCITY 2.0f
+#define DIVE_Y_VELOCITY 4.0f
 void Irisu::update(Ichigo::Entity *irisu) {
     static f32 applied_t = 0.0f;
     static bool released_jump = false;
@@ -241,8 +243,8 @@ void Irisu::update(Ichigo::Entity *irisu) {
             else if ( FLAG_IS_SET(irisu->flags, Ichigo::EF_ON_GROUND) && irisu->velocity.x != 0.0f) irisu_state = WALK;
             else if (!FLAG_IS_SET(irisu->flags, Ichigo::EF_ON_GROUND) && irisu->velocity.y > 0.0f)  irisu_state = FALL;
             else if (dive_button_down_this_frame) {
-                irisu->velocity.y -= 5.0f;
-                irisu->velocity.x += 5.0f * (FLAG_IS_SET(irisu->flags, Ichigo::EF_FLIP_H) ? 1 : -1);
+                irisu->velocity.y -= DIVE_Y_VELOCITY;
+                irisu->velocity.x += DIVE_X_VELOCITY * (FLAG_IS_SET(irisu->flags, Ichigo::EF_FLIP_H) ? 1 : -1);
                 irisu_state = DIVE;
             } else {
                 process_movement_keys();
@@ -265,8 +267,8 @@ void Irisu::update(Ichigo::Entity *irisu) {
             if      (FLAG_IS_SET(irisu->flags, Ichigo::EF_ON_GROUND) && irisu->velocity.x == 0.0f && irisu->acceleration.x == 0.0f) irisu_state = IDLE;
             else if (FLAG_IS_SET(irisu->flags, Ichigo::EF_ON_GROUND) && irisu->velocity.x != 0.0f) irisu_state = WALK;
             else if (dive_button_down_this_frame) {
-                irisu->velocity.y -= 5.0f;
-                irisu->velocity.x += 5.0f * (FLAG_IS_SET(irisu->flags, Ichigo::EF_FLIP_H) ? 1 : -1);
+                irisu->velocity.y -= DIVE_Y_VELOCITY;
+                irisu->velocity.x += DIVE_X_VELOCITY * (FLAG_IS_SET(irisu->flags, Ichigo::EF_FLIP_H) ? 1 : -1);
                 irisu_state = DIVE;
                 maybe_enter_animation(irisu, irisu_dive);
             } else {
@@ -308,7 +310,7 @@ void Irisu::update(Ichigo::Entity *irisu) {
                     maybe_enter_animation(irisu, irisu_get_up_slow);
                 } else {
                     irisu->velocity.y -= 5.0f;
-                    irisu->velocity.x += 10.0f * signof(irisu->velocity.x);
+                    irisu->velocity.x += DIVE_X_VELOCITY * 2.5f * signof(irisu->velocity.x);
                     irisu_state = DIVE_BOOST;
                     maybe_enter_animation(irisu, irisu_jump);
                 }

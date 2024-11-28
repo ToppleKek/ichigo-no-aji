@@ -227,8 +227,9 @@ void Ichigo::Game::update_and_render() {
 
             Ichigo::push_draw_command(info_text_cmd);
 
-            bool menu_down_button_down_this_frame = Ichigo::Internal::keyboard_state[Ichigo::IK_DOWN].down_this_frame;
-            bool menu_up_button_down_this_frame   = Ichigo::Internal::keyboard_state[Ichigo::IK_UP].down_this_frame;
+            bool menu_down_button_down_this_frame   = Ichigo::Internal::keyboard_state[Ichigo::IK_DOWN].down_this_frame || Ichigo::Internal::gamepad.down.down_this_frame;
+            bool menu_up_button_down_this_frame     = Ichigo::Internal::keyboard_state[Ichigo::IK_UP].down_this_frame || Ichigo::Internal::gamepad.up.down_this_frame;
+            bool menu_select_button_down_this_frame = Ichigo::Internal::keyboard_state[IK_ENTER].down_this_frame || Ichigo::Internal::gamepad.a.down_this_frame || Ichigo::Internal::gamepad.start.down_this_frame;
 
             if (menu_down_button_down_this_frame) {
                 selected_menu_item = (selected_menu_item + 1) % MENU_ITEM_COUNT;
@@ -247,7 +248,7 @@ void Ichigo::Game::update_and_render() {
 
             Ichigo::push_draw_command(title_draw_cmd);
 
-            if (Ichigo::Internal::keyboard_state[IK_ENTER].down_this_frame) {
+            if (menu_select_button_down_this_frame) {
                 if (selected_menu_item == 0) {
                     init_game();
                     program_state = GAME;

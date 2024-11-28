@@ -121,12 +121,12 @@ Ichigo::EntityMoveResult Ichigo::move_entity_in_world(Ichigo::Entity *entity) {
     } else if (!FLAG_IS_SET(entity->flags, EF_ON_GROUND) && entity->acceleration.x != 0.0f) {
         // Drag/air resistance
         // TODO: Make drag configurable.
-        external_acceleration.x += -4.0f * signof(entity->velocity.x);
+        external_acceleration.x += -6.0f * signof(entity->velocity.x);
     }
 
     // Friction deceleration. Only applies when you are not trying to move.
     // NOTE: Kind of confusing. entity->acceleration is ONLY the "applied acceleration" by the entity. Does NOT include the external acceleration values.
-    if (entity->acceleration.x == 0.0f && entity->velocity.x != 0.0f) {
+    if (FLAG_IS_SET(entity->flags, EF_ON_GROUND) && entity->acceleration.x == 0.0f && entity->velocity.x != 0.0f) {
         external_acceleration.x = -friction * direction;
     }
 
@@ -142,7 +142,10 @@ Ichigo::EntityMoveResult Ichigo::move_entity_in_world(Ichigo::Entity *entity) {
     bool was_limited = false;
     if (std::fabsf(entity->velocity.x) > entity->max_velocity.x) {
         // FIXME: Stupid hack. Since the entity is likely still applying acceleration, we forcibly apply friction here.
-        external_acceleration.x = -friction * direction;
+        if (FLAG_IS_SET(entity->flags, EF_ON_GROUND)) {
+            external_acceleration.x = -friction * direction;
+        }
+
         final_acceleration.x = external_acceleration.x;
         if (signof(entity->acceleration.x) != signof(entity->velocity.x)) {
             final_acceleration.x += entity->acceleration.x;
