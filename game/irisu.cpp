@@ -38,6 +38,8 @@ static Ichigo::TextureID irisu_texture_id = 0;
 static Ichigo::EntityID irisu_id = {};
 static Ichigo::AudioID boo_womp_id = {};
 
+static f32 invincibility_t = 0.0f;
+
 static void on_collide(Ichigo::Entity *irisu, Ichigo::Entity *other, Vec2<f32> normal, Vec2<f32> collision_pos) {
     ICHIGO_INFO("IRISU collide with %s: normal=%f,%f pos=%f,%f", other->name, normal.x, normal.y, collision_pos.x, collision_pos.y);
 
@@ -46,7 +48,7 @@ static void on_collide(Ichigo::Entity *irisu, Ichigo::Entity *other, Vec2<f32> n
             irisu->velocity.y -= 15.0f;
             Ichigo::kill_entity(other->id);
             Ichigo::Mixer::play_audio_oneshot(boo_womp_id, 1.0f, 1.0f, 1.0f);
-        } else {
+        } else if (invincibility_t == 0.0f) {
             irisu->acceleration = {0.0f, 0.0f};
             irisu->velocity.y = -5.0f;
             irisu->velocity.x = 5.0f * (FLAG_IS_SET(irisu->flags, Ichigo::EF_FLIP_H) ? -1 : 1);
@@ -165,6 +167,24 @@ void Irisu::update(Ichigo::Entity *irisu) {
         }
     };
 
+    static f32 invincible_flash_t = 0.0f;
+
+    if (invincibility_t > 0.0f) {
+        invincibility_t -= Ichigo::Internal::dt;
+        invincible_flash_t += Ichigo::Internal::dt;
+
+        if (invincible_flash_t > 0.05f) {
+            invincible_flash_t = 0.0f;
+            if (FLAG_IS_SET(irisu->flags, Ichigo::EF_INVISIBLE)) CLEAR_FLAG(irisu->flags, Ichigo::EF_INVISIBLE);
+            else                                                 SET_FLAG  (irisu->flags, Ichigo::EF_INVISIBLE);
+        }
+
+        if (invincibility_t < 0.0f) {
+            invincibility_t = 0.0f;
+            CLEAR_FLAG(irisu->flags, Ichigo::EF_INVISIBLE);
+        }
+    }
+
     bool jump_button_down_this_frame = Ichigo::Internal::keyboard_state[Ichigo::IK_SPACE].down_this_frame || Ichigo::Internal::gamepad.a.down_this_frame || Ichigo::Internal::gamepad.b.down_this_frame;
     bool jump_button_down            = Ichigo::Internal::keyboard_state[Ichigo::IK_SPACE].down || Ichigo::Internal::gamepad.a.down || Ichigo::Internal::gamepad.b.down;
     bool run_button_down             = Ichigo::Internal::keyboard_state[Ichigo::IK_LEFT_SHIFT].down || Ichigo::Internal::gamepad.x.down || Ichigo::Internal::gamepad.y.down;
@@ -188,31 +208,36 @@ void Irisu::update(Ichigo::Entity *irisu) {
 
         case WALK: {
             maybe_enter_animation(irisu, irisu_walk);
-            if      (!FLAG_IS_SET(irisu->flags, Ichigo::EF_ON_GROUND))           irisu_state = JUMP;
-            else if (irisu->velocity.x == 0.0f && irisu->acceleration.x == 0.0f) irisu_state = IDLE;
-
-            process_movement_keys();
-
-            if (jump_button_down_this_frame) {
-                released_jump     = false;
-                applied_t         = 0.0f;
-                irisu_state       = JUMP;
-                irisu->velocity.y = -irisu->jump_acceleration;
-                maybe_enter_animation(irisu, irisu_jump);
-            }
-
-            if (run_button_down) {
-                irisu->max_velocity.x = 8.0f;
-                // irisu_walk.seconds_per_frame = 0.06f;
+            if (!FLAG_IS_SET(irisu->flags, Ichigo::EF_ON_GROUND)) {
+                irisu_state = JUMP;
             } else {
-                irisu->max_velocity.x = 4.0f;
-                // irisu_walk.seconds_per_frame = 0.08f;
+                process_movement_keys();
+
+                if (irisu->velocity.x == 0.0f && irisu->acceleration.x == 0.0f) {
+                    irisu_state = IDLE;
+                }
+
+                if (jump_button_down_this_frame) {
+                    released_jump     = false;
+                    applied_t         = 0.0f;
+                    irisu_state       = JUMP;
+                    irisu->velocity.y = -irisu->jump_acceleration;
+                    maybe_enter_animation(irisu, irisu_jump);
+                }
+
+                if (run_button_down) {
+                    irisu->max_velocity.x = 8.0f;
+                    // irisu_walk.seconds_per_frame = 0.06f;
+                } else {
+                    irisu->max_velocity.x = 4.0f;
+                    // irisu_walk.seconds_per_frame = 0.08f;
+                }
             }
         } break;
 
         case JUMP: {
             maybe_enter_animation(irisu, irisu_jump);
-            if      ( FLAG_IS_SET(irisu->flags, Ichigo::EF_ON_GROUND) && irisu->velocity.x == 0.0f) irisu_state = IDLE;
+            if      ( FLAG_IS_SET(irisu->flags, Ichigo::EF_ON_GROUND) && irisu->velocity.x == 0.0f && irisu->acceleration.x == 0.0f) irisu_state = IDLE;
             else if ( FLAG_IS_SET(irisu->flags, Ichigo::EF_ON_GROUND) && irisu->velocity.x != 0.0f) irisu_state = WALK;
             else if (!FLAG_IS_SET(irisu->flags, Ichigo::EF_ON_GROUND) && irisu->velocity.y > 0.0f)  irisu_state = FALL;
             else if (dive_button_down_this_frame) {
@@ -237,7 +262,7 @@ void Irisu::update(Ichigo::Entity *irisu) {
 
         case FALL: {
             maybe_enter_animation(irisu, irisu_fall);
-            if      (FLAG_IS_SET(irisu->flags, Ichigo::EF_ON_GROUND) && irisu->velocity.x == 0.0f) irisu_state = IDLE;
+            if      (FLAG_IS_SET(irisu->flags, Ichigo::EF_ON_GROUND) && irisu->velocity.x == 0.0f && irisu->acceleration.x == 0.0f) irisu_state = IDLE;
             else if (FLAG_IS_SET(irisu->flags, Ichigo::EF_ON_GROUND) && irisu->velocity.x != 0.0f) irisu_state = WALK;
             else if (dive_button_down_this_frame) {
                 irisu->velocity.y -= 5.0f;
@@ -266,8 +291,9 @@ void Irisu::update(Ichigo::Entity *irisu) {
             } else {
                 hurt_t -= Ichigo::Internal::dt;
                 if (hurt_t <= 0.0f) {
-                    hurt_t = 0.0f;
-                    irisu_state = IDLE;
+                    hurt_t          = 0.0f;
+                    invincibility_t = 1.5f;
+                    irisu_state     = IDLE;
                     maybe_enter_animation(irisu, irisu_idle);
                 }
             }
@@ -312,7 +338,8 @@ void Irisu::update(Ichigo::Entity *irisu) {
         released_jump = true;
     }
 
-    if (move_result == Ichigo::HIT_WALL) {
+    // Prevent the player from walking in place when pushing up against a wall.
+    if (move_result == Ichigo::HIT_WALL && irisu_state == WALK) {
         irisu_state = IDLE;
         maybe_enter_animation(irisu, irisu_idle);
     }

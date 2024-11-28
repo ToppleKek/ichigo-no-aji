@@ -348,11 +348,13 @@ Ichigo::EntityMoveResult Ichigo::move_entity_in_world(Ichigo::Entity *entity) {
         // }
     }
 
-    if (entity->velocity.y != 0.0f) {
+    // If an entity becomes airborne on its own (eg. jumping)
+    if (entity->velocity.y != 0.0f && FLAG_IS_SET(entity->flags, Ichigo::EntityFlag::EF_ON_GROUND)) {
         result = BECAME_AIRBORNE;
         CLEAR_FLAG(entity->flags, Ichigo::EntityFlag::EF_ON_GROUND);
     }
 
+    // Check if the entity is standing on anything. If they aren't anymore, mark them as airborne.
     if (FLAG_IS_SET(entity->flags, Ichigo::EntityFlag::EF_ON_GROUND)) {
         entity->left_standing_tile  = { (u32) entity->col.pos.x, (u32) (entity->col.pos.y + entity->col.h) + 1 };
         entity->right_standing_tile = { (u32) (entity->col.pos.x + entity->col.w), (u32) (entity->col.pos.y + entity->col.h) + 1 };

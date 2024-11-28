@@ -34,7 +34,8 @@ enum EntityFlag {
     EF_MARKED_FOR_DEATH = 1 << 0,
     EF_ON_GROUND        = 1 << 1,
     EF_FLIP_H           = 1 << 2,
-    // EF_ANIM_LOOPING = 1 << 3, // TODO: Not sure if this makes sense?
+    EF_INVISIBLE        = 1 << 3,
+    // EF_ANIM_LOOPING = 1 << 4, // TODO: Not sure if this makes sense?
 };
 
 enum EntityMoveResult {

@@ -510,6 +510,10 @@ void default_entity_render_proc(Ichigo::Entity *entity) {
             }
         }
 
+        if (FLAG_IS_SET(entity->flags, Ichigo::EF_INVISIBLE)) {
+            goto skip_sprite_draw;
+        }
+
         Vec2<f32> draw_pos = { entity->col.pos.x + entity->sprite.pos_offset.x, entity->col.pos.y + entity->sprite.pos_offset.y };
         TexturedVertex vertices[] = {
             {{draw_pos.x, draw_pos.y, 0.0f},                                                {u0, v0}}, // top left
@@ -532,6 +536,7 @@ void default_entity_render_proc(Ichigo::Entity *entity) {
         Ichigo::Internal::gl.glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
     }
 
+skip_sprite_draw:
     if (DEBUG_draw_colliders) {
         world_render_solid_colour_rect(entity->col, {1.0f, 0.2f, 0.2f, 0.6f});
 
