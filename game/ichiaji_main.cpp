@@ -252,10 +252,10 @@ void Ichigo::Game::update_and_render() {
     }
 
     if (!controller_connected && Internal::gamepad.connected) {
-        show_info("Controller connected!");
+        show_info(STRINGS[CONTROLLER_CONNECTED][current_lang]);
         controller_connected = true;
     } else if (controller_connected && !Internal::gamepad.connected) {
-        show_info("Controller disconnected!");
+        show_info(STRINGS[CONTROLLER_DISCONNECTED][current_lang]);
         controller_connected = false;
     }
 

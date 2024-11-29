@@ -15,6 +15,8 @@ enum Strings {
     PAUSE,
     RESUME_GAME,
     RETURN_TO_MENU,
+    CONTROLLER_CONNECTED,
+    CONTROLLER_DISCONNECTED,
     STRING_COUNT
 };
 
@@ -27,4 +29,6 @@ static const char *STRINGS[STRING_COUNT][LANGUAGE_COUNT] = {
     {"Pause", "ポーズ"},
     {"Resume", "再開"},
     {"Return to menu", "メインメニューに戻る"},
+    {"Controller connected", "コントローラーが接続されました"},
+    {"Controller disconnected", "コントローラーの接続を解除されました"},
 };
