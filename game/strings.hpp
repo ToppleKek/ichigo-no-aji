@@ -12,6 +12,9 @@ enum Strings {
     START_GAME,
     EXIT,
     INFO_TEXT,
+    PAUSE,
+    RESUME_GAME,
+    RETURN_TO_MENU,
     STRING_COUNT
 };
 
@@ -21,4 +24,7 @@ static const char *STRINGS[STRING_COUNT][LANGUAGE_COUNT] = {
     {"Start game", "始める"},
     {"Exit", "終了"},
     {"F5: Change language - 2024 Braeden Hong - ichigo no chikara de...!", "F5: 言語変換 - 2024 Braeden Hong - 苺の力で...!"},
+    {"Pause", "ポーズ"},
+    {"Resume", "再開"},
+    {"Return to menu", "メインメニューに戻る"},
 };

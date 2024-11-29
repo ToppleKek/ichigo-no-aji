@@ -73,6 +73,12 @@ void Ichigo::kill_entity_deferred(EntityID id) {
     SET_FLAG(entity->flags, EF_MARKED_FOR_DEATH);
 }
 
+void Ichigo::kill_all_entities() {
+    for (u32 i = 1; i < Internal::entities.size; ++i) {
+        Internal::entities.at(i).id.index = 0;
+    }
+}
+
 // Perform a sort of "reverse lerp" to find the time, "best_t", at which the dx vector would collide with the wall at x.
 // Ensure that this collision is valid by verifying that the y value, "py" ("player y"), would actually hit this wall: ty0 and ty1 ("tile y 0" and "tile y 1").
 // x = a + t*(b-a)

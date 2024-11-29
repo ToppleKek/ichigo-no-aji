@@ -96,6 +96,7 @@ Entity *get_entity(EntityID id);
 void conduct_end_of_frame_executions();
 void kill_entity(EntityID id);
 void kill_entity_deferred(EntityID id);
+void kill_all_entities();
 EntityMoveResult move_entity_in_world(Entity *entity);
 namespace Internal {
 extern Util::IchigoVector<Ichigo::Entity> entities;

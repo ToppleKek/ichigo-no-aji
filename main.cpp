@@ -568,6 +568,14 @@ void Ichigo::set_tilemap(Tilemap *tilemap) {
 
 
 void Ichigo::set_tilemap(u8 *ichigo_tilemap_memory, Ichigo::SpriteSheet tileset_sheet) {
+    if (!ichigo_tilemap_memory) {
+        Internal::current_tilemap.width           = 0;
+        Internal::current_tilemap.height          = 0;
+        Internal::current_tilemap.tile_info_count = 0;
+
+        return;
+    }
+
     Tilemap tilemap;
     usize cursor = 0;
     // Version number
@@ -998,8 +1006,9 @@ void Ichigo::Internal::do_frame() {
         last_dpi_scale = dpi_scale;
     }
 
-    if (Ichigo::Internal::keyboard_state[Ichigo::IK_ESCAPE].down_this_frame)
+    if (Ichigo::Internal::keyboard_state[Ichigo::IK_F3].down_this_frame) {
         show_debug_menu = !show_debug_menu;
+    }
 
     ImGui_ImplOpenGL3_NewFrame();
     ImGui::NewFrame();
@@ -1373,7 +1382,7 @@ void Ichigo::Internal::init() {
     // END DEBUG
 
 #ifdef ICHIGO_DEBUG
-    show_info("You are running in debug mode. Press ESC for debug menu, F1 for editor.");
+    show_info("You are running in debug mode. Press F3 for debug menu, F1 for editor.");
 #endif
 }
 

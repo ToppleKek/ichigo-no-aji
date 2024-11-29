@@ -8,6 +8,7 @@
 */
 
 #include "irisu.hpp"
+#include "ichiaji.hpp"
 
 EMBED("assets/irisu.png", irisu_spritesheet_png)
 EMBED("assets/music/boo_womp441.mp3", boo_womp_mp3)
@@ -50,9 +51,9 @@ static void on_collide(Ichigo::Entity *irisu, Ichigo::Entity *other, Vec2<f32> n
             Ichigo::Mixer::play_audio_oneshot(boo_womp_id, 1.0f, 1.0f, 1.0f);
         } else if (invincibility_t == 0.0f) {
             irisu->acceleration = {0.0f, 0.0f};
-            irisu->velocity.y = -3.0f;
-            irisu->velocity.x = 3.0f * (FLAG_IS_SET(irisu->flags, Ichigo::EF_FLIP_H) ? -1 : 1);
-            irisu_state = HURT;
+            irisu->velocity.y   = -3.0f;
+            irisu->velocity.x   = 3.0f * (FLAG_IS_SET(irisu->flags, Ichigo::EF_FLIP_H) ? -1 : 1);
+            irisu_state         = HURT;
         }
     }
 }
@@ -140,6 +141,11 @@ void Irisu::init(Ichigo::Entity *entity) {
     entity->sprite = irisu_sprite;
 }
 
+void Irisu::deinit() {
+    invincibility_t = 0.0f;
+    irisu_state     = IDLE;
+}
+
 static inline void maybe_enter_animation(Ichigo::Entity *entity, Ichigo::Animation animation) {
     if (entity->sprite.animation.tag != animation.tag) {
         entity->sprite.animation = animation;
@@ -152,6 +158,10 @@ static inline void maybe_enter_animation(Ichigo::Entity *entity, Ichigo::Animati
 #define DIVE_X_VELOCITY 2.0f
 #define DIVE_Y_VELOCITY 4.0f
 void Irisu::update(Ichigo::Entity *irisu) {
+    if (Ichiaji::program_state == Ichiaji::PAUSE) {
+        return;
+    }
+
     static f32 applied_t = 0.0f;
     static bool released_jump = false;
 
