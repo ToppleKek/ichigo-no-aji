@@ -8,4 +8,5 @@ enum ProgramState {
 };
 
 extern ProgramState program_state;
+extern bool modal_open;
 }

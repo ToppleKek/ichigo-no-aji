@@ -17,6 +17,10 @@ enum Strings {
     RETURN_TO_MENU,
     CONTROLLER_CONNECTED,
     CONTROLLER_DISCONNECTED,
+    HOW_TO_PLAY,
+    EXPLANATION_CONTROLLER,
+    EXPLANATION_KEYBOARD,
+    GOT_IT,
     STRING_COUNT
 };
 
@@ -31,4 +35,30 @@ static const char *STRINGS[STRING_COUNT][LANGUAGE_COUNT] = {
     {"Return to menu", "メインメニューに戻る"},
     {"Controller connected", "コントローラーが接続されました"},
     {"Controller disconnected", "コントローラーの接続を解除されました"},
+    {"How to play!", "やり方！"},
+    {
+        "Jump by pressing the A or B buttons.\n"
+        "Run by holding the X or Y buttons.\n"
+        "In midair, dive by pressing LB or RB.\n"
+        "Upon landing from a dive, press A or B to jump out of the dive.",
+        "AかBを押すとジャンプが出来ます。\n"
+        "XかYを長押しすると、走ることが出来ます。\n"
+        "空中でLBかRBを押すと、ダイブが出来ます。\n"
+        "ダイブから地面に着地をした後、AかBを押すと、またジャンプ出来ます。"
+    },
+    {
+        "Jump by pressing space.\n"
+        "Run by holding left shift.\n"
+        "In midair, dive by pressing Z.\n"
+        "Upon landing from a dive, press space to jump out of the dive.",
+        "SPACEを押すとジャンプが出来ます。\n"
+        "LSHIFTを長押しすると、走ることが出来ます。\n"
+        "空中でZを押すと、ダイブが出来ます。\n"
+        "ダイブから地面に着地をした後、SPACEを押すと、またジャンプ出来ます。"
+    },
+    {"Got it!", "分かった！"}
 };
+
+extern Language current_language;
+
+#define TL_STR(STR) (STRINGS[STR][current_language])

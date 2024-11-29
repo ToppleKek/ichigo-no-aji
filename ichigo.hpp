@@ -171,6 +171,7 @@ struct TextStyle {
     TextAlignment alignment;
     f32 scale;
     Vec4<f32> colour;
+    f32 line_spacing; // TODO: This is in "unscaled font units". Make this a more reasonable unit.
 };
 
 struct DrawCommand {
@@ -267,6 +268,7 @@ u16 tile_at(Vec2<u32> tile_coord);
 void push_draw_command(DrawCommand draw_command);
 void show_info(const char *str, u32 length);
 void show_info(const char *cstr);
+f32 get_text_width(const char *str, usize length, Ichigo::TextStyle style);
 
 namespace Game {
 void init();

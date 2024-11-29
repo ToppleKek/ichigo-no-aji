@@ -235,7 +235,7 @@ static void world_render_solid_colour_rect(Rect<f32> rect, Vec4<f32> colour) {
     Ichigo::Internal::gl.glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 }
 
-static f32 get_text_width(const char *str, usize length, Ichigo::TextStyle style) {
+f32 Ichigo::get_text_width(const char *str, usize length, Ichigo::TextStyle style) {
     f32 width = 0.0f;
     const u8 *unsigned_str = (const u8 *) str;
     for (u32 i = 0; i < length;) {
@@ -306,6 +306,13 @@ static void render_text(Vec2<f32> pos, const char *str, usize length, Ichigo::Co
     for (u32 i = 0; i < length;) {
         if (unsigned_str[i] == ' ') {
             current_pos.x += 10.0f * style.scale;
+            ++i;
+            continue;
+        }
+
+        if (unsigned_str[i] == '\n') {
+            current_pos.y += style.line_spacing * style.scale;
+            current_pos.x = 0.0f;
             ++i;
             continue;
         }
