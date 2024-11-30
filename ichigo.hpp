@@ -1,3 +1,12 @@
+/*
+    Ichigo! A simple, from scratch, minimal dependency game engine for 2D side scrolling games.
+
+    Core module. Rendering, input, state, etc.
+
+    Author:      Braeden Hong
+    Last edited: 2024/11/30
+*/
+
 #pragma once
 
 #include "asset.hpp"
@@ -148,7 +157,7 @@ struct Mouse {
     KeyState button5;
 };
 
-
+// "Draw commands" are how you render UI.
 enum DrawCommandType {
     SOLID_COLOUR_RECT,
     TEXTURED_RECT,
@@ -202,6 +211,7 @@ struct DrawCommand {
     };
 };
 
+// Range of codepoints to include in font atlas construction.
 struct CharRange {
     u32 first_codepoint;
     u32 length;
@@ -211,7 +221,7 @@ using BackgroundFlags = u32;
 
 enum BackgroundFlag {
     BG_REPEAT_X = 1 << 0,
-    BG_REPEAT_Y = 1 << 1,
+    BG_REPEAT_Y = 1 << 1, // TODO: Unimplemented.
 };
 
 struct Background {
@@ -224,12 +234,12 @@ struct Background {
 using TileFlags = u32;
 
 enum TileFlag {
-    TANGIBLE = 1 << 0,
+    TANGIBLE = 1 << 0, // Whether or not entities collide with this tile.
 };
 
 struct TileInfo {
     char name[8];
-    i32 cell; // NOTE: A negative cell number means this tile does not render.
+    i32 cell; // NOTE: A negative cell number means this tile does not render. Otherwise, it is the cell number in the tile set sprite sheet.
     TileFlags flags;
     f32 friction;
 };
@@ -245,14 +255,15 @@ struct Tilemap {
     SpriteSheet sheet;
 };
 
+// Data used for rendering one frame. This stuff will all be allocated in transient storage.
 struct FrameData {
     // Util::IchigoVector<DrawCommand> draw_commands;
     DrawCommand *draw_commands;
     usize draw_command_count;
 };
 
+// TODO: Perhaps this is not "game state". Rather, "engine state"?
 struct GameState {
-    Ichigo::EntityID player_entity_id;
     Vec4<f32> background_colour;
     Background background_layers[ICHIGO_MAX_BACKGROUNDS];
     Util::Arena transient_storage_arena;
@@ -262,14 +273,26 @@ struct GameState {
 
 extern GameState game_state;
 
+// Set the tilemap directly.
 void set_tilemap(Tilemap *tilemap);
+
+// Load a tilemap from memory. Usually this is from a .ichigotm file.
 void set_tilemap(u8 *ichigo_tilemap_memory, SpriteSheet tileset_sheet);
+
+// Get the tile at the specified tile coordinate. Returns INVALID_TILE if the coordinate is out of range.
 u16 tile_at(Vec2<u32> tile_coord);
+
+// Push a draw command into the draw command buffer.
 void push_draw_command(DrawCommand draw_command);
+
+// Show a popup message in the info log.
 void show_info(const char *str, u32 length);
 void show_info(const char *cstr);
+
+// Calculate the width of a string given the specified style.
 f32 get_text_width(const char *str, usize length, Ichigo::TextStyle style);
 
+// Implement these in your game to get started!
 namespace Game {
 void init();
 void frame_begin();
@@ -277,6 +300,7 @@ void update_and_render();
 void frame_end();
 }
 
+// Internal stuff. Generally okay to read from your game, maybe don't write to it unless you know what you're doing.
 namespace Internal {
 extern OpenGL gl;
 extern bool must_rebuild_swapchain;
@@ -300,35 +324,24 @@ enum ProgramMode {
     EDITOR,
 };
 
+// The platform layer calls us through these.
 void init();
 void do_frame();
 void deinit();
 void fill_sample_buffer(u8 *buffer, usize buffer_size, usize write_cursor_position_delta);
 
-
+// == Platform specific functions ==
 struct PlatformFile;
 
 PlatformFile *platform_open_file_write(const char *path);
 void platform_write_entire_file_sync(const char *path, const u8 *data, usize data_size);
+
+// Append to an open file. Generally works like fwrite() from the CRT.
 void platform_append_file_sync(PlatformFile *file, const u8 *data, usize data_size);
 void platform_close_file(PlatformFile *file);
-// usize platform_read_entire_file_sync(const char *path, const u8 *data, usize data_size);
+// usize platform_read_entire_file_sync(const char *path, const u8 *data, usize data_size); // TODO: Implement on platform layers.
 
-/*
-    Test if a file exists.
-    Parameter 'path': A path to the file to test.
-    Returns whether or not the file exists.
-*/
 bool platform_file_exists(const char *path);
-
-/*
-    Recurse a directory listing all files in the directory and all subdirectories.
-    Parameter 'path': The path to the directory to recurse.
-    Parameter 'extention_filter': An array of constant strings of file extensions. Only returns files that have these extensions.
-    Parameter 'extension_filter_count': The size of the array.
-*/
-// Util::IchigoVector<std::string> platform_recurse_directory(const std::string &path, const char **extension_filter, const u16 extension_filter_count);
-
 void platform_sleep(f64 t);
 f64 platform_get_current_time();
 void platform_pause_audio();

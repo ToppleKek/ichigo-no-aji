@@ -1,3 +1,12 @@
+/*
+    Ichigo! A simple, from scratch, minimal dependency game engine for 2D side scrolling games.
+
+    Entity functions and structures.
+
+    Author:      Braeden Hong
+    Last edited: 2024/11/30
+*/
+
 #pragma once
 #include "common.hpp"
 #include "math.hpp"
@@ -6,6 +15,7 @@
 
 namespace Ichigo {
 struct Entity;
+
 using EntityRenderProc  = void (Entity *);
 using EntityUpdateProc  = void (Entity *);
 using EntityCollideProc = void (Entity *, Entity *, Vec2<f32>, Vec2<f32>);
@@ -31,13 +41,14 @@ inline bool operator==(const Ichigo::EntityID &lhs, const Ichigo::EntityID &rhs)
 //             play to the end again, but then the animation will just start over again. This doesn't seem ver
 //             useful.
 enum EntityFlag {
-    EF_MARKED_FOR_DEATH = 1 << 0,
-    EF_ON_GROUND        = 1 << 1,
-    EF_FLIP_H           = 1 << 2,
-    EF_INVISIBLE        = 1 << 3,
+    EF_MARKED_FOR_DEATH = 1 << 0, // This entity will be killed at the end of the frame
+    EF_ON_GROUND        = 1 << 1, // This entity is on the ground
+    EF_FLIP_H           = 1 << 2, // This entity renders with its u coordinates reversed (ie. it is horizontally flipped).
+    EF_INVISIBLE        = 1 << 3, // This entity will not render its sprite. However, animation frames still advance.
     // EF_ANIM_LOOPING = 1 << 4, // TODO: Not sure if this makes sense?
 };
 
+// What happened as a result of moving an entity in the world?
 enum EntityMoveResult {
     NO_MOVE,
     NOTHING_SPECIAL,
@@ -84,7 +95,7 @@ struct Entity {
     Sprite sprite;
     f32 movement_speed;
     f32 jump_acceleration;
-    f32 gravity;
+    f32 gravity; // TODO: Stupid.
     EntityFlags flags;
     EntityRenderProc *render_proc;
     EntityUpdateProc *update_proc;

@@ -1,3 +1,12 @@
+/*
+    Ichigo! A simple, from scratch, minimal dependency game engine for 2D side scrolling games.
+
+    Core module. Rendering, input, state, etc.
+
+    Author:      Braeden Hong
+    Last edited: 2024/11/30
+*/
+
 #include <cassert>
 
 #include "camera.hpp"
@@ -27,23 +36,25 @@ EMBED("shaders/opengl/solid_colour.glsl", solid_colour_fragment_shader_source)
 EMBED("shaders/opengl/vert.glsl", vertex_shader_source)
 EMBED("shaders/opengl/screenspace_vert.glsl", screenspace_vertex_shader_source)
 EMBED("assets/invalid-tile.png", invalid_tile_png)
-EMBED("assets/kanji.bin", kt_bytes);
+
+// The precomputed hash table to lookup kanji codepoints in the font atlas.
+EMBED("assets/kanji.bin", kt_bytes)
 
 static const u32 *kanji_codepoints = (u32 *) kt_bytes;
 static const u32 kanji_codepoint_count = 2999;
 // DEBUG
 EMBED("assets/music/sound.mp3", test_sound)
-static Ichigo::AudioID test_sound_id = 0;
-// END DEBUG
-#define MAX_DRAW_COMMANDS 4096
-
-static ImGuiStyle initial_style;
-static ImFontConfig font_config;
-static f32 last_dpi_scale             = 1.0f;
-static bool show_debug_menu           = false;
+static Ichigo::AudioID test_sound_id  = 0;
 static bool DEBUG_draw_colliders      = true;
 static bool DEBUG_hide_entity_sprites = false;
+static ImGuiStyle initial_style;
+static ImFontConfig font_config;
+// END DEBUG
 
+#define MAX_DRAW_COMMANDS 4096
+
+static f32 last_dpi_scale   = 1.0f;
+static bool show_debug_menu = false;
 static GLuint texture_shader_program;
 static GLuint text_shader_program;
 static GLuint screenspace_text_shader_program; // FIXME: All these "screenspace" variants fucking suck
@@ -52,6 +63,7 @@ static GLuint screenspace_solid_colour_rect_program;
 static GLuint screenspace_texture_program;
 static GLuint font_atlas_texture_id;
 
+// NOTE: The vertex indices for drawing a rectangle.
 static u32 rectangle_indices[] = {
     0, 1, 2,
     1, 2, 3
@@ -64,19 +76,25 @@ static Ichigo::CharRange character_ranges[] = {
     {0xFF00, 0xFFEF - 0xFF00}, // Halfwidth and fullwidth forms
 };
 
-static u32 last_window_height                      = 0;
-static u32 last_window_width                       = 0;
-static Ichigo::Internal::ProgramMode program_mode  = Ichigo::Internal::ProgramMode::GAME;
+static u32 last_window_height                     = 0;
+static u32 last_window_width                      = 0;
+static Ichigo::Internal::ProgramMode program_mode = Ichigo::Internal::ProgramMode::GAME;
+
+// Invalid tile texture. Shown in the editor when you pan the camera passed the bounds of the tilemap.
 static Ichigo::TextureID invalid_tile_texture_id;
+
+// Data for looking up data in the font atlas.
 static stbtt_packedchar *printable_ascii_pack_data;
 static stbtt_packedchar *cjk_pack_data;
 static stbtt_packedchar *kanji_pack_data;
 static stbtt_packedchar *half_and_full_width_pack_data;
+
 static Mat4<f32> identity_mat4;
 
 #define INFO_LOG_MAX_BYTE_LENGTH 256
 #define INFO_LOG_MAX_MESSAGES 8
 
+// Global state that is visible in ichigo.hpp
 bool Ichigo::Internal::must_rebuild_swapchain     = false;
 Ichigo::GameState Ichigo::game_state              = {};
 Ichigo::Tilemap Ichigo::Internal::current_tilemap = {};
@@ -85,8 +103,11 @@ u32 Ichigo::Internal::viewport_width              = 0;
 u32 Ichigo::Internal::viewport_height             = 0;
 Vec2<u32> Ichigo::Internal::viewport_origin       = {};
 
+// General purpose static string buffer.
 static char string_buffer[1024];
 
+// A textured vertex contains both a position and UV coordinates.
+// TODO: Maybe this is stupid and we should just have one type of vertex. It would probably simplify the shader code.
 struct TexturedVertex {
     Vec3<f32> pos;
     Vec2<f32> tex;
@@ -94,18 +115,22 @@ struct TexturedVertex {
 
 using Vertex = Vec3<f32>;
 
+// Some state for OpenGL
 struct DrawData {
     u32 vertex_array_id;
     u32 vertex_buffer_id;
     u32 vertex_index_buffer_id;
 };
 
+// A message in the info log. The info log is the message log that is shown in the center of the screen.
+// Eg. in the editor it shows "Selected: <tile>"
 struct InfoLogMessage {
     char *data;
     u32 length;
     f32 t_remaining;
 };
 
+// The precomputed hashmap interface. This also could just be a function. No idea why it's in a struct actually.
 struct KanjiHashMap {
     const u32 *data;
     u32 codepoint_count;
@@ -126,6 +151,7 @@ static KanjiHashMap kanji_hash_map;
 static DrawData draw_data_textured{};
 static DrawData draw_data_solid_colour{};
 
+// Render a solid colour rectangle in screenspace.
 static void screen_render_solid_colour_rect(Rect<f32> rect, Vec4<f32> colour) {
     Vertex vertices[] = {
         {rect.pos.x, rect.pos.y, 0.0f},  // top left
@@ -151,7 +177,8 @@ static void screen_render_solid_colour_rect(Rect<f32> rect, Vec4<f32> colour) {
     Ichigo::Internal::gl.glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 }
 
-[[maybe_unused]] static void screen_render_textured_rect(Rect<f32> rect, Ichigo::TextureID texture_id) {
+// Render a textured rectangle in screenspace.
+static void screen_render_textured_rect(Rect<f32> rect, Ichigo::TextureID texture_id) {
     Vec2<f32> draw_pos = { rect.pos.x, rect.pos.y };
     TexturedVertex vertices[] = {
         {{draw_pos.x, draw_pos.y, 0.0f}, {0.0f, 1.0f}},  // top left
@@ -180,6 +207,7 @@ static void screen_render_solid_colour_rect(Rect<f32> rect, Vec4<f32> colour) {
     Ichigo::Internal::gl.glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 }
 
+// Render a textured rectangle in worldspace.
 static void world_render_textured_rect(Rect<f32> rect, Ichigo::TextureID texture_id) {
     Vec2<f32> draw_pos = { rect.pos.x, rect.pos.y };
     TexturedVertex vertices[] = {
@@ -209,6 +237,7 @@ static void world_render_textured_rect(Rect<f32> rect, Ichigo::TextureID texture
     Ichigo::Internal::gl.glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 }
 
+// Render a solid colour rectangle in worldspace.
 static void world_render_solid_colour_rect(Rect<f32> rect, Vec4<f32> colour) {
     Vec2<f32> draw_pos = { rect.pos.x, rect.pos.y };
     Vertex vertices[] = {
@@ -239,6 +268,7 @@ f32 Ichigo::get_text_width(const char *str, usize length, Ichigo::TextStyle styl
     f32 width = 0.0f;
     const u8 *unsigned_str = (const u8 *) str;
     for (u32 i = 0; i < length;) {
+        // TODO: Handle \n and return the max of width.
         if (unsigned_str[i] == ' ') {
             width += 10.0f * style.scale;
             ++i;
@@ -294,11 +324,13 @@ f32 Ichigo::get_text_width(const char *str, usize length, Ichigo::TextStyle styl
 static void render_text(Vec2<f32> pos, const char *str, usize length, Ichigo::CoordinateSystem coordinate_system, Ichigo::TextStyle style) {
     assert(Util::utf8_char_count(str, length) < MAX_TEXT_STRING_LENGTH);
 
+    // Use some transient memory temporarily :)
     uptr            temp_ptr      = BEGIN_TEMP_MEMORY(Ichigo::game_state.transient_storage_arena);
     TexturedVertex *vertex_buffer = PUSH_ARRAY(Ichigo::game_state.transient_storage_arena, TexturedVertex, MAX_TEXT_STRING_LENGTH * 4);
     u32            *index_buffer  = PUSH_ARRAY(Ichigo::game_state.transient_storage_arena, u32, MAX_TEXT_STRING_LENGTH * 6);
     Vec2<f32>       current_pos   = {0.0f, 0.0f};
 
+    // Construct a vertex and index buffer to upload to the GPU for rendering.
     Util::BufferBuilder<TexturedVertex> vertices(vertex_buffer, MAX_TEXT_STRING_LENGTH * 4);
     Util::BufferBuilder<u32>            indices(index_buffer, MAX_TEXT_STRING_LENGTH * 6);
 
@@ -317,6 +349,7 @@ static void render_text(Vec2<f32> pos, const char *str, usize length, Ichigo::Co
             continue;
         }
 
+        // Decode UTF8 encoded data into unicode codepoints.
         stbtt_packedchar pc;
         u32 codepoint = 0;
         if (unsigned_str[i] <= 0x7F) {
@@ -337,6 +370,7 @@ static void render_text(Vec2<f32> pos, const char *str, usize length, Ichigo::Co
             continue;
         }
 
+        // Get the right pack data to be able to get the right font atlas coordinates.
         if (codepoint >= character_ranges[0].first_codepoint && codepoint <= character_ranges[0].first_codepoint + character_ranges[0].length) {
             pc = printable_ascii_pack_data[codepoint - character_ranges[0].first_codepoint];
         } else if (codepoint >= character_ranges[1].first_codepoint && codepoint <= character_ranges[1].first_codepoint + character_ranges[1].length) {
@@ -356,6 +390,8 @@ static void render_text(Vec2<f32> pos, const char *str, usize length, Ichigo::Co
             continue;
         }
 
+        // Calculate the uv coordinates and the xy coordinates of the text.
+        // NOTE: The xy coordinates are all done in unscaled "font units". These values are all scaled and translated in the text shader according to the coordinate system specified.
         f32 u0 = pc.x0 / (f32) ICHIGO_FONT_ATLAS_WIDTH;
         f32 u1 = pc.x1 / (f32) ICHIGO_FONT_ATLAS_WIDTH;
         f32 v0 = pc.y0 / (f32) ICHIGO_FONT_ATLAS_HEIGHT;
@@ -392,6 +428,8 @@ static void render_text(Vec2<f32> pos, const char *str, usize length, Ichigo::Co
     }
 
     f32 line_width = current_pos.x;
+
+    // How much do we need to adjust the x coordinate to align the text correctly?
     f32 x_offset = 0.0f;
     switch (style.alignment) {
         case Ichigo::TextAlignment::CENTER: {
@@ -402,7 +440,7 @@ static void render_text(Vec2<f32> pos, const char *str, usize length, Ichigo::Co
             x_offset = -line_width;
         } break;
 
-        default:; // Fallthrough.
+        default:; // Fallthrough. Left alignment doesn't need any adjustments.
     }
 
     i32 texture_uniform;
@@ -420,9 +458,13 @@ static void render_text(Vec2<f32> pos, const char *str, usize length, Ichigo::Co
             Ichigo::Internal::gl.glBufferData(GL_ARRAY_BUFFER, vertices.size * sizeof(TexturedVertex), vertices.data, GL_STATIC_DRAW);
             Ichigo::Internal::gl.glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size * sizeof(u32), indices.data, GL_STATIC_DRAW);
 
+            // If the coordinate system is CAMERA, the only difference is we have to consider the location of the camera in the final translation.
             Vec2<f32> translation = coordinate_system == Ichigo::CoordinateSystem::CAMERA ? pos - get_translation2d(Ichigo::Camera::transform) : pos;
+
+            // Apply the alignment offset.
             translation.x += pixels_to_metres(0.2f) * x_offset;
 
+            // Set the translate and scale transforms to convert the "font units" to world metres.
             i32 object_uniform       = Ichigo::Internal::gl.glGetUniformLocation(text_shader_program, "object_transform");
             Mat4<f32> text_transform = translate2d(translation) * scale2d({pixels_to_metres(0.2f), pixels_to_metres(0.2f)});
 
@@ -468,10 +510,13 @@ static void render_text(Vec2<f32> pos, const char *str, usize length, Ichigo::Co
 
     Ichigo::Internal::gl.glDrawElements(GL_TRIANGLES, indices.size, GL_UNSIGNED_INT, 0);
 
+    // Thanks for the memory :)
     END_TEMP_MEMORY(Ichigo::game_state.transient_storage_arena, temp_ptr);
 }
 
+// If the entity does not provide its own render procedure (likely), this one is run.
 void default_entity_render_proc(Ichigo::Entity *entity) {
+    // FIXME: This does not advance animation frames. Games that depend on the animation ending to change state break with this option on. Just throw it in the same place as the INVISIBLE flag.
     if (!DEBUG_hide_entity_sprites) {
         const Ichigo::Texture &texture = Ichigo::Internal::textures.at(entity->sprite.sheet.texture);
 
@@ -480,6 +525,7 @@ void default_entity_render_proc(Ichigo::Entity *entity) {
         Ichigo::Internal::gl.glBindVertexArray(draw_data_textured.vertex_array_id);
         Ichigo::Internal::gl.glBindTexture(GL_TEXTURE_2D, texture.id);
 
+        // Calculate the current animation frame cell and stuff.
         u32 current_cell  = entity->sprite.animation.cell_of_first_frame + entity->sprite.current_animation_frame;
         u32 cells_per_row = texture.width / entity->sprite.sheet.cell_width;
         u32 row_of_cell   = current_cell  / cells_per_row;
@@ -487,6 +533,7 @@ void default_entity_render_proc(Ichigo::Entity *entity) {
         u32 cell_x_px     = col_of_cell   * entity->sprite.sheet.cell_width;
         u32 cell_y_px     = row_of_cell   * entity->sprite.sheet.cell_height;
 
+        // UV coordinates.
         f32 u0 = (f32) cell_x_px / (f32) texture.width;
         f32 v0 = (f32) (texture.height - cell_y_px) / (f32) texture.height;
         f32 u1 = u0 + ((f32) entity->sprite.sheet.cell_width  / (f32) texture.width);
@@ -498,12 +545,15 @@ void default_entity_render_proc(Ichigo::Entity *entity) {
             u1       = temp;
         }
 
+        // Advance the animation.
         Ichigo::Animation &anim = entity->sprite.animation;
 
         if (anim.cell_of_first_frame != anim.cell_of_last_frame) {
             entity->sprite.elapsed_animation_frame_time += Ichigo::Internal::dt;
         }
 
+        // Skip animation frames if we are running too slow.
+        // FIXME: If we skip the final animation frame, then gameplay code that depends on the ending frame being hit will break. Maybe there should be a "ANIM_PLAYED_ONCE" flag or something.
         u32 frames_advanced = (u32) safe_ratio_0(entity->sprite.elapsed_animation_frame_time, anim.seconds_per_frame);
 
         if (frames_advanced > 0) {
@@ -637,6 +687,7 @@ Ichigo::TileID Ichigo::tile_at(Vec2<u32> tile_coord) {
     return Internal::current_tilemap.tiles[tile_coord.y * Internal::current_tilemap.width + tile_coord.x];
 }
 
+// Build the vertex and index buffers for drawing one tile in the tilemap.
 static void build_tile_draw_data(Vec2<u32> tile_pos, Util::BufferBuilder<TexturedVertex> &vertices, Util::BufferBuilder<u32> &indices) {
     Ichigo::TileID tile = Ichigo::tile_at(tile_pos);
 
@@ -657,6 +708,7 @@ static void build_tile_draw_data(Vec2<u32> tile_pos, Util::BufferBuilder<Texture
 
     const Ichigo::Texture &texture = Ichigo::Internal::textures.at(Ichigo::Internal::current_tilemap.sheet.texture);
 
+    // Same old same old.
     u32 cells_per_row = texture.width  / Ichigo::Internal::current_tilemap.sheet.cell_width;
     u32 row_of_cell   = tile_info.cell / cells_per_row;
     u32 col_of_cell   = tile_info.cell % cells_per_row;
@@ -703,12 +755,13 @@ void Ichigo::show_info(const char *str, u32 length) {
     InfoLogMessage msg = {};
     msg.data           = data;
     msg.length         = length;
-    msg.t_remaining    = 3.0f;
+    msg.t_remaining    = 3.0f; // TODO: Configurable?
 
     info_log[info_log_top] = msg;
     info_log_top = (info_log_top + 1) % INFO_LOG_MAX_MESSAGES;
 }
 
+// Convenience function for showing null terminated "C" strings.
 void Ichigo::show_info(const char *cstr) {
     show_info(cstr, std::strlen(cstr));
 }
@@ -752,6 +805,7 @@ static f32 calculate_background_start_position(f32 camera_offset, f32 texture_wi
     return ((u32) (camera_offset / safe_ratio_1(texture_width_in_metres, scroll_speed))) * texture_width_in_metres + camera_offset * scroll_speed;
 }
 
+// Render one frame.
 static void frame_render() {
     ImGui::Render();
     auto imgui_draw_data = ImGui::GetDrawData();
@@ -763,6 +817,7 @@ static void frame_render() {
     Ichigo::Internal::gl.glClear(GL_COLOR_BUFFER_BIT);
 
     // Reset uniforms
+    // TODO: Use global uniforms for camera transform?
     Ichigo::Internal::gl.glUseProgram(texture_shader_program);
 
     i32 camera_uniform  = Ichigo::Internal::gl.glGetUniformLocation(texture_shader_program, "camera_transform");
@@ -827,20 +882,21 @@ static void frame_render() {
     TexturedVertex *vertex_buffer = PUSH_ARRAY(Ichigo::game_state.transient_storage_arena, TexturedVertex, (row_count * col_count) * 4);
     u32            *index_buffer  = PUSH_ARRAY(Ichigo::game_state.transient_storage_arena, u32, (row_count * col_count) * 6);
 
-    u32 *overrun_flag = PUSH_ARRAY(Ichigo::game_state.transient_storage_arena, u32, 1);
-    *overrun_flag = 0;
+    // u32 *overrun_flag = PUSH_ARRAY(Ichigo::game_state.transient_storage_arena, u32, 1);
+    // *overrun_flag = 0;
     Util::BufferBuilder<TexturedVertex> vertices(vertex_buffer, MAX_TEXT_STRING_LENGTH * 4);
     Util::BufferBuilder<u32>            indices(index_buffer, MAX_TEXT_STRING_LENGTH * 6);
 
+    // Build the tilemap draw data.
     for (i64 row = (i64) Ichigo::Camera::offset.y; row < (i64) Ichigo::Camera::offset.y + SCREEN_TILE_HEIGHT + 1; ++row) {
         for (i64 col = (i64) Ichigo::Camera::offset.x; col < (i64) Ichigo::Camera::offset.x + SCREEN_TILE_WIDTH + 1; ++col) {
             build_tile_draw_data({(u32) clamp(col, (i64) 0, (i64) UINT32_MAX), (u32) clamp(row, (i64) 0, (i64) UINT32_MAX)}, vertices, indices);
         }
     }
 
-    if (*overrun_flag) {
-        __builtin_debugtrap();
-    }
+    // if (*overrun_flag) {
+    //     __builtin_debugtrap();
+    // }
 
     Ichigo::Internal::gl.glUseProgram(texture_shader_program);
     Ichigo::Internal::gl.glBindTexture(GL_TEXTURE_2D, Ichigo::Internal::textures.at(Ichigo::Internal::current_tilemap.sheet.texture).id);
@@ -970,6 +1026,7 @@ static void frame_render() {
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 }
 
+// Simulation and logic for one frame.
 void Ichigo::Internal::do_frame() {
     if (Ichigo::Internal::dt > 0.1)
         Ichigo::Internal::dt = 0.1;
@@ -977,7 +1034,6 @@ void Ichigo::Internal::do_frame() {
     // static bool do_wireframe = 0;
     RESET_ARENA(Ichigo::game_state.transient_storage_arena);
 
-    // TODO: Use an arena for this??
     Ichigo::game_state.this_frame_data.draw_commands      = PUSH_ARRAY(Ichigo::game_state.transient_storage_arena, DrawCommand, MAX_DRAW_COMMANDS);
     Ichigo::game_state.this_frame_data.draw_command_count = 0;
 
@@ -986,6 +1042,8 @@ void Ichigo::Internal::do_frame() {
     if (Ichigo::Internal::window_height != last_window_height || Ichigo::Internal::window_width != last_window_width) {
         last_window_height                 = Ichigo::Internal::window_height;
         last_window_width                  = Ichigo::Internal::window_width;
+
+        // Always resize the viewport to a 16:9 resolution.
         u32 height_factor                  = Ichigo::Internal::window_height / 9;
         u32 width_factor                   = Ichigo::Internal::window_width  / 16;
         Ichigo::Internal::viewport_height  = MIN(height_factor, width_factor) * 9;
@@ -1013,6 +1071,7 @@ void Ichigo::Internal::do_frame() {
         last_dpi_scale = dpi_scale;
     }
 
+    // Toggle the debug menu when F3 is pressed.
     if (Ichigo::Internal::keyboard_state[Ichigo::IK_F3].down_this_frame) {
         show_debug_menu = !show_debug_menu;
     }
@@ -1023,11 +1082,13 @@ void Ichigo::Internal::do_frame() {
     if (program_mode == Ichigo::Internal::ProgramMode::EDITOR)
         Ichigo::Editor::render_ui();
 
+    // Render the debug menu.
     if (show_debug_menu) {
         ImGui::SetNextWindowPos({0.0f, 0.0f});
         ImGui::SetNextWindowSize({Ichigo::Internal::window_width * 0.2f, (f32) Ichigo::Internal::window_height});
         ImGui::Begin("いちご！", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse);
 
+        // The engine of choice for strawberry loving idols!
         ImGui::Text("苺の力で...! がんばりまー");
         if (ImGui::Button("Show info log")) {
             static u32 fuck = 0;
@@ -1065,7 +1126,7 @@ void Ichigo::Internal::do_frame() {
                         ImGui::TreePop();
                     }
                 } else {
-                    if (ImGui::TreeNodeEx((void *) (uptr) i, ImGuiTreeNodeFlags_DefaultOpen, "Entity slot %u: %s (%s)", i, entity.name, Internal::entity_id_as_string(entity.id))) {
+                    if (ImGui::TreeNodeEx((void *) (uptr) i, 0, "Entity slot %u: %s (%s)", i, entity.name, Internal::entity_id_as_string(entity.id))) {
                         ImGui::PushID(entity.id.index);
                         if (ImGui::Button("Follow"))
                             Ichigo::Camera::follow(entity.id);
@@ -1160,6 +1221,7 @@ void Ichigo::Internal::do_frame() {
 
     ImGui::EndFrame();
 
+    // Get the game to update if we are in game mode. Otherwise, the editor takes over.
     if (program_mode == Ichigo::Internal::ProgramMode::GAME) {
         for (u32 i = 1; i < Ichigo::Internal::entities.size; ++i) {
             Ichigo::Entity &entity = Ichigo::Internal::entities.at(i);
@@ -1173,6 +1235,8 @@ void Ichigo::Internal::do_frame() {
         //       But also we have frame begin and frame end...?
         Ichigo::Game::update_and_render();
 
+        // DEBUG
+        // Open the editor when you press F1.
         if (Ichigo::Internal::keyboard_state[IK_F1].down_this_frame) {
             Ichigo::Camera::mode = Ichigo::Camera::Mode::MANUAL;
             Ichigo::Camera::manual_focus_point = Ichigo::Camera::offset;
@@ -1183,6 +1247,8 @@ void Ichigo::Internal::do_frame() {
     } else if (program_mode == Ichigo::Internal::ProgramMode::EDITOR) {
         Ichigo::Editor::update();
 
+        // DEBUG
+        // Close the editor when you press F1.
         if (Ichigo::Internal::keyboard_state[IK_F1].down_this_frame) {
             Ichigo::Editor::before_close();
             Ichigo::Camera::mode = Ichigo::Camera::Mode::FOLLOW;
@@ -1200,6 +1266,7 @@ void Ichigo::Internal::do_frame() {
     Ichigo::Game::frame_end();
 }
 
+// Compile a GLSL shader.
 static void compile_shader(u32 shader_id, const GLchar *shader_source, i32 shader_source_len) {
     Ichigo::Internal::gl.glShaderSource(shader_id, 1, &shader_source, &shader_source_len);
     Ichigo::Internal::gl.glCompileShader(shader_id);
@@ -1214,6 +1281,7 @@ static void compile_shader(u32 shader_id, const GLchar *shader_source, i32 shade
     }
 }
 
+// Link an OpenGL shader program.
 static GLuint link_program(GLuint vertex_shader_id, GLuint fragment_shader_id) {
     GLuint program_id = Ichigo::Internal::gl.glCreateProgram();
     Ichigo::Internal::gl.glAttachShader(program_id, vertex_shader_id);
@@ -1234,6 +1302,8 @@ static GLuint link_program(GLuint vertex_shader_id, GLuint fragment_shader_id) {
 
 void Ichigo::Internal::init() {
     identity_mat4 = m4identity();
+
+    // Load images flipped. OpenGL coordinates are upside down :)
     stbi_set_flip_vertically_on_load(true);
 
     // TODO: Platform specific allocations? VirtualAlloc() on win32
@@ -1252,6 +1322,7 @@ void Ichigo::Internal::init() {
 
     std::memset(info_log, 0, INFO_LOG_MAX_MESSAGES * sizeof(InfoLogMessage));
 
+    // DEBUG
     font_config.FontDataOwnedByAtlas = false;
     font_config.OversampleH = 2;
     font_config.OversampleV = 2;
@@ -1268,10 +1339,12 @@ void Ichigo::Internal::init() {
     // Fonts
     auto io = ImGui::GetIO();
     io.Fonts->AddFontFromMemoryTTF((void *) noto_font, noto_font_len, 18, &font_config, io.Fonts->GetGlyphRangesJapanese());
+    // END DEBUG
 
     kanji_hash_map.data            = kanji_codepoints;
     kanji_hash_map.codepoint_count = kanji_codepoint_count;
 
+    // NOTE: The font bitmap is in temporary memory since we don't care about it after we upload it to the GPU.
     u8 *font_bitmap               = PUSH_ARRAY(Ichigo::game_state.transient_storage_arena, u8, ICHIGO_FONT_ATLAS_WIDTH * ICHIGO_FONT_ATLAS_HEIGHT);
     printable_ascii_pack_data     = PUSH_ARRAY(Ichigo::game_state.permanent_storage_arena, stbtt_packedchar, character_ranges[0].length);
     cjk_pack_data                 = PUSH_ARRAY(Ichigo::game_state.permanent_storage_arena, stbtt_packedchar, character_ranges[1].length);
@@ -1393,10 +1466,14 @@ void Ichigo::Internal::init() {
 #endif
 }
 
+// This exists, maybe to save the game when you close it?
+// But like, we don't really have to do anything else. The operating system is just going to clean up everything all at once when we exit.
 void Ichigo::Internal::deinit() {}
 
 void Ichigo::Internal::fill_sample_buffer(u8 *buffer, usize buffer_size, usize write_cursor_position_delta) {
     // assert(buffer_size % sizeof(i16) == 0);
+
+    // Ensure that there is nothing in the mix buffer before we start mixing samples into it.
     std::memset(buffer, 0, buffer_size);
     Ichigo::Mixer::mix_into_buffer((AudioFrame2ChI16LE *) buffer, buffer_size, write_cursor_position_delta);
     // static u8 *DEBUG_ptr = music_buffer;

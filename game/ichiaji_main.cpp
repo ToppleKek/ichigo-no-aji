@@ -203,8 +203,6 @@ static void init_game() {
     spawn_gert();
 
     // == Setup initial game state ==
-    Ichigo::game_state.player_entity_id = player->id;
-
     Ichigo::Camera::mode = Ichigo::Camera::Mode::FOLLOW;
     Ichigo::Camera::follow(player->id);
 

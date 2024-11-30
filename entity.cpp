@@ -4,12 +4,13 @@
     Entity functions.
 
     Author:      Braeden Hong
-    Last edited: 2024/11/25
+    Last edited: 2024/11/30
 */
 
 #include "entity.hpp"
 #include "ichigo.hpp"
 
+// TODO: @heap
 Util::IchigoVector<Ichigo::Entity> Ichigo::Internal::entities{512};
 
 // TODO: If the entity id's index is 0, that means that entity has been killed and that spot can hold a new entity.
@@ -43,6 +44,8 @@ Ichigo::Entity *Ichigo::get_entity(Ichigo::EntityID id) {
     return &Internal::entities.at(id.index);
 }
 
+// You can mark an entity to be killed by calling kill_entity_deferred to defer the death of that entity to the end of the frame.
+// This function should be run at the end of each frame. It kills all entities that are marked to be killed.
 void Ichigo::conduct_end_of_frame_executions() {
     for (u32 i = 1; i < Internal::entities.size; ++i) {
         Entity &entity = Internal::entities.at(i);
@@ -53,6 +56,7 @@ void Ichigo::conduct_end_of_frame_executions() {
     }
 }
 
+// Kill an entity immediately.
 void Ichigo::kill_entity(EntityID id) {
     Ichigo::Entity *entity = Ichigo::get_entity(id);
     if (!entity) {
@@ -63,6 +67,8 @@ void Ichigo::kill_entity(EntityID id) {
     entity->id.index = 0;
 }
 
+// Kill an entity at the end of the frame. This is useful for if you know you still need to access the entity later on
+// in the frame before it is killed.
 void Ichigo::kill_entity_deferred(EntityID id) {
     Ichigo::Entity *entity = Ichigo::get_entity(id);
     if (!entity) {
@@ -223,21 +229,23 @@ Ichigo::EntityMoveResult Ichigo::move_entity_in_world(Ichigo::Entity *entity) {
                 continue;
             }
 
+            // "min_corner" and "max_corner" are the top and bottom corners of the collider that is being tested.
             Vec2<f32> min_corner = {other_entity.col.pos.x - entity->col.w / 2.0f, other_entity.col.pos.y - entity->col.h / 2.0f};
             Vec2<f32> max_corner = {other_entity.col.pos.x + other_entity.col.w + entity->col.w / 2.0f, other_entity.col.pos.y + other_entity.col.h + entity->col.h / 2.0f};
             Vec2<f32> normal = {};
 
+            // Test each side of the collider.
             if (test_wall(min_corner.x, centered_entity_p.x, entity_delta.x, centered_entity_p.y, entity_delta.y, min_corner.y, max_corner.y, &best_t)) {
-                normal = { -1, 0 };
+                normal = { -1.0f, 0.0f };
             }
             if (test_wall(max_corner.x, centered_entity_p.x, entity_delta.x, centered_entity_p.y, entity_delta.y, min_corner.y, max_corner.y, &best_t)) {
-                normal = { 1, 0 };
+                normal = { 1.0f, 0.0f };
             }
             if (test_wall(min_corner.y, centered_entity_p.y, entity_delta.y, centered_entity_p.x, entity_delta.x, min_corner.x, max_corner.x, &best_t)) {
-                normal = { 0, -1 };
+                normal = { 0.0f, -1.0f };
             }
             if (test_wall(max_corner.y, centered_entity_p.y, entity_delta.y, centered_entity_p.x, entity_delta.x, min_corner.x, max_corner.x, &best_t)) {
-                normal = { 0, 1 };
+                normal = { 0.0f, 1.0f };
             }
 
             if (normal.x != 0.0f || normal.y != 0.0f) {
@@ -253,8 +261,13 @@ Ichigo::EntityMoveResult Ichigo::move_entity_in_world(Ichigo::Entity *entity) {
         }
     }
 
+    // Perform tilemap collision checks.
+    // If a tile interrupts the movement attempt, we continue trying to move the entity after the collision. "t_remaining" is how much of the timestep remains to be simulated.
     f32 t_remaining = 1.0f;
+
+    // Make 4 move attempts.
     for (u32 i = 0; i < 4 && t_remaining > 0.0f; ++i) {
+        // Calculate which tiles are theoretically reachable by the movement vector so that the whole tilemap doesn't need to be checked.
         u32 max_tile_y = std::ceil(MAX(potential_next_col.pos.y + entity->col.h, entity->col.pos.y + entity->col.h));
         u32 max_tile_x = std::ceil(MAX(potential_next_col.pos.x + entity->col.w, entity->col.pos.x + entity->col.w));
         u32 min_tile_y = MIN(potential_next_col.pos.y, entity->col.pos.y);
@@ -266,30 +279,28 @@ Ichigo::EntityMoveResult Ichigo::move_entity_in_world(Ichigo::Entity *entity) {
         for (u32 tile_y = min_tile_y; tile_y <= max_tile_y; ++tile_y) {
             for (u32 tile_x = min_tile_x; tile_x <= max_tile_x; ++tile_x) {
                 const TileInfo &tile_info = Internal::current_tilemap.tile_info[Ichigo::tile_at({tile_x, tile_y})];
+
                 if (FLAG_IS_SET(tile_info.flags, TileFlag::TANGIBLE)) {
                     Vec2<f32> centered_entity_p = entity->col.pos + Vec2<f32>{entity->col.w / 2.0f, entity->col.h / 2.0f};
                     Vec2<f32> min_corner = {tile_x - entity->col.w / 2.0f, tile_y - entity->col.h / 2.0f};
                     Vec2<f32> max_corner = {tile_x + 1 + entity->col.w / 2.0f, tile_y + 1 + entity->col.h / 2.0f};
-                    // ICHIGO_INFO("min_corner=%f,%f max_corner=%f,%f tile=%u,%u", min_corner.x, min_corner.y, max_corner.x, max_corner.y, tile_x, tile_y);
+
+                    // Test each side of the tile.
                     if (test_wall(min_corner.x, centered_entity_p.x, entity_delta.x, centered_entity_p.y, entity_delta.y, min_corner.y, max_corner.y, &best_t)) {
-                        wall_normal = { -1, 0 };
+                        wall_normal   = { -1.0f, 0.0f };
                         wall_position = { (f32) tile_x, (f32) tile_y };
-                        // ICHIGO_INFO("(-1,0) Tile collide %d,%d best_t=%f", tile_x, tile_y, best_t);
                     }
                     if (test_wall(max_corner.x, centered_entity_p.x, entity_delta.x, centered_entity_p.y, entity_delta.y, min_corner.y, max_corner.y, &best_t)) {
-                        wall_normal = { 1, 0 };
+                        wall_normal   = { 1.0f, 0.0f };
                         wall_position = { (f32) tile_x, (f32) tile_y };
-                        // ICHIGO_INFO("(1,0) Tile collide %d,%d best_t=%f", tile_x, tile_y, best_t);
                     }
                     if (test_wall(min_corner.y, centered_entity_p.y, entity_delta.y, centered_entity_p.x, entity_delta.x, min_corner.x, max_corner.x, &best_t)) {
-                        wall_normal = { 0, -1 };
+                        wall_normal   = { 0.0f, -1.0f };
                         wall_position = { (f32) tile_x, (f32) tile_y };
-                        // ICHIGO_INFO("(0,-1) Tile collide %d,%d best_t=%f", tile_x, tile_y, best_t);
                     }
                     if (test_wall(max_corner.y, centered_entity_p.y, entity_delta.y, centered_entity_p.x, entity_delta.x, min_corner.x, max_corner.x, &best_t)) {
-                        wall_normal = { 0, 1 };
+                        wall_normal   = { 0.0f, 1.0f };
                         wall_position = { (f32) tile_x, (f32) tile_y };
-                        // ICHIGO_INFO("(0,1) Tile collide %d,%d best_t=%f", tile_x, tile_y, best_t);
                     }
                 }
             }
@@ -320,6 +331,8 @@ Ichigo::EntityMoveResult Ichigo::move_entity_in_world(Ichigo::Entity *entity) {
 
         Vec2<f32> final_delta{};
 #define D_EPSILON 0.0001
+        // Snap to the floor/wall that was hit.
+        // TODO: kind of a hack?
         if (wall_normal.x == 1.0f) {
             entity->col.pos.x = wall_position.x + 1.0f + D_EPSILON;
         } else if (wall_normal.x == -1.0f) {
@@ -329,14 +342,17 @@ Ichigo::EntityMoveResult Ichigo::move_entity_in_world(Ichigo::Entity *entity) {
         } else if (wall_normal.y == -1.0f) {
             entity->col.pos.y = wall_position.y - entity->col.h - D_EPSILON;
         } else {
+            // Otherwise, move to the correct position.
             final_delta.x = std::fabsf(entity_delta.x * best_t) < D_EPSILON ? 0.0f : entity_delta.x * best_t;
             final_delta.y = std::fabsf(entity_delta.y * best_t) < D_EPSILON ? 0.0f : entity_delta.y * best_t;
             entity->col.pos += final_delta;
 #undef  D_EPSILON
         }
 
+        // Remove the velocity that was going into the wall.
         entity->velocity = entity->velocity - 1 * dot(entity->velocity, wall_normal) * wall_normal;
-        entity_delta = entity_delta - 1 * dot(entity_delta, wall_normal) * wall_normal;
+        entity_delta     = entity_delta - 1 * dot(entity_delta, wall_normal) * wall_normal;
+
         t_remaining -= best_t * t_remaining;
 
         // for (u32 tile_y = min_tile_y; tile_y <= max_tile_y; ++tile_y) {
@@ -363,7 +379,7 @@ Ichigo::EntityMoveResult Ichigo::move_entity_in_world(Ichigo::Entity *entity) {
         CLEAR_FLAG(entity->flags, Ichigo::EntityFlag::EF_ON_GROUND);
     }
 
-    // Check if the entity is standing on anything. If they aren't anymore, mark them as airborne.
+    // Check if the entity is standing on anything. If it isn't anymore, mark it as airborne.
     if (FLAG_IS_SET(entity->flags, Ichigo::EntityFlag::EF_ON_GROUND)) {
         entity->left_standing_tile  = { (u32) entity->col.pos.x, (u32) (entity->col.pos.y + entity->col.h) + 1 };
         entity->right_standing_tile = { (u32) (entity->col.pos.x + entity->col.w), (u32) (entity->col.pos.y + entity->col.h) + 1 };
@@ -376,6 +392,10 @@ Ichigo::EntityMoveResult Ichigo::move_entity_in_world(Ichigo::Entity *entity) {
     return result;
 }
 
+// == Entity Controllers ==
+// Entity controllers are basic drop-in update functions for entities. They can be used to quickly add functionality to entities, but you probably want to write your own.
+
+// A simple player entity that can move around with the left and right arrows, and jump with space.
 void Ichigo::EntityControllers::player_controller(Ichigo::Entity *player_entity) {
     static f32 jump_t = 0.0f;
 
@@ -403,6 +423,7 @@ void Ichigo::EntityControllers::player_controller(Ichigo::Entity *player_entity)
     Ichigo::move_entity_in_world(player_entity);
 }
 
+// A simple entity that walks in a straight line. It turns around when it reaches a cliff or runs into a wall.
 void Ichigo::EntityControllers::patrol_controller(Entity *entity) {
     entity->acceleration = {entity->movement_speed * signof(entity->acceleration.x), 0.0f};
 
@@ -428,6 +449,7 @@ void Ichigo::EntityControllers::patrol_controller(Entity *entity) {
     }
 }
 
+// Simple way to get a string representation of an entity ID for debug purposes.
 char *Ichigo::Internal::entity_id_as_string(EntityID entity_id) {
     static char str[22];
     snprintf(str, sizeof(str), "%u:%u", entity_id.generation, entity_id.index);

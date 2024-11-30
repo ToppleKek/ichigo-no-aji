@@ -1,3 +1,14 @@
+/*
+    Ichigo! A simple, from scratch, minimal dependency game engine for 2D side scrolling games.
+
+    Asset loading functions.
+
+    Author:      Braeden Hong
+    Last edited: 2024/11/30
+*/
+
+// TODO: Ideally, we might want to introduce an "asset compilation" stage to the game build so that we don't have to decode PNGs and MP3s at runtime.
+
 #include "asset.hpp"
 #include "ichigo.hpp"
 
@@ -9,9 +20,11 @@
 
 static drmp3 mp3;
 
+// TODO: @heap
 Util::IchigoVector<Ichigo::Texture> Ichigo::Internal::textures{64};
 Util::IchigoVector<Ichigo::Audio> Ichigo::Internal::audio_assets{64};
 
+// Decode a PNG and upload the resulting bitmap to the GPU.
 Ichigo::TextureID Ichigo::load_texture(const u8 *png_data, u64 png_data_length) {
     TextureID new_texture_id = Internal::textures.size;
     Internal::textures.append({});
@@ -31,6 +44,8 @@ Ichigo::TextureID Ichigo::load_texture(const u8 *png_data, u64 png_data_length) 
     return new_texture_id;
 }
 
+// Decode an MP3. Save the sample data to the permanent storage arena.
+// TODO: Allow custom allocators/custom arena output?
 Ichigo::AudioID Ichigo::load_audio(const u8 *mp3_data, usize mp3_data_size) {
     AudioID new_audio_id = Internal::audio_assets.size;
     Audio audio;

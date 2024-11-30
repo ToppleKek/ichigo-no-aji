@@ -37,14 +37,14 @@ static const char *STRINGS[STRING_COUNT][LANGUAGE_COUNT] = {
     {"Controller disconnected", "コントローラーの接続を解除されました"},
     {"How to play!", "やり方！"},
     {
-        "Jump by pressing the A or B buttons.\n"
-        "Run by holding the X or Y buttons.\n"
+        "Jump by pressing A or B.\n"
+        "Run by holding X or Y.\n"
         "In midair, dive by pressing LB or RB.\n"
         "Upon landing from a dive, press A or B to jump out of the dive.",
         "AかBを押すとジャンプが出来ます。\n"
         "XかYを長押しすると、走ることが出来ます。\n"
         "空中でLBかRBを押すと、ダイブが出来ます。\n"
-        "ダイブから地面に着地をした後、AかBを押すと、またジャンプ出来ます。"
+        "ダイブから地面に着地をした後、AかBを押すと、またジャンプが出来ます。"
     },
     {
         "Jump by pressing space.\n"
@@ -54,7 +54,7 @@ static const char *STRINGS[STRING_COUNT][LANGUAGE_COUNT] = {
         "SPACEを押すとジャンプが出来ます。\n"
         "LSHIFTを長押しすると、走ることが出来ます。\n"
         "空中でZを押すと、ダイブが出来ます。\n"
-        "ダイブから地面に着地をした後、SPACEを押すと、またジャンプ出来ます。"
+        "ダイブから地面に着地をした後、SPACEを押すと、またジャンプが出来ます。"
     },
     {"Got it!", "分かった！"}
 };

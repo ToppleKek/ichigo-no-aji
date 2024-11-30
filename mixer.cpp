@@ -1,9 +1,19 @@
+/*
+    Ichigo! A simple, from scratch, minimal dependency game engine for 2D side scrolling games.
+
+    Audio mixer.
+
+    Author:      Braeden Hong
+    Last edited: 2024/11/30
+*/
+
 #include "mixer.hpp"
 #include "math.hpp"
 
 #include <emmintrin.h>
 #include <smmintrin.h>
 
+// TODO: @heap
 Util::IchigoVector<Ichigo::Mixer::PlayingAudio> Ichigo::Mixer::playing_audio{64};
 f32 Ichigo::Mixer::master_volume = 1.0f;
 // TODO: Use transient storage?
@@ -19,6 +29,7 @@ Ichigo::Mixer::PlayingAudioID Ichigo::Mixer::play_audio(AudioID audio_id, f32 vo
     pa.loop_end_frame    = (u64) (loop_end_seconds   * AUDIO_SAMPLE_RATE);
     pa.frame_play_cursor = 0;
 
+    // Find some slot to add this audio.
     for (u32 i = 0; i < playing_audio.size; ++i) {
         if (playing_audio.at(i).audio_id == 0) {
             pa.id.generation = playing_audio.at(i).id.generation + 1;
@@ -28,6 +39,7 @@ Ichigo::Mixer::PlayingAudioID Ichigo::Mixer::play_audio(AudioID audio_id, f32 vo
         }
     }
 
+    // No leftovers for us. Make a new slot.
     pa.id.generation = 0;
     pa.id.index      = playing_audio.size;
     playing_audio.append(pa);
@@ -72,12 +84,14 @@ void Ichigo::Mixer::mix_into_buffer(AudioFrame2ChI16LE *sound_buffer, usize buff
 
         Audio &audio = Internal::audio_assets.at(pa.audio_id);
 
+        // Only advance the play cursor and all that stuff if the audio has started playing. If we didn't guard this then audio would skip the first "write_cursor_position_delta" bytes of the audio when being played.
         if (pa.is_playing) {
             pa.frame_play_cursor += write_cursor_position_delta / sizeof(AudioFrame2ChI16LE);
             if (pa.loop_end_frame != 0 && pa.frame_play_cursor >= pa.loop_end_frame) {
                 pa.frame_play_cursor = pa.loop_start_frame;
             }
 
+            // The audio has finished playing.
             if (pa.frame_play_cursor * sizeof(AudioFrame2ChI16LE) >= audio.size_in_bytes) {
                 pa.audio_id = 0;
                 continue;
@@ -103,15 +117,25 @@ void Ichigo::Mixer::mix_into_buffer(AudioFrame2ChI16LE *sound_buffer, usize buff
         // u64 start = __rdtsc();
         f32 left_channel_volume  = pa.volume * pa.left_volume  * master_volume;
         f32 right_channel_volume = pa.volume * pa.right_volume * master_volume;
+        // Audio frames are processed two at a time. We load the left and right volumes alternating here because the channels of the two frames will be processed L R L R
         __m128 volume4x  = _mm_setr_ps(left_channel_volume, right_channel_volume, left_channel_volume, right_channel_volume);
         for (u32 audio_frame_index = pa.frame_play_cursor, i = 0; audio_frame_index < audio.size_in_bytes / sizeof(AudioFrame2ChI16LE) && i < buffer_size / sizeof(AudioFrame2ChI16LE); audio_frame_index += 2, i += 2) {
+            // Load 128 bits of audio frame data. This loads 4 frames, but we can only process 2 of them.
             __m128i frames32         = _mm_loadu_si128((__m128i *) &audio.frames[audio_frame_index]);
+            // pmovsxwd xmm, xmm - Sign extend packed i16 to packed i32
+            // cvtdq2ps xmm, xmm - Convert packed i32 to packed f32
+            // "frames" is now 2 audio frames, converted to floats.
             __m128 frames            = _mm_cvtepi32_ps(_mm_cvtepi16_epi32(frames32));
+            // Load and convert the sound buffer in the same way.
             __m128i sb32             = _mm_loadu_si128((__m128i *) &sound_buffer[i]);
             __m128 sb                = _mm_cvtepi32_ps(_mm_cvtepi16_epi32(sb32));
+            // Apply volume adjustments to the current audio frames.
             __m128 processed_frames  = _mm_mul_ps(frames, volume4x);
+            // Mix the final value
             __m128 mixed_value       = _mm_add_ps(sb, processed_frames);
+            // Store the result back to memory.
             mixed_value              = _mm_cvtps_epi32(mixed_value);
+            // NOTE: packssdw xmm, xmm - Signed saturation pack of 16 bit values. This effectively clamps for free.
             mixed_value              = _mm_packs_epi32(mixed_value, mixed_value);
             _mm_storel_epi64((__m128i *) &sound_buffer[i], mixed_value);
         }

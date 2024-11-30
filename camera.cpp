@@ -1,6 +1,16 @@
+/*
+    Ichigo! A simple, from scratch, minimal dependency game engine for 2D side scrolling games.
+
+    Camera functions.
+
+    Author:      Braeden Hong
+    Last edited: 2024/11/30
+*/
+
 #include "entity.hpp"
 #include "ichigo.hpp"
 
+// TODO: Remove offset and only use the transform.
 Vec2<f32> Ichigo::Camera::offset{};
 Mat4<f32> Ichigo::Camera::transform{};
 Ichigo::Camera::Mode Ichigo::Camera::mode{};
@@ -8,6 +18,7 @@ Ichigo::Camera::Mode Ichigo::Camera::mode{};
 static Ichigo::EntityID follow_target{};
 Vec2<f32> Ichigo::Camera::manual_focus_point{};
 
+// Follow some entity by centering the camera on it.
 void Ichigo::Camera::follow(Ichigo::EntityID entity_id) {
     Entity *entity;
     if (!(entity = Ichigo::get_entity(entity_id))) {
@@ -19,6 +30,7 @@ void Ichigo::Camera::follow(Ichigo::EntityID entity_id) {
     ICHIGO_INFO("Camera now following: %s (%s)", entity->name, Ichigo::Internal::entity_id_as_string(entity_id));
 }
 
+// Called every frame to update the camera's transform.
 void Ichigo::Camera::update() {
     switch (mode) {
         case MANUAL: {

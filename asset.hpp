@@ -1,3 +1,12 @@
+/*
+    Ichigo! A simple, from scratch, minimal dependency game engine for 2D side scrolling games.
+
+    Asset functions and structures.
+
+    Author:      Braeden Hong
+    Last edited: 2024/11/30
+*/
+
 #pragma once
 #include "common.hpp"
 #include "util.hpp"
@@ -16,12 +25,13 @@ using AudioID   = u32;
 struct Texture {
     u32 width;
     u32 height;
-    u32 id;
+    u32 id; // NOTE: NOT a TextureID! This is the OpenGL id.
     u32 channel_count;
     u64 png_data_size;
     const u8 *png_data;
 };
 
+// A 2 channel signed 16-bit integer audio frame.
 struct AudioFrame2ChI16LE {
     i16 l;
     i16 r;

@@ -1,3 +1,12 @@
+/*
+    Ichigo! A simple, from scratch, minimal dependency game engine for 2D side scrolling games.
+
+    Commonly used types and macros.
+
+    Author:      Braeden Hong
+    Last edited: 2024/11/30
+*/
+
 #pragma once
 #include <cstdint>
 #include <cstdio>
@@ -34,6 +43,10 @@ using f64 = double;
 #define CLEAR_FLAG(FLAGS, FLAG)  (FLAGS &= ~FLAG)
 #define FLAG_IS_SET(FLAGS, FLAG) ((bool) (FLAGS & FLAG))
 
+// Embed a file in the executable. Defines 3 variables:
+// VNAME - an array of the file contents.
+// VNAME_end - a pointer to the end of the file.
+// VNAME_len - the length of the file.
 #define EMBED(FNAME, VNAME)                                                               \
     __asm__(                                                                              \
         ".section .rodata    \n"                                                          \
