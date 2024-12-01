@@ -21,6 +21,7 @@ enum Strings {
     EXPLANATION_CONTROLLER,
     EXPLANATION_KEYBOARD,
     GOT_IT,
+    CREDIT_TEXT,
     STRING_COUNT
 };
 
@@ -41,22 +42,32 @@ static const char *STRINGS[STRING_COUNT][LANGUAGE_COUNT] = {
         "Run by holding X or Y.\n"
         "In midair, dive by pressing LB or RB.\n"
         "Upon landing from a dive, press A or B to jump out of the dive.",
-        "AかBを押すとジャンプが出来ます。\n"
+        "AかBを押すとジャンプ出来ます。\n"
         "XかYを長押しすると、走ることが出来ます。\n"
-        "空中でLBかRBを押すと、ダイブが出来ます。\n"
-        "ダイブから地面に着地をした後、AかBを押すと、またジャンプが出来ます。"
+        "空中でLBかRBを押すと、ダイブ出来ます。\n"
+        "ダイブから地面に着地をした後、AかBを押すと、またジャンプ出来ます。"
     },
     {
         "Jump by pressing space.\n"
         "Run by holding left shift.\n"
         "In midair, dive by pressing Z.\n"
         "Upon landing from a dive, press space to jump out of the dive.",
-        "SPACEを押すとジャンプが出来ます。\n"
+        "SPACEを押すとジャンプ出来ます。\n"
         "LSHIFTを長押しすると、走ることが出来ます。\n"
-        "空中でZを押すと、ダイブが出来ます。\n"
-        "ダイブから地面に着地をした後、SPACEを押すと、またジャンプが出来ます。"
+        "空中でZを押すと、ダイブ出来ます。\n"
+        "ダイブから地面に着地をした後、SPACEを押すと、またジャンプ出来ます。"
     },
-    {"Got it!", "分かった！"}
+    {"Got it!", "分かった！"},
+    {
+        "Credits:\n"
+        "Player sprite: Rabi-Ribi (CreSpirit)\n"
+        "BGM: Get On With It - 3R2\n"
+        "Tile art: Joel Lucenay",
+        "クレジット：\n"
+        "プレイヤーのスプライト： ラビリビ (CreSpirit)\n"
+        "BGM： Get On With It - 3R2"
+        "\nタイルマップ： Joel Lucenay"
+    }
 };
 
 extern Language current_language;

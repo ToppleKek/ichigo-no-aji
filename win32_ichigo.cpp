@@ -1,3 +1,12 @@
+/*
+    Ichigo! A simple, from scratch, minimal dependency game engine for 2D side scrolling games.
+
+    Windows platform layer.
+
+    Author:      Braeden Hong
+    Last edited: 2024/12/1
+*/
+
 #define _CRT_SECURE_NO_WARNINGS
 #include "common.hpp"
 #include <cstdio>

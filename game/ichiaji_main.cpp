@@ -44,7 +44,6 @@ static Ichigo::TextStyle menu_item_style = {
     .scale        = 1.0f,
     .colour       = colour_white,
     .line_spacing = 200.0f
-
 };
 
 static Ichigo::TextStyle info_style = {
@@ -52,7 +51,13 @@ static Ichigo::TextStyle info_style = {
     .scale        = 0.5f,
     .colour       = colour_white,
     .line_spacing = 100.0f
+};
 
+static Ichigo::TextStyle credit_style = {
+    .alignment    = Ichigo::TextAlignment::LEFT,
+    .scale        = 0.5f,
+    .colour       = colour_white,
+    .line_spacing = 100.0f
 };
 
 static Ichigo::TextureID tileset_texture    = 0;
@@ -290,6 +295,17 @@ void Ichigo::Game::update_and_render() {
             };
 
             Ichigo::push_draw_command(info_text_cmd);
+
+            Ichigo::DrawCommand credit_text_cmd = {
+                .type              = TEXT,
+                .coordinate_system = CAMERA,
+                .string            = TL_STR(CREDIT_TEXT),
+                .string_length     = std::strlen(TL_STR(CREDIT_TEXT)),
+                .string_pos        = {0.0f, SCREEN_TILE_HEIGHT - 1.05f},
+                .text_style        = credit_style
+            };
+
+            Ichigo::push_draw_command(credit_text_cmd);
 
             bool menu_down_button_down_this_frame   = Ichigo::Internal::keyboard_state[Ichigo::IK_DOWN].down_this_frame || Ichigo::Internal::gamepad.down.down_this_frame;
             bool menu_up_button_down_this_frame     = Ichigo::Internal::keyboard_state[Ichigo::IK_UP].down_this_frame || Ichigo::Internal::gamepad.up.down_this_frame;
