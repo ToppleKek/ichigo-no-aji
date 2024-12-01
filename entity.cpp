@@ -171,7 +171,7 @@ Ichigo::EntityMoveResult Ichigo::move_entity_in_world(Ichigo::Entity *entity) {
     final_acceleration.y = entity->acceleration.y + external_acceleration.y;
     // entity->acceleration = final_acceleration;
 
-    // Equations of motion!
+    // Equations of motion
     // p' = 1/2 at^2 + vt + p
     // v' = at + v
     Vec2<f32> entity_delta = 0.5f * final_acceleration * (Ichigo::Internal::dt * Ichigo::Internal::dt) + entity->velocity * Ichigo::Internal::dt;

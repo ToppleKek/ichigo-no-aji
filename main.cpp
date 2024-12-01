@@ -18,8 +18,6 @@
 
 #include "editor.hpp"
 
-#include "thirdparty/imgui/imgui.h"
-#include "thirdparty/imgui/imgui_impl_opengl3.h"
 
 #include <stb_image.h>
 
@@ -42,19 +40,22 @@ EMBED("assets/kanji.bin", kt_bytes)
 
 static const u32 *kanji_codepoints = (u32 *) kt_bytes;
 static const u32 kanji_codepoint_count = 2999;
-// DEBUG
+
+#ifdef ICHIGO_DEBUG
+#include "thirdparty/imgui/imgui.h"
+#include "thirdparty/imgui/imgui_impl_opengl3.h"
 EMBED("assets/music/sound.mp3", test_sound)
 static Ichigo::AudioID test_sound_id  = 0;
 static bool DEBUG_draw_colliders      = true;
 static bool DEBUG_hide_entity_sprites = false;
+static bool show_debug_menu           = false;
 static ImGuiStyle initial_style;
 static ImFontConfig font_config;
-// END DEBUG
+#endif
 
 #define MAX_DRAW_COMMANDS 4096
 
-static f32 last_dpi_scale   = 1.0f;
-static bool show_debug_menu = false;
+static f32 last_dpi_scale = 1.0f;
 static GLuint texture_shader_program;
 static GLuint text_shader_program;
 static GLuint screenspace_text_shader_program; // FIXME: All these "screenspace" variants fucking suck
@@ -517,7 +518,9 @@ static void render_text(Vec2<f32> pos, const char *str, usize length, Ichigo::Co
 // If the entity does not provide its own render procedure (likely), this one is run.
 void default_entity_render_proc(Ichigo::Entity *entity) {
     // FIXME: This does not advance animation frames. Games that depend on the animation ending to change state break with this option on. Just throw it in the same place as the INVISIBLE flag.
+#ifdef ICHIGO_DEBUG
     if (!DEBUG_hide_entity_sprites) {
+#endif
         const Ichigo::Texture &texture = Ichigo::Internal::textures.at(entity->sprite.sheet.texture);
 
         Ichigo::Internal::gl.glUseProgram(texture_shader_program);
@@ -568,7 +571,11 @@ void default_entity_render_proc(Ichigo::Entity *entity) {
         }
 
         if (FLAG_IS_SET(entity->flags, Ichigo::EF_INVISIBLE)) {
+#ifdef ICHIGO_DEBUG
             goto skip_sprite_draw;
+#else
+            return;
+#endif
         }
 
         Vec2<f32> draw_pos = { entity->col.pos.x + entity->sprite.pos_offset.x, entity->col.pos.y + entity->sprite.pos_offset.y };
@@ -591,6 +598,7 @@ void default_entity_render_proc(Ichigo::Entity *entity) {
         Ichigo::Internal::gl.glUniformMatrix4fv(object_uniform, 1, GL_TRUE, (GLfloat *) &identity_mat4);
 
         Ichigo::Internal::gl.glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+#ifdef ICHIGO_DEBUG
     }
 
 skip_sprite_draw:
@@ -608,6 +616,7 @@ skip_sprite_draw:
         world_render_solid_colour_rect({pos + Vec2<f32>{0.0f, -0.15f}, text_width, 0.2f}, {0.0f, 0.0f, 0.0f, 0.8f});
         render_text(pos, entity->name, name_len, Ichigo::CoordinateSystem::WORLD, style);
     }
+#endif
 }
 
 void Ichigo::set_tilemap(Tilemap *tilemap) {
@@ -807,10 +816,13 @@ static f32 calculate_background_start_position(f32 camera_offset, f32 texture_wi
 
 // Render one frame.
 static void frame_render() {
+#ifdef ICHIGO_DEBUG
     ImGui::Render();
-    auto imgui_draw_data = ImGui::GetDrawData();
-    if (imgui_draw_data->DisplaySize.x <= 0.0f || imgui_draw_data->DisplaySize.y <= 0.0f)
+#endif
+
+    if (Ichigo::Internal::window_width == 0 || Ichigo::Internal::window_height == 0) {
         return;
+    }
 
     Ichigo::Internal::gl.glViewport(Ichigo::Internal::viewport_origin.x, Ichigo::Internal::viewport_origin.y, Ichigo::Internal::viewport_width, Ichigo::Internal::viewport_height);
     Ichigo::Internal::gl.glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
@@ -882,8 +894,11 @@ static void frame_render() {
     TexturedVertex *vertex_buffer = PUSH_ARRAY(Ichigo::game_state.transient_storage_arena, TexturedVertex, (row_count * col_count) * 4);
     u32            *index_buffer  = PUSH_ARRAY(Ichigo::game_state.transient_storage_arena, u32, (row_count * col_count) * 6);
 
-    // u32 *overrun_flag = PUSH_ARRAY(Ichigo::game_state.transient_storage_arena, u32, 1);
-    // *overrun_flag = 0;
+#ifdef ICHIGO_DEBUG
+    u32 *overrun_flag = PUSH_ARRAY(Ichigo::game_state.transient_storage_arena, u32, 1);
+    *overrun_flag = 0;
+#endif
+
     Util::BufferBuilder<TexturedVertex> vertices(vertex_buffer, MAX_TEXT_STRING_LENGTH * 4);
     Util::BufferBuilder<u32>            indices(index_buffer, MAX_TEXT_STRING_LENGTH * 6);
 
@@ -894,9 +909,11 @@ static void frame_render() {
         }
     }
 
-    // if (*overrun_flag) {
-    //     __builtin_debugtrap();
-    // }
+#ifdef ICHIGO_DEBUG
+    if (*overrun_flag) {
+        __builtin_debugtrap();
+    }
+#endif
 
     Ichigo::Internal::gl.glUseProgram(texture_shader_program);
     Ichigo::Internal::gl.glBindTexture(GL_TEXTURE_2D, Ichigo::Internal::textures.at(Ichigo::Internal::current_tilemap.sheet.texture).id);
@@ -1023,7 +1040,9 @@ static void frame_render() {
 
     draw_info_log();
 
+#ifdef ICHIGO_DEBUG
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+#endif
 }
 
 // Simulation and logic for one frame.
@@ -1059,6 +1078,7 @@ void Ichigo::Internal::do_frame() {
 
     if (dpi_scale != last_dpi_scale) {
         ICHIGO_INFO("scaling to scale=%f", dpi_scale);
+#ifdef ICHIGO_DEBUG
         auto io = ImGui::GetIO();
         ImGui_ImplOpenGL3_DestroyFontsTexture();
         io.Fonts->Clear();
@@ -1068,9 +1088,11 @@ void Ichigo::Internal::do_frame() {
         // Scale all Dear ImGui sizes based on the inital style
         std::memcpy(&ImGui::GetStyle(), &initial_style, sizeof(initial_style));
         ImGui::GetStyle().ScaleAllSizes(dpi_scale);
+#endif
         last_dpi_scale = dpi_scale;
     }
 
+#ifdef ICHIGO_DEBUG
     // Toggle the debug menu when F3 is pressed.
     if (Ichigo::Internal::keyboard_state[Ichigo::IK_F3].down_this_frame) {
         show_debug_menu = !show_debug_menu;
@@ -1079,8 +1101,9 @@ void Ichigo::Internal::do_frame() {
     ImGui_ImplOpenGL3_NewFrame();
     ImGui::NewFrame();
 
-    if (program_mode == Ichigo::Internal::ProgramMode::EDITOR)
+    if (program_mode == Ichigo::Internal::ProgramMode::EDITOR) {
         Ichigo::Editor::render_ui();
+    }
 
     // Render the debug menu.
     if (show_debug_menu) {
@@ -1255,6 +1278,19 @@ void Ichigo::Internal::do_frame() {
             program_mode = Ichigo::Internal::ProgramMode::GAME;
         }
     }
+#else // NOTE: We completely skip the "program_mode" logic when we are not in debug mode. This is just a copy of the code above that runs in "game mode"
+    for (u32 i = 1; i < Ichigo::Internal::entities.size; ++i) {
+        Ichigo::Entity &entity = Ichigo::Internal::entities.at(i);
+        if (entity.id.index != 0 && entity.update_proc) {
+            entity.update_proc(&entity);
+        }
+    }
+
+    // TODO: Let the game update first? Not sure? Maybe they want to change something about an entity before it gets updated.
+    //       Also we might just consider making the game call an Ichigo::update() function so that the game can control when everything updates.
+    //       But also we have frame begin and frame end...?
+    Ichigo::Game::update_and_render();
+#endif
 
     Ichigo::Camera::update();
 
@@ -1322,7 +1358,7 @@ void Ichigo::Internal::init() {
 
     std::memset(info_log, 0, INFO_LOG_MAX_MESSAGES * sizeof(InfoLogMessage));
 
-    // DEBUG
+#ifdef ICHIGO_DEBUG
     font_config.FontDataOwnedByAtlas = false;
     font_config.OversampleH = 2;
     font_config.OversampleV = 2;
@@ -1339,7 +1375,7 @@ void Ichigo::Internal::init() {
     // Fonts
     auto io = ImGui::GetIO();
     io.Fonts->AddFontFromMemoryTTF((void *) noto_font, noto_font_len, 18, &font_config, io.Fonts->GetGlyphRangesJapanese());
-    // END DEBUG
+#endif
 
     kanji_hash_map.data            = kanji_codepoints;
     kanji_hash_map.codepoint_count = kanji_codepoint_count;
@@ -1457,11 +1493,8 @@ void Ichigo::Internal::init() {
 
     Ichigo::Game::init();
 
-    // DEBUG
-    test_sound_id = Ichigo::load_audio(test_sound, test_sound_len);
-    // END DEBUG
-
 #ifdef ICHIGO_DEBUG
+    test_sound_id = Ichigo::load_audio(test_sound, test_sound_len);
     show_info("You are running in debug mode. Press F3 for debug menu, F1 for editor.");
 #endif
 }

@@ -26,7 +26,6 @@
 #define WGL_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB  0x0002
 #define WGL_CONTEXT_CORE_PROFILE_BIT_ARB           0x0001
 
-#include "thirdparty/imgui/imgui_impl_win32.h"
 
 #define AUDIO_SAMPLES_BUFFER_SIZE AUDIO_CHANNEL_COUNT * sizeof(i16) * AUDIO_SAMPLE_RATE * 4
 #define DSOUND_BUFFER_SIZE AUDIO_CHANNEL_COUNT * sizeof(i16) * AUDIO_SAMPLE_RATE * 8
@@ -55,8 +54,10 @@ static HGLRC wgl_context;
 static bool paused_audio_in_sizing_loop = false;
 static bool init_completed = false;
 
-
+#ifdef ICHIGO_DEBUG
+#include "thirdparty/imgui/imgui_impl_win32.h"
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+#endif
 
 struct Ichigo::Internal::PlatformFile {
     HANDLE file_handle;
@@ -377,9 +378,11 @@ static void win32_do_frame() {
         }
     }
 
+#ifdef ICHIGO_DEBUG
     ImGui_ImplWin32_NewFrame();
+#endif
 
-    Ichigo::Internal::dpi_scale = ImGui_ImplWin32_GetDpiScaleForHwnd(window_handle);
+    Ichigo::Internal::dpi_scale = GetDpiForWindow(window_handle) / 96.0f;
     Ichigo::Internal::dt        =  frame_start_time - last_frame_time;
     Ichigo::Internal::do_frame();
 
@@ -419,8 +422,11 @@ skip:
 }
 
 static LRESULT window_proc(HWND window, u32 msg, WPARAM wparam, LPARAM lparam) {
-    if (ImGui_ImplWin32_WndProcHandler(window, msg, wparam, lparam))
+#ifdef ICHIGO_DEBUG
+    if (ImGui_ImplWin32_WndProcHandler(window, msg, wparam, lparam)) {
         return 1;
+    }
+#endif
 
     switch (msg) {
     case WM_ENTERSIZEMOVE: {
@@ -485,8 +491,11 @@ static LRESULT window_proc(HWND window, u32 msg, WPARAM wparam, LPARAM lparam) {
     case WM_RBUTTONDOWN:
     case WM_MBUTTONDOWN:
     case WM_XBUTTONDOWN: {
-        if (ImGui::GetIO().WantCaptureMouse)
+#ifdef ICHIGO_DEBUG
+        if (ImGui::GetIO().WantCaptureMouse) {
             return 0;
+        }
+#endif
 
         if      (msg == WM_LBUTTONDOWN) SET_MOUSE_BTN_DOWN(left_button);
         else if (msg == WM_RBUTTONDOWN) SET_MOUSE_BTN_DOWN(right_button);
@@ -504,8 +513,11 @@ static LRESULT window_proc(HWND window, u32 msg, WPARAM wparam, LPARAM lparam) {
     case WM_RBUTTONUP:
     case WM_MBUTTONUP:
     case WM_XBUTTONUP: {
-        if (ImGui::GetIO().WantCaptureMouse)
+#ifdef ICHIGO_DEBUG
+        if (ImGui::GetIO().WantCaptureMouse) {
             return 0;
+        }
+#endif
 
         if      (msg == WM_LBUTTONUP) SET_MOUSE_BTN_UP(left_button);
         else if (msg == WM_RBUTTONUP) SET_MOUSE_BTN_UP(right_button);
@@ -523,8 +535,11 @@ static LRESULT window_proc(HWND window, u32 msg, WPARAM wparam, LPARAM lparam) {
 #undef SET_MOUSE_BTN_UP
     case WM_KEYDOWN:
     case WM_KEYUP: {
-        if (ImGui::GetIO().WantCaptureKeyboard)
+#ifdef ICHIGO_DEBUG
+        if (ImGui::GetIO().WantCaptureKeyboard) {
             return 0;
+        }
+#endif
 
         u32 vk_code = (u32) wparam;
         bool was_down = ((lparam & (1 << 30)) != 0);
@@ -811,7 +826,9 @@ i32 main() {
     Ichigo::Internal::init();
 
     // Platform init
+#ifdef ICHIGO_DEBUG
     ImGui_ImplWin32_InitForOpenGL(window_handle);
+#endif
 
     LARGE_INTEGER frequency;
     QueryPerformanceFrequency(&frequency);
