@@ -435,9 +435,11 @@ void Ichigo::EntityControllers::patrol_controller(Entity *entity) {
     const TileInfo &left_info  = Internal::current_tilemap.tile_info[Ichigo::tile_at(projected_left_standing_tile)];
     const TileInfo &right_info = Internal::current_tilemap.tile_info[Ichigo::tile_at(projected_right_standing_tile)];
     if (!FLAG_IS_SET(left_info.flags, TANGIBLE)) {
+        SET_FLAG(entity->flags, EF_FLIP_H);
         entity->acceleration.x = entity->movement_speed;
         entity->velocity.x = 0.0f;
     } else if (!FLAG_IS_SET(right_info.flags, TANGIBLE)) {
+        CLEAR_FLAG(entity->flags, EF_FLIP_H);
         entity->acceleration.x = -entity->movement_speed;
         entity->velocity.x = 0.0f;
     }
@@ -446,6 +448,11 @@ void Ichigo::EntityControllers::patrol_controller(Entity *entity) {
 
     if (move_result == HIT_WALL) {
         entity->acceleration.x = -entity->acceleration.x;
+        if (entity->acceleration.x > 0.0f) {
+            SET_FLAG(entity->flags, EF_FLIP_H);
+        } else {
+            CLEAR_FLAG(entity->flags, EF_FLIP_H);
+        }
     }
 }
 

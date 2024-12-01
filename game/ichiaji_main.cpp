@@ -116,7 +116,7 @@ static void spawn_gert() {
     Ichigo::Entity *enemy = Ichigo::spawn_entity();
     gert_id = enemy->id;
     std::strcpy(enemy->name, "gert");
-    enemy->col            = {{18.0f, 14.0f}, 0.5f, 0.5f};
+    enemy->col            = {{18.0f, 14.0f}, 0.7f, 0.8f};
     enemy->max_velocity   = {2.0f, 12.0f};
     enemy->movement_speed = 6.0f;
     enemy->gravity        = 9.8f;
@@ -124,10 +124,10 @@ static void spawn_gert() {
 
     Ichigo::Animation gert_idle   = {};
     gert_idle.cell_of_first_frame = 0;
-    gert_idle.cell_of_last_frame  = 0;
+    gert_idle.cell_of_last_frame  = 4;
     gert_idle.cell_of_loop_start  = 0;
-    gert_idle.cell_of_loop_end    = 0;
-    gert_idle.seconds_per_frame   = 0.0f;
+    gert_idle.cell_of_loop_end    = 4;
+    gert_idle.seconds_per_frame   = 0.08f;
 
     Ichigo::Sprite gert_sprite    = {};
     gert_sprite.width             = 1.0f;
@@ -184,11 +184,16 @@ void Ichigo::Game::init() {
 }
 
 static void init_game() {
-    Ichigo::game_state.background_colour = {0.54f, 0.84f, 1.0f, 1.0f};
+    Ichigo::game_state.background_colour = {138.0f / 255.0f, 200.0f / 255.0f, 255.0f / 255.0f, 1.0f};
     Ichigo::game_state.background_layers[0].texture_id     = test_bg_texture_id;
     Ichigo::game_state.background_layers[0].flags          = Ichigo::BG_REPEAT_X;
-    Ichigo::game_state.background_layers[0].start_position = {0.0f, 0.0f};
-    Ichigo::game_state.background_layers[0].scroll_speed   = {0.5f, 0.6f};
+    Ichigo::game_state.background_layers[0].start_position = {0.0f, 1.5f};
+    Ichigo::game_state.background_layers[0].scroll_speed   = {0.5f, 0.5f};
+
+    Ichigo::game_state.background_layers[1].texture_id     = test_bg_texture_id;
+    Ichigo::game_state.background_layers[1].flags          = Ichigo::BG_REPEAT_X;
+    Ichigo::game_state.background_layers[1].start_position = {0.0f, 4.5f};
+    Ichigo::game_state.background_layers[1].scroll_speed   = {0.5f, 0.5f};
 
     Ichigo::SpriteSheet tileset_sheet = {};
     tileset_sheet.cell_width  = 32;

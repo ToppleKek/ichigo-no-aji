@@ -18,7 +18,6 @@
 
 #include "editor.hpp"
 
-
 #include <stb_image.h>
 
 #define STB_RECT_PACK_IMPLEMENTATION
