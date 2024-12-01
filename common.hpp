@@ -4,7 +4,7 @@
     Commonly used types and macros.
 
     Author:      Braeden Hong
-    Last edited: 2024/11/30
+    Last edited: 2024/12/1
 */
 
 #pragma once
@@ -36,9 +36,17 @@ using f64 = double;
 #define ARRAY_LEN(a) (sizeof(a) / sizeof(a[0]))
 #define KILOBYTES(N) (N * 1024)
 #define MEGABYTES(N) (N * KILOBYTES(1024))
+
+#ifdef ICHIGO_DEBUG
 #define ICHIGO_INFO(fmt, ...) std::printf("(info) %s:%d: " fmt "\n", __FILE__, __LINE__ __VA_OPT__(, ) __VA_ARGS__)
 #define ICHIGO_ERROR(fmt, ...) std::printf("(error) %s:%d: " fmt "\n", __FILE__, __LINE__ __VA_OPT__(, ) __VA_ARGS__)
 #define VK_ASSERT_OK(err) assert(err == VK_SUCCESS)
+#else
+#define ICHIGO_INFO(...)
+#define ICHIGO_ERROR(...)
+#define VK_ASSERT_OK(...)
+#endif
+
 #define SET_FLAG(FLAGS, FLAG)    (FLAGS |= FLAG)
 #define CLEAR_FLAG(FLAGS, FLAG)  (FLAGS &= ~FLAG)
 #define FLAG_IS_SET(FLAGS, FLAG) ((bool) (FLAGS & FLAG))

@@ -12,6 +12,7 @@
 #include <cstdio>
 #include "ichigo.hpp"
 
+#define OEMRESOURCE
 #define UNICODE
 #include <windows.h>
 #include <windowsx.h>
@@ -52,7 +53,7 @@ static HWND window_handle;
 static HDC hdc;
 static HGLRC wgl_context;
 static bool paused_audio_in_sizing_loop = false;
-static bool init_completed = false;
+static bool init_completed              = false;
 
 #ifdef ICHIGO_DEBUG
 #include "thirdparty/imgui/imgui_impl_win32.h"
@@ -446,6 +447,8 @@ static LRESULT window_proc(HWND window, u32 msg, WPARAM wparam, LPARAM lparam) {
     } break;
 
     case WM_SIZE: {
+        Ichigo::Internal::window_width  = LOWORD(lparam);
+        Ichigo::Internal::window_height = HIWORD(lparam);
         return 0;
     } break;
 
@@ -624,17 +627,6 @@ static LRESULT window_proc(HWND window, u32 msg, WPARAM wparam, LPARAM lparam) {
         BeginPaint(window, &paint);
 
         if (init_completed) {
-            u32 height = paint.rcPaint.bottom - paint.rcPaint.top;
-            u32 width = paint.rcPaint.right - paint.rcPaint.left;
-
-            if (height <= 0 || width <= 0)
-                break;
-
-            if (height != Ichigo::Internal::window_height || width != Ichigo::Internal::window_width) {
-                Ichigo::Internal::window_width = width;
-                Ichigo::Internal::window_height = height;
-            }
-
             win32_do_frame();
         }
         EndPaint(window, &paint);
@@ -645,10 +637,9 @@ static LRESULT window_proc(HWND window, u32 msg, WPARAM wparam, LPARAM lparam) {
     return DefWindowProc(window, msg, wparam, lparam);
 }
 
-i32 main() {
+i32 WinMain(HINSTANCE instance, [[maybe_unused]] HINSTANCE prev_instance, [[maybe_unused]] LPSTR cmd_line, [[maybe_unused]] i32 show_cmd) {
     SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
     SetConsoleOutputCP(CP_UTF8);
-    auto instance = GetModuleHandle(nullptr);
 
     for (u32 i = 0; i < ARRAY_LEN(open_files); ++i) {
         open_files[i].file_handle = INVALID_HANDLE_VALUE;
@@ -662,6 +653,7 @@ i32 main() {
     window_class.lpfnWndProc   = window_proc;
     window_class.hInstance     = instance;
     window_class.lpszClassName = L"ichigo";
+    window_class.hCursor       = (HCURSOR) LoadImage(NULL, MAKEINTRESOURCE(OCR_NORMAL), IMAGE_CURSOR, 0, 0, LR_SHARED);
     RegisterClass(&window_class);
     window_handle = CreateWindowEx(0, window_class.lpszClassName, L"Ichigo no Aji!", WS_OVERLAPPEDWINDOW | WS_VISIBLE, CW_USEDEFAULT, CW_USEDEFAULT, Ichigo::Internal::window_width, Ichigo::Internal::window_height, nullptr,
                                    nullptr, instance, nullptr);
@@ -687,11 +679,6 @@ i32 main() {
     i32 pixel_format = ChoosePixelFormat(hdc, &pfd);
     assert(pixel_format != 0);
     assert(SetPixelFormat(hdc, pixel_format, &pfd));
-
-
-    // i32 context_attribs[] = {
-    //     WGL_CONTEXT_MAJOR_VERSION
-    // };
 
     HINSTANCE opengl_dll = LoadLibrary(L"opengl32.dll");
     assert(opengl_dll);

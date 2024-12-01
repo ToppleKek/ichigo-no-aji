@@ -41,7 +41,7 @@ static Ichigo::AudioID boo_womp_id = {};
 
 static f32 invincibility_t = 0.0f;
 
-static void on_collide(Ichigo::Entity *irisu, Ichigo::Entity *other, Vec2<f32> normal, Vec2<f32> collision_pos) {
+static void on_collide(Ichigo::Entity *irisu, Ichigo::Entity *other, Vec2<f32> normal, [[maybe_unused]] Vec2<f32> collision_pos) {
     ICHIGO_INFO("IRISU collide with %s: normal=%f,%f pos=%f,%f", other->name, normal.x, normal.y, collision_pos.x, collision_pos.y);
 
     if (std::strcmp(other->name, "gert") == 0 && irisu_state != HURT) {

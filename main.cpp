@@ -4,7 +4,7 @@
     Core module. Rendering, input, state, etc.
 
     Author:      Braeden Hong
-    Last edited: 2024/11/30
+    Last edited: 2024/12/1
 */
 
 #include <cassert>
