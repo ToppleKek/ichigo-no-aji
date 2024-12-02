@@ -16,6 +16,7 @@ EMBED("assets/enemy.png", enemy_png)
 EMBED("assets/coin.png", coin_spritesheet_png)
 EMBED("assets/bg.png", test_bg)
 EMBED("assets/music/song.mp3", test_song)
+EMBED("assets/music/coin.mp3", coin_sound_mp3)
 
 // Real tiles
 EMBED("assets/tiles.png", tileset_png)
@@ -65,6 +66,7 @@ static Ichigo::TextureID enemy_texture_id   = 0;
 static Ichigo::TextureID coin_texture_id    = 0;
 static Ichigo::TextureID test_bg_texture_id = 0;
 static Ichigo::AudioID   test_music_id      = 0;
+static Ichigo::AudioID   coin_sound         = 0;
 
 static Ichigo::TextureID ui_collected_coin_texture   = 0;
 static Ichigo::TextureID ui_uncollected_coin_texture = 0;
@@ -93,6 +95,7 @@ static void on_coin_collide(Ichigo::Entity *coin, Ichigo::Entity *other, [[maybe
         for (u32 i = 0; i < ARRAY_LEN(coins); ++i) {
             if (coin->id == coins[i].id) {
                 coins[i].collected = true;
+                Ichigo::Mixer::play_audio_oneshot(coin_sound, 1.0f, 1.0f, 1.0f);
                 break;
             }
         }
@@ -168,6 +171,7 @@ void Ichigo::Game::init() {
     enemy_texture_id      = Ichigo::load_texture(enemy_png, enemy_png_len);
     coin_texture_id       = Ichigo::load_texture(coin_spritesheet_png, coin_spritesheet_png_len);
     test_music_id         = Ichigo::load_audio(test_song, test_song_len);
+    coin_sound            = Ichigo::load_audio(coin_sound_mp3, coin_sound_mp3_len);
     tileset_texture       = Ichigo::load_texture(tileset_png, tileset_png_len);
 
     ui_collected_coin_texture   = Ichigo::load_texture(ui_collected_coin_png, ui_collected_coin_png_len);
@@ -230,8 +234,8 @@ static void deinit_game() {
     Irisu::deinit();
 
     Ichigo::kill_all_entities();
-    Ichigo::game_state.background_colour    = {};
-    Ichigo::game_state.background_layers[0] = {};
+    Ichigo::game_state.background_colour = {};
+    std::memset(&Ichigo::game_state.background_layers, 0, sizeof(Ichigo::game_state.background_layers));
 
     Ichigo::set_tilemap(nullptr, {});
 }
