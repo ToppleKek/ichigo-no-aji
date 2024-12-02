@@ -170,9 +170,9 @@ void Ichigo::Game::init() {
     test_bg_texture_id    = Ichigo::load_texture(test_bg, test_bg_len);
     enemy_texture_id      = Ichigo::load_texture(enemy_png, enemy_png_len);
     coin_texture_id       = Ichigo::load_texture(coin_spritesheet_png, coin_spritesheet_png_len);
+    tileset_texture       = Ichigo::load_texture(tileset_png, tileset_png_len);
     test_music_id         = Ichigo::load_audio(test_song, test_song_len);
     coin_sound            = Ichigo::load_audio(coin_sound_mp3, coin_sound_mp3_len);
-    tileset_texture       = Ichigo::load_texture(tileset_png, tileset_png_len);
 
     ui_collected_coin_texture   = Ichigo::load_texture(ui_collected_coin_png, ui_collected_coin_png_len);
     ui_uncollected_coin_texture = Ichigo::load_texture(ui_uncollected_coin_png, ui_uncollected_coin_png_len);

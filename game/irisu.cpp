@@ -12,6 +12,7 @@
 
 EMBED("assets/irisu.png", irisu_spritesheet_png)
 EMBED("assets/music/boo_womp441.mp3", boo_womp_mp3)
+EMBED("assets/music/jump.mp3", jump_sound_mp3)
 
 enum IrisuState {
     IDLE,
@@ -35,9 +36,10 @@ static Ichigo::Animation irisu_hurt        = {};
 static Ichigo::Animation irisu_lay_down    = {};
 static Ichigo::Animation irisu_get_up_slow = {};
 
+static Ichigo::EntityID irisu_id          = {};
 static Ichigo::TextureID irisu_texture_id = 0;
-static Ichigo::EntityID irisu_id = {};
-static Ichigo::AudioID boo_womp_id = {};
+static Ichigo::AudioID boo_womp_id        = {};
+static Ichigo::AudioID jump_sound         = 0;
 
 static f32 invincibility_t = 0.0f;
 
@@ -60,8 +62,9 @@ static void on_collide(Ichigo::Entity *irisu, Ichigo::Entity *other, Vec2<f32> n
 
 void Irisu::init(Ichigo::Entity *entity) {
     irisu_texture_id = Ichigo::load_texture(irisu_spritesheet_png, irisu_spritesheet_png_len);
-    boo_womp_id = Ichigo::load_audio(boo_womp_mp3, boo_womp_mp3_len);
-    irisu_id = entity->id;
+    boo_womp_id      = Ichigo::load_audio(boo_womp_mp3, boo_womp_mp3_len);
+    jump_sound       = Ichigo::load_audio(jump_sound_mp3, jump_sound_mp3_len);
+    irisu_id         = entity->id;
 
     std::strcpy(entity->name, "player");
     entity->col               = {{8.0f, 14.0f}, 0.3f, 1.1f};
@@ -215,6 +218,7 @@ void Irisu::update(Ichigo::Entity *irisu) {
                 irisu_state       = JUMP;
                 irisu->velocity.y = -irisu->jump_acceleration;
                 maybe_enter_animation(irisu, irisu_jump);
+                Ichigo::Mixer::play_audio_oneshot(jump_sound, 1.0f, 1.0f, 1.0f);
             }
         } break;
 
@@ -235,6 +239,7 @@ void Irisu::update(Ichigo::Entity *irisu) {
                     irisu_state       = JUMP;
                     irisu->velocity.y = -irisu->jump_acceleration;
                     maybe_enter_animation(irisu, irisu_jump);
+                    Ichigo::Mixer::play_audio_oneshot(jump_sound, 1.0f, 1.0f, 1.0f);
                 }
 
                 if (run_button_down) {
@@ -323,6 +328,7 @@ void Irisu::update(Ichigo::Entity *irisu) {
                     irisu->velocity.x += DIVE_X_VELOCITY * 2.5f * signof(irisu->velocity.x);
                     irisu_state = DIVE_BOOST;
                     maybe_enter_animation(irisu, irisu_jump);
+                    Ichigo::Mixer::play_audio_oneshot(jump_sound, 1.0f, 1.0f, 1.0f);
                 }
             }
 
