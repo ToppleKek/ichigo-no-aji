@@ -1,3 +1,12 @@
+/*
+    Ichigo! A simple, from scratch, minimal dependency game engine for 2D side scrolling games.
+
+    Math structures and functions.
+
+    Author:      Braeden Hong
+    Last edited: 2024/12/2
+*/
+
 #pragma once
 #include "common.hpp"
 #include <cmath>

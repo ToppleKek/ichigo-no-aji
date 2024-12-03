@@ -33,12 +33,11 @@ Ichigo::TextureID Ichigo::load_texture(const u8 *png_data, u64 png_data_length) 
     u8 *image_data = stbi_load_from_memory(png_data, png_data_length, (i32 *) &Internal::textures.at(new_texture_id).width, (i32 *) &Internal::textures.at(new_texture_id).height, (i32 *) &Internal::textures.at(new_texture_id).channel_count, 4);
     assert(image_data);
     Ichigo::Internal::gl.glBindTexture(GL_TEXTURE_2D, Internal::textures.at(new_texture_id).id);
-    Ichigo::Internal::gl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    Ichigo::Internal::gl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    Ichigo::Internal::gl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_NEAREST);
+    Ichigo::Internal::gl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    Ichigo::Internal::gl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    Ichigo::Internal::gl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     Ichigo::Internal::gl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     Ichigo::Internal::gl.glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, Internal::textures.at(new_texture_id).width, Internal::textures.at(new_texture_id).height, 0, GL_RGBA, GL_UNSIGNED_BYTE, image_data);
-    Ichigo::Internal::gl.glGenerateMipmap(GL_TEXTURE_2D);
     stbi_image_free(image_data);
 
     return new_texture_id;

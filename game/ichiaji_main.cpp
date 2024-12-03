@@ -220,8 +220,6 @@ static void init_game() {
     Ichigo::Camera::mode = Ichigo::Camera::Mode::FOLLOW;
     Ichigo::Camera::follow(player->id);
 
-    Ichigo::Mixer::master_volume = 0.4f;
-
     game_bgm = Ichigo::Mixer::play_audio(test_music_id, 1.0f, 1.0f, 1.0f, 0.864f, 54.188f);
 }
 
