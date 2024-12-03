@@ -887,8 +887,8 @@ static void frame_render() {
     // == End background ==
 
     // == Tilemap ==
-    i64 row_count = ((i64) Ichigo::Camera::offset.y + SCREEN_TILE_HEIGHT + 1) - (i64) Ichigo::Camera::offset.y;
-    i64 col_count = ((i64) Ichigo::Camera::offset.x + SCREEN_TILE_WIDTH + 1) - (i64) Ichigo::Camera::offset.x;
+    i64 row_count = SCREEN_TILE_HEIGHT + 1;
+    i64 col_count = SCREEN_TILE_WIDTH + 1;
 
     TexturedVertex *vertex_buffer = PUSH_ARRAY(Ichigo::game_state.transient_storage_arena, TexturedVertex, (row_count * col_count) * 4);
     u32            *index_buffer  = PUSH_ARRAY(Ichigo::game_state.transient_storage_arena, u32, (row_count * col_count) * 6);
