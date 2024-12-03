@@ -210,7 +210,7 @@ Ichigo::EntityMoveResult Ichigo::move_entity_in_world(Ichigo::Entity *entity) {
 
     // Check entity collisions.
     // Do not check dead entities, or entities that are not moving (since the detection algorithm depends on checking if one collider is moving into another).
-    if (entity->id.index != 0 || entity->velocity != Vec2<f32>{0.0f, 0.0f}) {
+    if (entity->id.index != 0 && entity->velocity != Vec2<f32>{0.0f, 0.0f}) {
         Vec2<f32> centered_entity_p = entity->col.pos + Vec2<f32>{entity->col.w / 2.0f, entity->col.h / 2.0f};
         f32 best_t = 1.0f;
 
