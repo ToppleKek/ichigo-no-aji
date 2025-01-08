@@ -631,7 +631,6 @@ void Ichigo::set_tilemap(Tilemap *tilemap) {
     std::memcpy(Internal::current_tilemap.tile_info, tilemap->tile_info, tilemap->tile_info_count * sizeof(TileInfo));
 }
 
-
 void Ichigo::set_tilemap(u8 *ichigo_tilemap_memory, Ichigo::SpriteSheet tileset_sheet) {
     if (!ichigo_tilemap_memory) {
         Internal::current_tilemap.width           = 0;

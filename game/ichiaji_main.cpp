@@ -90,7 +90,7 @@ Language current_language                    = ENGLISH;
 
 static Coin coins[3] = {};
 
-static void on_coin_collide(Ichigo::Entity *coin, Ichigo::Entity *other, [[maybe_unused]] Vec2<f32> normal, [[maybe_unused]] Vec2<f32> collision_pos) {
+static void on_coin_collide(Ichigo::Entity *coin, Ichigo::Entity *other, [[maybe_unused]] Vec2<f32> normal, [[maybe_unused]] Vec2<f32> collision_normal, [[maybe_unused]] Vec2<f32> collision_pos) {
     if (std::strcmp(other->name, "player") == 0) {
         for (u32 i = 0; i < ARRAY_LEN(coins); ++i) {
             if (coin->id == coins[i].id) {
@@ -165,6 +165,27 @@ static Ichigo::EntityID spawn_coin(Vec2<f32> pos) {
     return coin->id;
 }
 
+static Ichigo::EntityID spawn_entrance(Vec2<f32> pos) {
+    Ichigo::Entity *entrance = Ichigo::spawn_entity();
+
+    std::strcpy(entrance->name, "entr");
+
+    entrance->col                                  = {pos, 1.0f, 1.0f};
+    entrance->sprite.width                         = 1.0f;
+    entrance->sprite.height                        = 1.0f;
+    entrance->sprite.sheet.texture                 = coin_texture_id;
+    // entrance->collide_proc                         = on_coin_collide;
+    entrance->sprite.sheet.cell_width              = 32;
+    entrance->sprite.sheet.cell_height             = 32;
+    entrance->sprite.animation.cell_of_first_frame = 0;
+    entrance->sprite.animation.cell_of_last_frame  = 7;
+    entrance->sprite.animation.cell_of_loop_start  = 0;
+    entrance->sprite.animation.cell_of_loop_end    = 7;
+    entrance->sprite.animation.seconds_per_frame   = 0.12f;
+
+    return entrance->id;
+}
+
 void Ichigo::Game::init() {
     // == Load assets ==
     test_bg_texture_id    = Ichigo::load_texture(test_bg, test_bg_len);
@@ -214,6 +235,7 @@ static void init_game() {
     coins[1].id = spawn_coin({42.0f, 14.0f});
     coins[2].id = spawn_coin({52.0f, 4.0f});
 
+    spawn_entrance({10.0f, 16.0f});
     spawn_gert();
 
     // == Setup initial game state ==

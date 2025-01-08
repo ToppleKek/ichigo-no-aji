@@ -225,37 +225,45 @@ Ichigo::EntityMoveResult Ichigo::move_entity_in_world(Ichigo::Entity *entity) {
             // Skip this entity if the colliders already intersect. We only run the collide procedure on collider enter.
             // TODO: Call the collide procedure on exit as well? We would just have to mirror the normal vector.
             //       Or maybe have a separate callback for when they are already intersecting?
-            if (rectangles_intersect(entity->col, other_entity.col)) {
-                continue;
-            }
+            // if (rectangles_intersect(entity->col, other_entity.col)) {
+            //     continue;
+            // }
 
             // "min_corner" and "max_corner" are the top and bottom corners of the collider that is being tested.
             Vec2<f32> min_corner = {other_entity.col.pos.x - entity->col.w / 2.0f, other_entity.col.pos.y - entity->col.h / 2.0f};
             Vec2<f32> max_corner = {other_entity.col.pos.x + other_entity.col.w + entity->col.w / 2.0f, other_entity.col.pos.y + other_entity.col.h + entity->col.h / 2.0f};
-            Vec2<f32> normal = {};
+            Vec2<f32> collider_normal  = {};
+            Vec2<f32> collision_normal = {};
 
             // Test each side of the collider.
             if (test_wall(min_corner.x, centered_entity_p.x, entity_delta.x, centered_entity_p.y, entity_delta.y, min_corner.y, max_corner.y, &best_t)) {
-                normal = { -1.0f, 0.0f };
-            }
-            if (test_wall(max_corner.x, centered_entity_p.x, entity_delta.x, centered_entity_p.y, entity_delta.y, min_corner.y, max_corner.y, &best_t)) {
-                normal = { 1.0f, 0.0f };
-            }
-            if (test_wall(min_corner.y, centered_entity_p.y, entity_delta.y, centered_entity_p.x, entity_delta.x, min_corner.x, max_corner.x, &best_t)) {
-                normal = { 0.0f, -1.0f };
-            }
-            if (test_wall(max_corner.y, centered_entity_p.y, entity_delta.y, centered_entity_p.x, entity_delta.x, min_corner.x, max_corner.x, &best_t)) {
-                normal = { 0.0f, 1.0f };
+                collider_normal  = { -1.0f, 0.0f }; // Left side
+                collision_normal = entity_delta.x < 0.0f ? Vec2<f32>({1.0f, 0.0f}) : Vec2<f32>({-1.0f, 0.0f});
             }
 
-            if (normal.x != 0.0f || normal.y != 0.0f) {
+            if (test_wall(max_corner.x, centered_entity_p.x, entity_delta.x, centered_entity_p.y, entity_delta.y, min_corner.y, max_corner.y, &best_t)) {
+                collider_normal = { 1.0f, 0.0f }; // Right side
+                collision_normal = entity_delta.x < 0.0f ? Vec2<f32>({1.0f, 0.0f}) : Vec2<f32>({-1.0f, 0.0f});
+            }
+
+            if (test_wall(min_corner.y, centered_entity_p.y, entity_delta.y, centered_entity_p.x, entity_delta.x, min_corner.x, max_corner.x, &best_t)) {
+                collider_normal = { 0.0f, -1.0f }; // Top side
+                collision_normal = entity_delta.y < 0.0f ? Vec2<f32>({0.0f, 1.0f}) : Vec2<f32>({0.0f, -1.0f});
+            }
+
+            if (test_wall(max_corner.y, centered_entity_p.y, entity_delta.y, centered_entity_p.x, entity_delta.x, min_corner.x, max_corner.x, &best_t)) {
+                collider_normal = { 0.0f, 1.0f }; // Bottom side
+                collision_normal = entity_delta.y < 0.0f ? Vec2<f32>({0.0f, 1.0f}) : Vec2<f32>({0.0f, -1.0f});
+            }
+
+            if (collider_normal.x != 0.0f || collider_normal.y != 0.0f) {
                 // We guarantee that the first entity parameter is can always be considered the "self" entity.
                 if (entity->collide_proc) {
-                    entity->collide_proc(entity, &other_entity, normal, entity->col.pos + entity_delta * best_t);
+                    entity->collide_proc(entity, &other_entity, collider_normal, collision_normal, entity->col.pos + entity_delta * best_t);
                 }
 
                 if (other_entity.collide_proc) {
-                    other_entity.collide_proc(&other_entity, entity, normal * Vec2<f32>{-1.0f, -1.0f}, entity->col.pos + entity_delta * best_t);
+                    other_entity.collide_proc(&other_entity, entity, collider_normal * Vec2<f32>{-1.0f, -1.0f}, collision_normal, entity->col.pos + entity_delta * best_t);
                 }
             }
         }

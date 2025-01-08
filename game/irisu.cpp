@@ -43,11 +43,11 @@ static Ichigo::AudioID jump_sound         = 0;
 
 static f32 invincibility_t = 0.0f;
 
-static void on_collide(Ichigo::Entity *irisu, Ichigo::Entity *other, Vec2<f32> normal, [[maybe_unused]] Vec2<f32> collision_pos) {
+static void on_collide(Ichigo::Entity *irisu, Ichigo::Entity *other, Vec2<f32> normal, [[maybe_unused]] Vec2<f32> collision_normal, [[maybe_unused]] Vec2<f32> collision_pos) {
     ICHIGO_INFO("IRISU collide with %s: normal=%f,%f pos=%f,%f", other->name, normal.x, normal.y, collision_pos.x, collision_pos.y);
 
     if (std::strcmp(other->name, "gert") == 0 && irisu_state != HURT) {
-        if (normal.y == -1.0f) {
+        if (normal.y == -1.0f && collision_normal.y == -1.0f) {
             irisu->velocity.y -= 15.0f;
             Ichigo::kill_entity(other->id);
             Ichigo::Mixer::play_audio_oneshot(boo_womp_id, 1.0f, 1.0f, 1.0f);
@@ -57,6 +57,9 @@ static void on_collide(Ichigo::Entity *irisu, Ichigo::Entity *other, Vec2<f32> n
             irisu->velocity.x   = 3.0f * (FLAG_IS_SET(irisu->flags, Ichigo::EF_FLIP_H) ? -1 : 1);
             irisu_state         = HURT;
         }
+    } else if (std::strcmp(other->name, "entr") == 0) {
+        Ichigo::show_info("enter/exit");
+        ICHIGO_INFO("Collide with entrance entity with collision normal %f,%f", collision_normal.x, collision_normal.y);
     }
 }
 
