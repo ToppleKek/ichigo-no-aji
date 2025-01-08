@@ -641,6 +641,14 @@ i32 WinMain(HINSTANCE instance, [[maybe_unused]] HINSTANCE prev_instance, [[mayb
     SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
     SetConsoleOutputCP(CP_UTF8);
 
+    // Platform init
+    LARGE_INTEGER frequency;
+    QueryPerformanceFrequency(&frequency);
+    performance_frequency = frequency.QuadPart;
+
+    last_frame_time = Ichigo::Internal::platform_get_current_time();
+    init_completed = true;
+
     for (u32 i = 0; i < ARRAY_LEN(open_files); ++i) {
         open_files[i].file_handle = INVALID_HANDLE_VALUE;
     }
@@ -666,6 +674,7 @@ i32 WinMain(HINSTANCE instance, [[maybe_unused]] HINSTANCE prev_instance, [[mayb
     secondary_dsound_buffer->Play(0 ,0, DSBPLAY_LOOPING);
     is_buffer_playing = true;
 
+    u32 start_ms = win32_get_time_ms();
     hdc = GetDC(window_handle);
     PIXELFORMATDESCRIPTOR pfd{};
     pfd.nSize      = sizeof(pfd);
@@ -809,20 +818,15 @@ i32 WinMain(HINSTANCE instance, [[maybe_unused]] HINSTANCE prev_instance, [[mayb
     GET_ADDR_OF_OPENGL_FUNCTION(glUniformMatrix4x2fv);
     GET_ADDR_OF_OPENGL_FUNCTION(glUniformMatrix3x4fv);
     GET_ADDR_OF_OPENGL_FUNCTION(glUniformMatrix4x3fv);
+    GET_ADDR_OF_OPENGL_FUNCTION(glFinish);
+
+    ICHIGO_INFO("OpenGL init took %lums!", win32_get_time_ms() - start_ms);
 
     Ichigo::Internal::init();
 
-    // Platform init
 #ifdef ICHIGO_DEBUG
     ImGui_ImplWin32_InitForOpenGL(window_handle);
 #endif
-
-    LARGE_INTEGER frequency;
-    QueryPerformanceFrequency(&frequency);
-    performance_frequency = frequency.QuadPart;
-
-    last_frame_time = Ichigo::Internal::platform_get_current_time();
-    init_completed = true;
 
     for (;;) {
         for (u32 i = 0; i < Ichigo::IK_ENUM_COUNT; ++i) {

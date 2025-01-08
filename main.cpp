@@ -647,16 +647,16 @@ void Ichigo::set_tilemap(u8 *ichigo_tilemap_memory, Ichigo::SpriteSheet tileset_
     assert((u16) ichigo_tilemap_memory[cursor] == 2);
     cursor += sizeof(u16);
 
-    tilemap.tile_info_count = (u32) ichigo_tilemap_memory[cursor];
+    tilemap.tile_info_count = *((u32 *) &ichigo_tilemap_memory[cursor]);
     cursor += sizeof(u32);
 
     tilemap.tile_info = (TileInfo *) &ichigo_tilemap_memory[cursor];
     cursor += sizeof(TileInfo) * tilemap.tile_info_count;
 
-    tilemap.width = (u32) ichigo_tilemap_memory[cursor];
+    tilemap.width = *((u32 *) &ichigo_tilemap_memory[cursor]);
     cursor += sizeof(u32);
 
-    tilemap.height = (u32) ichigo_tilemap_memory[cursor];
+    tilemap.height = *((u32 *) &ichigo_tilemap_memory[cursor]);
     cursor += sizeof(u32);
 
     tilemap.tiles           = (TileID *) &ichigo_tilemap_memory[cursor];

@@ -191,13 +191,13 @@ static void init_game() {
     Ichigo::game_state.background_colour = {138.0f / 255.0f, 200.0f / 255.0f, 255.0f / 255.0f, 1.0f};
     Ichigo::game_state.background_layers[0].texture_id     = test_bg_texture_id;
     Ichigo::game_state.background_layers[0].flags          = Ichigo::BG_REPEAT_X;
-    Ichigo::game_state.background_layers[0].start_position = {0.0f, 1.5f};
-    Ichigo::game_state.background_layers[0].scroll_speed   = {0.5f, 0.5f};
+    Ichigo::game_state.background_layers[0].start_position = {0.0f, 3.5f};
+    Ichigo::game_state.background_layers[0].scroll_speed   = {0.1f, 0.5f};
 
     Ichigo::game_state.background_layers[1].texture_id     = test_bg_texture_id;
     Ichigo::game_state.background_layers[1].flags          = Ichigo::BG_REPEAT_X;
     Ichigo::game_state.background_layers[1].start_position = {0.0f, 4.5f};
-    Ichigo::game_state.background_layers[1].scroll_speed   = {0.5f, 0.5f};
+    Ichigo::game_state.background_layers[1].scroll_speed   = {0.2f, 0.5f};
 
     Ichigo::SpriteSheet tileset_sheet = {};
     tileset_sheet.cell_width  = 32;
