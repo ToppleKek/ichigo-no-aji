@@ -266,8 +266,8 @@ struct FrameData {
 struct GameState {
     Vec4<f32> background_colour;
     Background background_layers[ICHIGO_MAX_BACKGROUNDS];
-    Util::Arena transient_storage_arena;
-    Util::Arena permanent_storage_arena;
+    Bana::Arena transient_storage_arena;
+    Bana::Arena permanent_storage_arena;
     FrameData this_frame_data;
 };
 

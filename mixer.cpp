@@ -14,7 +14,7 @@
 #include <smmintrin.h>
 
 // TODO: @heap
-Util::IchigoVector<Ichigo::Mixer::PlayingAudio> Ichigo::Mixer::playing_audio{64};
+Bana::Array<Ichigo::Mixer::PlayingAudio> Ichigo::Mixer::playing_audio{64};
 f32 Ichigo::Mixer::master_volume = 1.0f;
 // TODO: Use transient storage?
 // static Ichigo::AudioFrame2ChI16LE mix_buffer[MEGABYTES(50)];
@@ -31,10 +31,10 @@ Ichigo::Mixer::PlayingAudioID Ichigo::Mixer::play_audio(AudioID audio_id, f32 vo
 
     // Find some slot to add this audio.
     for (u32 i = 0; i < playing_audio.size; ++i) {
-        if (playing_audio.at(i).audio_id == 0) {
-            pa.id.generation = playing_audio.at(i).id.generation + 1;
+        if (playing_audio[i].audio_id == 0) {
+            pa.id.generation = playing_audio[i].id.generation + 1;
             pa.id.index      = i;
-            std::memcpy(&playing_audio.at(i), &pa, sizeof(pa));
+            std::memcpy(&playing_audio[i], &pa, sizeof(pa));
             return pa.id;
         }
     }
@@ -55,14 +55,14 @@ Ichigo::Mixer::PlayingAudio *Ichigo::Mixer::get_playing_audio(PlayingAudioID id)
     if (id. index >= Ichigo::Mixer::playing_audio.size)
         return nullptr;
 
-    PlayingAudio *pa = &Ichigo::Mixer::playing_audio.at(id.index);
+    PlayingAudio *pa = &Ichigo::Mixer::playing_audio[id.index];
 
     // TODO: See other TODO after this, but for now we just know that if a PlayingAudio has an audio asset id of 0 then it is invalid.
     //       Should we instead do what everything else does and have id.index == 0 be the "null playing audio" and have that be invalid?
     if (pa->id.generation != id.generation || pa->audio_id == 0)
         return nullptr;
 
-    return &Ichigo::Mixer::playing_audio.at(id.index);
+    return &Ichigo::Mixer::playing_audio[id.index];
 }
 
 void Ichigo::Mixer::cancel_audio(PlayingAudioID id) {
@@ -78,11 +78,11 @@ void Ichigo::Mixer::cancel_audio(PlayingAudioID id) {
 
 void Ichigo::Mixer::mix_into_buffer(AudioFrame2ChI16LE *sound_buffer, usize buffer_size, usize write_cursor_position_delta) {
     for (u32 i = 0; i < playing_audio.size; ++i) {
-        PlayingAudio &pa = playing_audio.at(i);
+        PlayingAudio &pa = playing_audio[i];
         if (pa.audio_id == 0)
             continue;
 
-        Audio &audio = Internal::audio_assets.at(pa.audio_id);
+        Audio &audio = Internal::audio_assets[pa.audio_id];
 
         // Only advance the play cursor and all that stuff if the audio has started playing. If we didn't guard this then audio would skip the first "write_cursor_position_delta" bytes of the audio when being played.
         if (pa.is_playing) {

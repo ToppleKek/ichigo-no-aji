@@ -180,7 +180,7 @@ void Ichigo::Game::init() {
     ui_a_button                 = Ichigo::load_texture(ui_a_button_png, ui_a_button_png_len);
     ui_enter_key                = Ichigo::load_texture(ui_enter_key_png, ui_enter_key_png_len);
 
-    const Ichigo::Texture &t = Ichigo::Internal::textures.at(ui_coin_background);
+    const Ichigo::Texture &t = Ichigo::Internal::textures[ui_coin_background];
     ui_coin_background_width_in_metres  = pixels_to_metres(t.width);
     ui_coin_background_height_in_metres = pixels_to_metres(t.height);
 

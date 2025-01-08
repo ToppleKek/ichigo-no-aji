@@ -10,8 +10,8 @@ CXX_FLAGS_GAME_RELEASE="-O3 -march=x86-64-v2 -Wl,/SUBSYSTEM:WINDOWS"
 CXX_FLAGS_IMGUI="-O3"
 CXX_FILES_WIN32="win32_ichigo.cpp"
 CXX_FILES_LINUX="linux_ichigo.cpp"
-CXX_FILES_ENGINE_DEBUG="main.cpp util.cpp entity.cpp camera.cpp asset.cpp mixer.cpp editor.cpp"
-CXX_FILES_ENGINE_RELEASE="main.cpp util.cpp entity.cpp camera.cpp asset.cpp mixer.cpp"
+CXX_FILES_ENGINE_DEBUG="main.cpp util.cpp entity.cpp camera.cpp asset.cpp mixer.cpp editor.cpp bana.cpp"
+CXX_FILES_ENGINE_RELEASE="main.cpp util.cpp entity.cpp camera.cpp asset.cpp mixer.cpp bana.cpp"
 CXX_FILES_GAME="game/ichiaji_main.cpp game/irisu.cpp"
 IMGUI_CXX_FILES=(./thirdparty/imgui/imgui.cpp ./thirdparty/imgui/imgui_draw.cpp ./thirdparty/imgui/imgui_tables.cpp ./thirdparty/imgui/imgui_widgets.cpp ./thirdparty/imgui/imgui_impl_win32.cpp ./thirdparty/imgui/imgui_impl_opengl3.cpp)
 IMGUI_LINUX_CXX_FILES=(./thirdparty/imgui/imgui.cpp ./thirdparty/imgui/imgui_draw.cpp ./thirdparty/imgui/imgui_tables.cpp ./thirdparty/imgui/imgui_widgets.cpp ./thirdparty/imgui/imgui_impl_sdl2.cpp ./thirdparty/imgui/imgui_impl_opengl3.cpp)

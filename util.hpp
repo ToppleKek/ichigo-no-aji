@@ -13,21 +13,6 @@
 #include "math.hpp"
 
 namespace Util {
-struct Arena {
-    usize capacity;
-    uptr  pointer;
-    u8    *data;
-};
-
-#define BEGIN_TEMP_MEMORY(ARENA) (ARENA.pointer)
-#define END_TEMP_MEMORY(ARENA, POINTER) (ARENA.pointer = POINTER)
-#define PUSH_STRUCT(ARENA, S) Util::push_struct(&ARENA, &S, sizeof(S))
-#define PUSH_ARRAY(ARENA, TYPE, COUNT) (TYPE *) Util::push_array(&ARENA, sizeof(TYPE), COUNT)
-#define BEGIN_LIST(ARENA, TYPE) (TYPE *) (&ARENA.data[ARENA.pointer])
-#define RESET_ARENA(ARENA) ARENA.pointer = 0
-void *push_array(Arena *arena, usize size, usize count);
-void *push_struct(Arena *arena, void *s, usize len);
-
 /*
     A basic 'vector' implementation providing automatically expanding array storage.
 */

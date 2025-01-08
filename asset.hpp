@@ -46,7 +46,7 @@ TextureID load_texture(const u8 *png_data, usize png_data_size);
 AudioID load_audio(const u8 *mp3_data, usize mp3_data_size);
 
 namespace Internal {
-extern Util::IchigoVector<Ichigo::Texture> textures;
-extern Util::IchigoVector<Ichigo::Audio> audio_assets;
+extern Bana::Array<Ichigo::Texture> textures;
+extern Bana::Array<Ichigo::Audio>   audio_assets;
 }
 }

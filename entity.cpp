@@ -11,7 +11,7 @@
 #include "ichigo.hpp"
 
 // TODO: @heap
-Util::IchigoVector<Ichigo::Entity> Ichigo::Internal::entities{512};
+Bana::Array<Ichigo::Entity> Ichigo::Internal::entities;
 
 // TODO: If the entity id's index is 0, that means that entity has been killed and that spot can hold a new entity.
 //       Should it really be like this? Maybe there should be an 'is_alive' flag on the entity?
@@ -19,11 +19,11 @@ Util::IchigoVector<Ichigo::Entity> Ichigo::Internal::entities{512};
 Ichigo::Entity *Ichigo::spawn_entity() {
     // Search for an open entity slot
     for (u32 i = 1; i < Internal::entities.size; ++i) {
-        if (Internal::entities.at(i).id.index == 0) {
-            Ichigo::EntityID new_id = {Internal::entities.at(i).id.generation + 1, i};
-            std::memset(&Internal::entities.at(i), 0, sizeof(Ichigo::Entity));
-            Internal::entities.at(i).id = new_id;
-            return &Internal::entities.at(i);
+        if (Internal::entities[i].id.index == 0) {
+            Ichigo::EntityID new_id = {Internal::entities[i].id.generation + 1, i};
+            std::memset(&Internal::entities[i], 0, sizeof(Ichigo::Entity));
+            Internal::entities[i].id = new_id;
+            return &Internal::entities[i];
         }
     }
 
@@ -31,24 +31,24 @@ Ichigo::Entity *Ichigo::spawn_entity() {
     Ichigo::Entity ret{};
     ret.id = {0, (u32) Internal::entities.size};
     Internal::entities.append(ret);
-    return &Internal::entities.at(Internal::entities.size - 1);
+    return &Internal::entities[Internal::entities.size - 1];
 }
 
 Ichigo::Entity *Ichigo::get_entity(Ichigo::EntityID id) {
     if (id.index < 1 || id.index >= Internal::entities.size)
         return nullptr;
 
-    if (Internal::entities.at(id.index).id.generation != id.generation)
+    if (Internal::entities[id.index].id.generation != id.generation)
         return nullptr;
 
-    return &Internal::entities.at(id.index);
+    return &Internal::entities[id.index];
 }
 
 // You can mark an entity to be killed by calling kill_entity_deferred to defer the death of that entity to the end of the frame.
 // This function should be run at the end of each frame. It kills all entities that are marked to be killed.
 void Ichigo::conduct_end_of_frame_executions() {
     for (u32 i = 1; i < Internal::entities.size; ++i) {
-        Entity &entity = Internal::entities.at(i);
+        Entity &entity = Internal::entities[i];
         if (entity.id.index != 0 && FLAG_IS_SET(entity.flags, EF_MARKED_FOR_DEATH)) {
             entity.id.index = 0;
             CLEAR_FLAG(entity.flags, EF_MARKED_FOR_DEATH);
@@ -81,7 +81,7 @@ void Ichigo::kill_entity_deferred(EntityID id) {
 
 void Ichigo::kill_all_entities() {
     for (u32 i = 1; i < Internal::entities.size; ++i) {
-        Internal::entities.at(i).id.index = 0;
+        Internal::entities[i].id.index = 0;
     }
 }
 
@@ -215,7 +215,7 @@ Ichigo::EntityMoveResult Ichigo::move_entity_in_world(Ichigo::Entity *entity) {
         f32 best_t = 1.0f;
 
         for (u32 i = 1; i < Ichigo::Internal::entities.size; ++i) {
-            Ichigo::Entity &other_entity = Ichigo::Internal::entities.at(i);
+            Ichigo::Entity &other_entity = Ichigo::Internal::entities[i];
 
             // Do not check against ourselves or dead entites.
             if (other_entity.id == entity->id || other_entity.id.index == 0) {

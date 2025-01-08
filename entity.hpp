@@ -110,7 +110,7 @@ void kill_entity_deferred(EntityID id);
 void kill_all_entities();
 EntityMoveResult move_entity_in_world(Entity *entity);
 namespace Internal {
-extern Util::IchigoVector<Ichigo::Entity> entities;
+extern Bana::Array<Ichigo::Entity> entities;
 char *entity_id_as_string(EntityID entity_id); // TODO: NOT THREAD SAFE!! - message to past me- nothing really is lol. Who cares right now? We are a 2D game engine that runs at ~3000fps.
 }
 }

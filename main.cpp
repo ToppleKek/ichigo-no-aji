@@ -191,7 +191,7 @@ static void screen_render_textured_rect(Rect<f32> rect, Ichigo::TextureID textur
 
     Ichigo::Internal::gl.glBindBuffer(GL_ARRAY_BUFFER, draw_data_textured.vertex_buffer_id);
     Ichigo::Internal::gl.glBindVertexArray(draw_data_textured.vertex_array_id);
-    Ichigo::Internal::gl.glBindTexture(GL_TEXTURE_2D, Ichigo::Internal::textures.at(texture_id).id);
+    Ichigo::Internal::gl.glBindTexture(GL_TEXTURE_2D, Ichigo::Internal::textures[texture_id].id);
 
     Ichigo::Internal::gl.glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
     Ichigo::Internal::gl.glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(rectangle_indices), rectangle_indices, GL_STATIC_DRAW);
@@ -221,7 +221,7 @@ static void world_render_textured_rect(Rect<f32> rect, Ichigo::TextureID texture
 
     Ichigo::Internal::gl.glBindBuffer(GL_ARRAY_BUFFER, draw_data_textured.vertex_buffer_id);
     Ichigo::Internal::gl.glBindVertexArray(draw_data_textured.vertex_array_id);
-    Ichigo::Internal::gl.glBindTexture(GL_TEXTURE_2D, Ichigo::Internal::textures.at(texture_id).id);
+    Ichigo::Internal::gl.glBindTexture(GL_TEXTURE_2D, Ichigo::Internal::textures[texture_id].id);
 
     Ichigo::Internal::gl.glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
     Ichigo::Internal::gl.glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(rectangle_indices), rectangle_indices, GL_STATIC_DRAW);
@@ -520,7 +520,7 @@ void default_entity_render_proc(Ichigo::Entity *entity) {
 #ifdef ICHIGO_DEBUG
     if (!DEBUG_hide_entity_sprites) {
 #endif
-        const Ichigo::Texture &texture = Ichigo::Internal::textures.at(entity->sprite.sheet.texture);
+        const Ichigo::Texture &texture = Ichigo::Internal::textures[entity->sprite.sheet.texture];
 
         Ichigo::Internal::gl.glUseProgram(texture_shader_program);
         Ichigo::Internal::gl.glBindBuffer(GL_ARRAY_BUFFER, draw_data_textured.vertex_buffer_id);
@@ -714,7 +714,7 @@ static void build_tile_draw_data(Vec2<u32> tile_pos, Util::BufferBuilder<Texture
         return;
     }
 
-    const Ichigo::Texture &texture = Ichigo::Internal::textures.at(Ichigo::Internal::current_tilemap.sheet.texture);
+    const Ichigo::Texture &texture = Ichigo::Internal::textures[Ichigo::Internal::current_tilemap.sheet.texture];
 
     // Same old same old.
     u32 cells_per_row = texture.width  / Ichigo::Internal::current_tilemap.sheet.cell_width;
@@ -851,7 +851,7 @@ static void frame_render() {
     for (u32 i = 0; i < ICHIGO_MAX_BACKGROUNDS; ++i) {
         if (Ichigo::game_state.background_layers[i].texture_id != 0) {
             Ichigo::Background &bg = Ichigo::game_state.background_layers[i];
-            Ichigo::Texture &bg_texture = Ichigo::Internal::textures.at(Ichigo::game_state.background_layers[i].texture_id);
+            Ichigo::Texture &bg_texture = Ichigo::Internal::textures[Ichigo::game_state.background_layers[i].texture_id];
 
             // TODO: BG_REPEAT_Y
             if (FLAG_IS_SET(bg.flags, Ichigo::BG_REPEAT_X)) {
@@ -915,7 +915,7 @@ static void frame_render() {
 #endif
 
     Ichigo::Internal::gl.glUseProgram(texture_shader_program);
-    Ichigo::Internal::gl.glBindTexture(GL_TEXTURE_2D, Ichigo::Internal::textures.at(Ichigo::Internal::current_tilemap.sheet.texture).id);
+    Ichigo::Internal::gl.glBindTexture(GL_TEXTURE_2D, Ichigo::Internal::textures[Ichigo::Internal::current_tilemap.sheet.texture].id);
 
     Ichigo::Internal::gl.glBindBuffer(GL_ARRAY_BUFFER, draw_data_textured.vertex_buffer_id);
     Ichigo::Internal::gl.glBindVertexArray(draw_data_textured.vertex_array_id);
@@ -958,7 +958,7 @@ static void frame_render() {
 
     // == Entities ==
     for (u32 i = 1; i < Ichigo::Internal::entities.size; ++i) {
-        Ichigo::Entity &entity = Ichigo::Internal::entities.at(i);
+        Ichigo::Entity &entity = Ichigo::Internal::entities[i];
         if (entity.id.index != 0) {
             if (entity.render_proc)
                 entity.render_proc(&entity);
@@ -1142,7 +1142,7 @@ void Ichigo::Internal::do_frame() {
             ImGui::Checkbox("Hide sprites", &DEBUG_hide_entity_sprites);
             ImGui::SeparatorText("Entity List");
             for (u32 i = 0; i < Ichigo::Internal::entities.size; ++i) {
-                Ichigo::Entity &entity = Ichigo::Internal::entities.at(i);
+                Ichigo::Entity &entity = Ichigo::Internal::entities[i];
 
                 if (entity.id.index == 0) {
                     if (ImGui::TreeNode((void *) (uptr) i, "Entity slot %u: (empty)", i)) {
@@ -1198,7 +1198,7 @@ void Ichigo::Internal::do_frame() {
 
             ImGui::SeparatorText("Playing Audio");
             for (u32 i = 0; i < Mixer::playing_audio.size; ++i) {
-                Mixer::PlayingAudio &pa = Mixer::playing_audio.at(i);
+                Mixer::PlayingAudio &pa = Mixer::playing_audio[i];
                 if (pa.audio_id == 0) {
                     ImGui::Text("Audio slot %u: (empty)", i);
                 } else {
@@ -1248,7 +1248,7 @@ void Ichigo::Internal::do_frame() {
     // Get the game to update if we are in game mode. Otherwise, the editor takes over.
     if (program_mode == Ichigo::Internal::ProgramMode::GAME) {
         for (u32 i = 1; i < Ichigo::Internal::entities.size; ++i) {
-            Ichigo::Entity &entity = Ichigo::Internal::entities.at(i);
+            Ichigo::Entity &entity = Ichigo::Internal::entities[i];
             if (entity.id.index != 0 && entity.update_proc) {
                 entity.update_proc(&entity);
             }

@@ -1,4 +1,7 @@
 build
+imgui.ini
+*.png~
+*.bin
 *.exe
 *.pdb
 *.ilk

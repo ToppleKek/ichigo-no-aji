@@ -32,7 +32,7 @@ struct PlayingAudio {
     u64 frame_play_cursor;
     bool is_playing; // TODO: Stupid?
 };
-extern Util::IchigoVector<PlayingAudio> playing_audio;
+extern Bana::Array<PlayingAudio> playing_audio;
 extern f32 master_volume;
 // END DEBUG (we just wanted to see this in the debug window)
 

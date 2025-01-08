@@ -8,16 +8,15 @@
 */
 
 #define _CRT_SECURE_NO_WARNINGS
-#include "common.hpp"
-#include <cstdio>
-#include "ichigo.hpp"
-
 #define OEMRESOURCE
 #define UNICODE
 #include <windows.h>
 #include <windowsx.h>
 #include <dsound.h>
 #include <xinput.h>
+
+#include "common.hpp"
+#include "ichigo.hpp"
 
 #define WGL_CONTEXT_MAJOR_VERSION_ARB              0x2091
 #define WGL_CONTEXT_MINOR_VERSION_ARB              0x2092
@@ -820,7 +819,7 @@ i32 WinMain(HINSTANCE instance, [[maybe_unused]] HINSTANCE prev_instance, [[mayb
     GET_ADDR_OF_OPENGL_FUNCTION(glUniformMatrix4x3fv);
     GET_ADDR_OF_OPENGL_FUNCTION(glFinish);
 
-    ICHIGO_INFO("OpenGL init took %lums!", win32_get_time_ms() - start_ms);
+    ICHIGO_INFO("OpenGL init took %lldms!", win32_get_time_ms() - start_ms);
 
     Ichigo::Internal::init();
 

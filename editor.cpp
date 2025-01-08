@@ -54,10 +54,10 @@ struct UndoStack {
         ++size;
     }
 
-    Util::Optional<EditorAction> redo() {
+    Bana::Optional<EditorAction> redo() {
         if (top <= redo_max_point) {
             ++size;
-            return {true, data[top++]};
+            return {data[top++]};
         }
 
         return {};
@@ -430,7 +430,7 @@ void Ichigo::Editor::render_ui() {
 }
 
 // NOTE: Actual "screen space". Eg. the mouse cursor position.
-static Util::Optional<Vec2<f32>> screen_space_to_camera_space(Vec2<i32> screen_space_coord) {
+static Bana::Optional<Vec2<f32>> screen_space_to_camera_space(Vec2<i32> screen_space_coord) {
     Vec2<i32> viewport_pos = screen_space_coord - vector_cast<i32>(Ichigo::Internal::viewport_origin);
     if (viewport_pos.x < 0 || viewport_pos.y < 0) {
         return {};
@@ -441,11 +441,11 @@ static Util::Optional<Vec2<f32>> screen_space_to_camera_space(Vec2<i32> screen_s
         (f32) (SCREEN_TILE_HEIGHT * viewport_pos.y) / Ichigo::Internal::viewport_height,
     };
 
-    return {true, camera_space};
+    return {camera_space};
 }
 
 // NOTE: Actual "screen space". Eg. the mouse cursor position.
-static Util::Optional<Vec2<f32>> screen_space_to_world_space(Vec2<i32> screen_space_coord) {
+static Bana::Optional<Vec2<f32>> screen_space_to_world_space(Vec2<i32> screen_space_coord) {
     auto cs = screen_space_to_camera_space(screen_space_coord);
     if (!cs.has_value) {
         return {};
@@ -458,17 +458,17 @@ static Util::Optional<Vec2<f32>> screen_space_to_world_space(Vec2<i32> screen_sp
         return {};
     }
 
-    return {true, world_space};
+    return {world_space};
 }
 
-static Util::Optional<Vec2<u32>> tile_at_mouse_coordinate(Vec2<i32> mouse_coord) {
+static Bana::Optional<Vec2<u32>> tile_at_mouse_coordinate(Vec2<i32> mouse_coord) {
     auto ws = screen_space_to_world_space(mouse_coord);
 
     if (ws.has_value) {
         Vec2<f32> world_space = ws.value;
 
         // The tile coord is just the world space coord of the mouse truncated towards 0
-        return {true, vector_cast<u32>(world_space)};
+        return {vector_cast<u32>(world_space)};
     }
 
     return {};
