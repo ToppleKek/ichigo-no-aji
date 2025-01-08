@@ -810,7 +810,7 @@ static f32 calculate_background_start_position(f32 camera_offset, f32 texture_wi
     // The calculation for n is done by calculating how far the camera has to scroll to get passed one background tile.
     // This is the (texture_width_in_metres / scroll_speed) part. If the background scrolls at half the speed of the camera (0.5f)
     // and the texture is 16.0f metres wide, then the camera must scroll 16 * (1/0.5) = 16 * 2 = 32 metres.
-    return ((u32) (camera_offset / safe_ratio_1(texture_width_in_metres, scroll_speed))) * texture_width_in_metres + camera_offset * scroll_speed;
+    return ((u32) ((camera_offset / safe_ratio_1(texture_width_in_metres, scroll_speed)))) * texture_width_in_metres + camera_offset * (1.0f - scroll_speed);
 }
 
 // Render one frame.
@@ -1042,6 +1042,8 @@ static void frame_render() {
 #ifdef ICHIGO_DEBUG
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 #endif
+
+    Ichigo::Internal::gl.glFinish();
 }
 
 // Simulation and logic for one frame.

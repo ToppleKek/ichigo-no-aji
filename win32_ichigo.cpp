@@ -725,7 +725,7 @@ i32 WinMain(HINSTANCE instance, [[maybe_unused]] HINSTANCE prev_instance, [[mayb
 
     wgl_context = wglCreateContextAttribsARB(hdc, 0, attrib_list);
     wglMakeCurrent(hdc, wgl_context);
-    wglSwapIntervalEXT(0);
+    wglSwapIntervalEXT(1);
 
 #define GET_ADDR_OF_OPENGL_FUNCTION(FUNC_NAME)                                                            \
     do {                                                                                                  \

@@ -448,6 +448,7 @@ using Type_glUniformMatrix4x2fv = void (GLint location, GLsizei count, GLboolean
 using Type_glUniformMatrix3x4fv = void (GLint location, GLsizei count, GLboolean transpose, const GLfloat *value);
 using Type_glUniformMatrix4x3fv = void (GLint location, GLsizei count, GLboolean transpose, const GLfloat *value);
 using Type_glGetError           = GLenum (void);
+using Type_glFinish             = void (void);
 
 #define OPENGL_FUNC_PTR(FUNC_NAME) Type_##FUNC_NAME *FUNC_NAME
 struct OpenGL {
@@ -529,5 +530,6 @@ struct OpenGL {
     OPENGL_FUNC_PTR(glUniformMatrix3x4fv);
     OPENGL_FUNC_PTR(glUniformMatrix4x3fv);
     OPENGL_FUNC_PTR(glGetError);
+    OPENGL_FUNC_PTR(glFinish);
 };
 #undef OPENGL_FUNC_PTR
