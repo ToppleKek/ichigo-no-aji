@@ -23,6 +23,7 @@ EMBED("assets/tiles.png", tileset_png)
 
 // Tilemaps
 EMBED("assets/lvl1.ichigotm", level1_tilemap)
+EMBED("assets/lvl1_rm1.ichigotm", level1_room1_tilemap)
 
 // UI
 EMBED("assets/coin-collected.png", ui_collected_coin_png)
@@ -85,6 +86,7 @@ struct Coin {
 };
 
 Ichiaji::ProgramState Ichiaji::program_state = Ichiaji::MAIN_MENU;
+Ichiaji::Level Ichiaji::current_level        = {};
 bool Ichiaji::modal_open                     = false;
 Language current_language                    = ENGLISH;
 
@@ -165,7 +167,7 @@ static Ichigo::EntityID spawn_coin(Vec2<f32> pos) {
     return coin->id;
 }
 
-static Ichigo::EntityID spawn_entrance(Vec2<f32> pos) {
+static Ichigo::EntityID add_entrance_to_level(Ichiaji::Level *level, i32 room_index, Vec2<f32> pos) {
     Ichigo::Entity *entrance = Ichigo::spawn_entity();
 
     std::strcpy(entrance->name, "entr");
@@ -182,6 +184,8 @@ static Ichigo::EntityID spawn_entrance(Vec2<f32> pos) {
     entrance->sprite.animation.cell_of_loop_start  = 0;
     entrance->sprite.animation.cell_of_loop_end    = 7;
     entrance->sprite.animation.seconds_per_frame   = 0.12f;
+
+    level->entrance_map.put(entrance->id, room_index);
 
     return entrance->id;
 }
@@ -225,6 +229,18 @@ static void init_game() {
     tileset_sheet.cell_height = 32;
     tileset_sheet.texture     = tileset_texture;
 
+    // == SETUP LEVELS ==
+    // FIXME: @heap
+    Ichiaji::current_level = {
+        Bana::make_fixed_array<Ichiaji::UnloadedTilemap>(2),
+        Bana::make_fixed_map<Ichigo::EntityID, i32>(2)
+    };
+
+    Ichiaji::current_level.rooms.append({ (u8 *) level1_tilemap, tileset_sheet });
+    Ichiaji::current_level.rooms.append({ (u8 *) level1_room1_tilemap, tileset_sheet });
+
+    add_entrance_to_level(&Ichiaji::current_level, 1, {10.0f, 16.0f});
+
     Ichigo::set_tilemap((u8 *) level1_tilemap, tileset_sheet);
 
     // == Spawn entities in world ==
@@ -235,7 +251,6 @@ static void init_game() {
     coins[1].id = spawn_coin({42.0f, 14.0f});
     coins[2].id = spawn_coin({52.0f, 4.0f});
 
-    spawn_entrance({10.0f, 16.0f});
     spawn_gert();
 
     // == Setup initial game state ==

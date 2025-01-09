@@ -60,6 +60,11 @@ static void on_collide(Ichigo::Entity *irisu, Ichigo::Entity *other, Vec2<f32> n
     } else if (std::strcmp(other->name, "entr") == 0) {
         Ichigo::show_info("enter/exit");
         ICHIGO_INFO("Collide with entrance entity with collision normal %f,%f", collision_normal.x, collision_normal.y);
+
+        const auto &e = Ichiaji::current_level.entrance_map.get(other->id);
+        if (e.has_value) {
+            ICHIGO_INFO("Room index of entrance: %d", e.value);
+        }
     }
 }
 

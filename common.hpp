@@ -12,6 +12,9 @@
 #include "bana.hpp"
 
 #ifndef ICHIGO_DEBUG
+#undef ICHIGO_INFO
+#undef ICHIGO_ERROR
+#undef VK_ASSERT_OK
 #define ICHIGO_INFO(...)
 #define ICHIGO_ERROR(...)
 #define VK_ASSERT_OK(...)

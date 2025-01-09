@@ -218,6 +218,73 @@ struct FixedArray {
     }
 };
 
+template<typename Key, typename Value>
+struct MapEntry {
+    bool has_value;
+    Key key;
+    Value value;
+};
+
+template<typename Key, typename Value>
+struct FixedMap {
+    MapEntry<Key, Value> *data;
+    isize capacity;
+    isize size;
+
+    inline void put(Key key, Value value) {
+        assert(size != capacity);
+        u32 sum = 0;
+        for (u32 i = 0; i < sizeof(Key); ++i) {
+            sum += ((u8 *) &key)[i];
+        }
+
+        isize hash = sum % capacity;
+        for (isize j = hash;; j = (j + 1) % capacity) {
+            if (!data[j].has_value) {
+                data[j].has_value = true;
+                data[j].key       = key;
+                data[j].value     = value;
+                ++size;
+                break;
+            }
+        }
+    }
+
+    inline Bana::Optional<Value> get(Key key) {
+        assert(size > 0);
+        u32 sum = 0;
+        for (u32 i = 0; i < sizeof(Key); ++i) {
+            sum += ((u8 *) &key)[i];
+        }
+
+        isize hash = sum % capacity;
+        for (isize i = hash, j = 0; j < capacity; i = (i + 1) % capacity, ++j) {
+            if (data[i].has_value && std::memcmp(&data[i].key, &key, sizeof(Key)) == 0) {
+                return data[i].value;
+            }
+        }
+
+        return {};
+    }
+};
+
+template<typename Key, typename Value>
+FixedMap<Key, Value> make_fixed_map(isize capacity, Allocator allocator = heap_allocator) {
+    FixedMap<Key, Value> map;
+
+    map.size     = 0;
+    map.capacity = capacity;
+    map.data     = (MapEntry<Key, Value> *) allocator.alloc(capacity * sizeof(MapEntry<Key, Value>));
+
+    return map;
+}
+
+template<typename Key, typename Value>
+void free_fixed_map(FixedMap<Key, Value> *map, Allocator allocator = heap_allocator) {
+    allocator.free(map->data);
+    std::memset(map, 0, sizeof(FixedMap<Key, Value>));
+}
+
 template<typename T>
 FixedArray<T> make_fixed_array(isize capacity, Allocator allocator = heap_allocator) {
     Bana::FixedArray<T> ret;
@@ -245,6 +312,7 @@ void fixed_array_copy(FixedArray<T> &dst, FixedArray<T> &src) {
 }
 
 #define MAKE_STACK_ARRAY(NAME, TYPE, CAPACITY) Bana::FixedArray<TYPE> NAME = { (TYPE *) platform_alloca(CAPACITY * sizeof(TYPE)), CAPACITY, 0 }
+#define MAKE_GLOBAL_STATIC_ARRAY(NAME, TYPE, CAPACITY) static TYPE NAME##_DATA[CAPACITY]; Bana::FixedArray<TYPE> NAME = { NAME##_DATA, CAPACITY, 0 }
 
 struct BufferReader {
     char *data;
