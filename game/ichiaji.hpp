@@ -9,14 +9,24 @@ enum ProgramState {
     PAUSE,
 };
 
-struct UnloadedTilemap {
-    u8 *tilemap_data;
-    Ichigo::SpriteSheet spritesheet;
+enum EntityType {
+    ET_NOTHING,
+    ET_PLAYER,
+    ET_GERT,
+    ET_COIN,
+    ET_ENTRANCE,
+};
+
+struct EntityDescriptor {
+    EntityType type;
+    Vec2<f32> pos;
+    i64 data;
 };
 
 struct Level {
-    Bana::FixedArray<Ichiaji::UnloadedTilemap> rooms;
-    Bana::FixedMap<Ichigo::EntityID, i32> entrance_map;
+    u8 *tilemap_data;
+    Bana::FixedArray<Ichiaji::EntityDescriptor> entity_descriptors;
+    Bana::FixedMap<i64, Vec2<f32>> entrance_map; // A map from entrance id (stored in the user data of the entity) to exit position.
 };
 
 extern ProgramState program_state;

@@ -21,9 +21,9 @@ EMBED("assets/music/coin.mp3", coin_sound_mp3)
 // Real tiles
 EMBED("assets/tiles.png", tileset_png)
 
-// Tilemaps
-EMBED("assets/lvl1.ichigotm", level1_tilemap)
-EMBED("assets/lvl1_rm1.ichigotm", level1_room1_tilemap)
+// Levels
+#include "levels/level0.ichigolvl"
+#include "levels/level1.ichigolvl"
 
 // UI
 EMBED("assets/coin-collected.png", ui_collected_coin_png)
@@ -78,6 +78,8 @@ static Ichigo::TextureID ui_enter_key                = 0;
 static f32 ui_coin_background_width_in_metres  = 0.0f;
 static f32 ui_coin_background_height_in_metres = 0.0f;
 
+static Ichigo::SpriteSheet tileset_sheet;
+
 static Ichigo::Mixer::PlayingAudioID game_bgm;
 
 struct Coin {
@@ -117,11 +119,11 @@ static void gert_update(Ichigo::Entity *gert) {
 static Ichigo::EntityID gert_id;
 static bool controller_connected = false;
 
-static void spawn_gert() {
+static void spawn_gert(Vec2<f32> pos) {
     Ichigo::Entity *enemy = Ichigo::spawn_entity();
     gert_id = enemy->id;
     std::strcpy(enemy->name, "gert");
-    enemy->col            = {{18.0f, 14.0f}, 0.7f, 0.8f};
+    enemy->col            = {pos, 0.7f, 0.8f};
     enemy->max_velocity   = {2.0f, 12.0f};
     enemy->movement_speed = 6.0f;
     enemy->gravity        = 9.8f;
@@ -167,7 +169,7 @@ static Ichigo::EntityID spawn_coin(Vec2<f32> pos) {
     return coin->id;
 }
 
-static Ichigo::EntityID add_entrance_to_level(Ichiaji::Level *level, i32 room_index, Vec2<f32> pos) {
+static Ichigo::EntityID spawn_entrance(Vec2<f32> pos, i64 entrance_id) {
     Ichigo::Entity *entrance = Ichigo::spawn_entity();
 
     std::strcpy(entrance->name, "entr");
@@ -176,7 +178,6 @@ static Ichigo::EntityID add_entrance_to_level(Ichiaji::Level *level, i32 room_in
     entrance->sprite.width                         = 1.0f;
     entrance->sprite.height                        = 1.0f;
     entrance->sprite.sheet.texture                 = coin_texture_id;
-    // entrance->collide_proc                         = on_coin_collide;
     entrance->sprite.sheet.cell_width              = 32;
     entrance->sprite.sheet.cell_height             = 32;
     entrance->sprite.animation.cell_of_first_frame = 0;
@@ -184,8 +185,7 @@ static Ichigo::EntityID add_entrance_to_level(Ichiaji::Level *level, i32 room_in
     entrance->sprite.animation.cell_of_loop_start  = 0;
     entrance->sprite.animation.cell_of_loop_end    = 7;
     entrance->sprite.animation.seconds_per_frame   = 0.12f;
-
-    level->entrance_map.put(entrance->id, room_index);
+    entrance->user_data                            = entrance_id;
 
     return entrance->id;
 }
@@ -205,11 +205,60 @@ void Ichigo::Game::init() {
     ui_a_button                 = Ichigo::load_texture(ui_a_button_png, ui_a_button_png_len);
     ui_enter_key                = Ichigo::load_texture(ui_enter_key_png, ui_enter_key_png_len);
 
+    tileset_sheet = { 32, 32, tileset_texture };
+
+    // == Setup level entrance maps ==
+    for (u32 i = 0; i < Level1::level.entity_descriptors.size; ++i) {
+        const auto &descriptor = Level1::level.entity_descriptors[i];
+        if (descriptor.type == Ichiaji::ET_ENTRANCE) {
+            Level1::setup_entrance(descriptor.data);
+        }
+    }
+
+    // Title screen level
+    Ichiaji::current_level = Level0::level;
+
     const Ichigo::Texture &t = Ichigo::Internal::textures[ui_coin_background];
     ui_coin_background_width_in_metres  = pixels_to_metres(t.width);
     ui_coin_background_height_in_metres = pixels_to_metres(t.height);
 
     Ichigo::Camera::mode = Ichigo::Camera::Mode::MANUAL;
+}
+
+static void change_level(Ichiaji::Level level) {
+    Ichigo::kill_all_entities();
+    Ichiaji::current_level = level;
+    Ichigo::set_tilemap(Ichiaji::current_level.tilemap_data, tileset_sheet);
+
+    // == Spawn entities in world ==
+    for (u32 i = 0; i < Ichiaji::current_level.entity_descriptors.size; ++i) {
+        const auto &d = Ichiaji::current_level.entity_descriptors[i];
+
+        switch (d.type) {
+            case Ichiaji::ET_PLAYER: {
+                Ichigo::Entity *player = Ichigo::spawn_entity();
+                Irisu::init(player, d.pos);
+                Ichigo::Camera::mode = Ichigo::Camera::Mode::FOLLOW;
+                Ichigo::Camera::follow(player->id);
+            } break;
+
+            case Ichiaji::ET_GERT: {
+                spawn_gert(d.pos);
+            } break;
+
+            case Ichiaji::ET_COIN: {
+
+            } break;
+
+            case Ichiaji::ET_ENTRANCE: {
+                spawn_entrance(d.pos, d.data);
+            } break;
+
+            default: {
+                ICHIGO_ERROR("Invalid/unknown entity type: %d", d.type);
+            }
+        }
+    }
 }
 
 static void init_game() {
@@ -224,39 +273,15 @@ static void init_game() {
     Ichigo::game_state.background_layers[1].start_position = {0.0f, 4.5f};
     Ichigo::game_state.background_layers[1].scroll_speed   = {0.2f, 0.5f};
 
-    Ichigo::SpriteSheet tileset_sheet = {};
-    tileset_sheet.cell_width  = 32;
-    tileset_sheet.cell_height = 32;
-    tileset_sheet.texture     = tileset_texture;
+    // == SETUP CURRENT LEVEL ==
+    change_level(Level1::level);
 
-    // == SETUP LEVELS ==
-    // FIXME: @heap
-    Ichiaji::current_level = {
-        Bana::make_fixed_array<Ichiaji::UnloadedTilemap>(2),
-        Bana::make_fixed_map<Ichigo::EntityID, i32>(2)
-    };
+    // coins[0].id = spawn_coin({42.0f, 4.0f});
+    // coins[1].id = spawn_coin({42.0f, 14.0f});
+    // coins[2].id = spawn_coin({52.0f, 4.0f});
 
-    Ichiaji::current_level.rooms.append({ (u8 *) level1_tilemap, tileset_sheet });
-    Ichiaji::current_level.rooms.append({ (u8 *) level1_room1_tilemap, tileset_sheet });
-
-    add_entrance_to_level(&Ichiaji::current_level, 1, {10.0f, 16.0f});
-
-    Ichigo::set_tilemap((u8 *) level1_tilemap, tileset_sheet);
-
-    // == Spawn entities in world ==
-    Ichigo::Entity *player = Ichigo::spawn_entity();
-    Irisu::init(player);
-
-    coins[0].id = spawn_coin({42.0f, 4.0f});
-    coins[1].id = spawn_coin({42.0f, 14.0f});
-    coins[2].id = spawn_coin({52.0f, 4.0f});
-
-    spawn_gert();
 
     // == Setup initial game state ==
-    Ichigo::Camera::mode = Ichigo::Camera::Mode::FOLLOW;
-    Ichigo::Camera::follow(player->id);
-
     game_bgm = Ichigo::Mixer::play_audio(test_music_id, 1.0f, 1.0f, 1.0f, 0.864f, 54.188f);
 }
 
@@ -266,13 +291,10 @@ static void deinit_game() {
 
     std::memset(coins, 0, sizeof(coins));
 
-    Irisu::deinit();
-
-    Ichigo::kill_all_entities();
     Ichigo::game_state.background_colour = {};
     std::memset(&Ichigo::game_state.background_layers, 0, sizeof(Ichigo::game_state.background_layers));
 
-    Ichigo::set_tilemap(nullptr, {});
+    change_level(Level0::level);
 }
 
 static void draw_game_ui() {
@@ -524,10 +546,6 @@ void Ichigo::Game::update_and_render() {
                     Ichiaji::modal_open = false;
                 }
             } else {
-                if (Internal::keyboard_state[IK_G].down_this_frame) {
-                    spawn_gert();
-                }
-
                 if (Internal::keyboard_state[IK_ESCAPE].down_this_frame || Internal::gamepad.start.down_this_frame) {
                     Ichiaji::program_state = Ichiaji::PAUSE;
                 }

@@ -23,7 +23,8 @@ enum IrisuState {
     HURT,
     LAY_DOWN,
     GET_UP_SLOW,
-    DIVE_BOOST
+    DIVE_BOOST,
+    CUTSCENE
 };
 
 static u32 irisu_state = IrisuState::IDLE;
@@ -40,6 +41,8 @@ static Ichigo::EntityID irisu_id          = {};
 static Ichigo::TextureID irisu_texture_id = 0;
 static Ichigo::AudioID boo_womp_id        = {};
 static Ichigo::AudioID jump_sound         = 0;
+
+static i64 entrance_to_enter = -1;
 
 static f32 invincibility_t = 0.0f;
 
@@ -58,24 +61,37 @@ static void on_collide(Ichigo::Entity *irisu, Ichigo::Entity *other, Vec2<f32> n
             irisu_state         = HURT;
         }
     } else if (std::strcmp(other->name, "entr") == 0) {
-        Ichigo::show_info("enter/exit");
-        ICHIGO_INFO("Collide with entrance entity with collision normal %f,%f", collision_normal.x, collision_normal.y);
-
-        const auto &e = Ichiaji::current_level.entrance_map.get(other->id);
-        if (e.has_value) {
-            ICHIGO_INFO("Room index of entrance: %d", e.value);
+        if (normal.x != collision_normal.x || normal.y != collision_normal.y) {
+            Ichigo::show_info("exit");
+            entrance_to_enter = -1;
+        } else {
+            Ichigo::show_info("enter");
+            ICHIGO_INFO("Collide with entrance entity with collision normal %f,%f", collision_normal.x, collision_normal.y);
+            entrance_to_enter = other->user_data;
+            // try_enter_entrance(other->user_data);
         }
     }
 }
 
-void Irisu::init(Ichigo::Entity *entity) {
-    irisu_texture_id = Ichigo::load_texture(irisu_spritesheet_png, irisu_spritesheet_png_len);
-    boo_womp_id      = Ichigo::load_audio(boo_womp_mp3, boo_womp_mp3_len);
-    jump_sound       = Ichigo::load_audio(jump_sound_mp3, jump_sound_mp3_len);
-    irisu_id         = entity->id;
+static void try_enter_entrance(Ichigo::Entity *irisu, i64 entrance_id) {
+    const auto &e = Ichiaji::current_level.entrance_map.get(entrance_id);
+    if (e.has_value) {
+        ICHIGO_INFO("Exit position of entrance: %f,%f", e.value.x, e.value.y);
+        irisu->col.pos = e.value;
+    }
+}
+
+void Irisu::init(Ichigo::Entity *entity, Vec2<f32> pos) {
+    invincibility_t   = 0.0f;
+    irisu_state       = IDLE;
+    entrance_to_enter = -1;
+    irisu_texture_id  = Ichigo::load_texture(irisu_spritesheet_png, irisu_spritesheet_png_len);
+    boo_womp_id       = Ichigo::load_audio(boo_womp_mp3, boo_womp_mp3_len);
+    jump_sound        = Ichigo::load_audio(jump_sound_mp3, jump_sound_mp3_len);
+    irisu_id          = entity->id;
 
     std::strcpy(entity->name, "player");
-    entity->col               = {{8.0f, 14.0f}, 0.3f, 1.1f};
+    entity->col               = {pos, 0.3f, 1.1f};
     entity->max_velocity      = {8.0f, 12.0f};
     entity->movement_speed    = 16.0f;
     entity->jump_acceleration = 4.5f;
@@ -153,8 +169,7 @@ void Irisu::init(Ichigo::Entity *entity) {
 }
 
 void Irisu::deinit() {
-    invincibility_t = 0.0f;
-    irisu_state     = IDLE;
+
 }
 
 static inline void maybe_enter_animation(Ichigo::Entity *entity, Ichigo::Animation animation) {
@@ -212,6 +227,7 @@ void Irisu::update(Ichigo::Entity *irisu) {
     bool jump_button_down            = Ichigo::Internal::keyboard_state[Ichigo::IK_SPACE].down || Ichigo::Internal::gamepad.a.down || Ichigo::Internal::gamepad.b.down;
     bool run_button_down             = Ichigo::Internal::keyboard_state[Ichigo::IK_LEFT_SHIFT].down || Ichigo::Internal::gamepad.x.down || Ichigo::Internal::gamepad.y.down;
     bool dive_button_down_this_frame = Ichigo::Internal::keyboard_state[Ichigo::IK_Z].down_this_frame || Ichigo::Internal::gamepad.lb.down_this_frame || Ichigo::Internal::gamepad.rb.down_this_frame;
+    bool up_button_down_this_frame   = Ichigo::Internal::keyboard_state[Ichigo::IK_UP].down_this_frame || Ichigo::Internal::gamepad.up.down_this_frame;
 
     switch (irisu_state) {
         case IDLE: {
@@ -219,6 +235,10 @@ void Irisu::update(Ichigo::Entity *irisu) {
             if      (!FLAG_IS_SET(irisu->flags, Ichigo::EF_ON_GROUND)) irisu_state = JUMP;
             else if (irisu->velocity.x != 0.0f)                        irisu_state = WALK;
             process_movement_keys();
+
+            if (up_button_down_this_frame && entrance_to_enter != -1) {
+                try_enter_entrance(irisu, entrance_to_enter);
+            }
 
             if (jump_button_down_this_frame) {
                 released_jump     = false;

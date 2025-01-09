@@ -100,6 +100,7 @@ struct Entity {
     EntityRenderProc *render_proc;
     EntityUpdateProc *update_proc;
     EntityCollideProc *collide_proc;
+    i64 user_data;
 };
 
 Entity *spawn_entity();

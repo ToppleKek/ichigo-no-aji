@@ -1,0 +1,29 @@
+namespace Level1 {
+EMBED("assets/lvl1.ichigotm", level1_tilemap)
+
+static Ichiaji::EntityDescriptor entity_descriptors[] = {
+    { Ichiaji::ET_PLAYER, {8.0f, 15.8f}, 0 },
+    { Ichiaji::ET_GERT, {18.0f, 14.0f}, 0 },
+    { Ichiaji::ET_ENTRANCE, {10.0f, 16.0f}, 0 },
+    { Ichiaji::ET_ENTRANCE, {16.0f, 16.0f}, 1 },
+};
+
+static Bana::MapEntry<i64, Vec2<f32>> map_data[2];
+
+Ichiaji::Level level = {
+    (u8 *) level1_tilemap,
+    {entity_descriptors, ARRAY_LEN(entity_descriptors), ARRAY_LEN(entity_descriptors)},
+    {map_data, ARRAY_LEN(map_data), 0}
+};
+
+void setup_entrance(i64 entrance_id) {
+    switch (entrance_id) {
+        case 0: {
+            level.entrance_map.put(entrance_id, {16.0f, 15.9f});
+        } break;
+        case 1: {
+            level.entrance_map.put(entrance_id, {10.0f, 15.9f});
+        } break;
+    }
+}
+}

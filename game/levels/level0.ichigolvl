@@ -1,0 +1,15 @@
+namespace Level0 {
+static Ichiaji::EntityDescriptor entity_descriptors[] = {
+};
+
+static Bana::MapEntry<i64, Vec2<f32>> map_data[2];
+
+Ichiaji::Level level = {
+    nullptr,
+    {entity_descriptors, ARRAY_LEN(entity_descriptors), ARRAY_LEN(entity_descriptors)},
+    {map_data, ARRAY_LEN(map_data), 0}
+};
+
+[[maybe_unused]] void setup_entrance([[maybe_unused]] i64 entrance_id) {
+}
+}
