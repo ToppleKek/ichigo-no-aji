@@ -635,7 +635,7 @@ void Ichigo::Game::update_and_render() {
                     fade_t = -1.0f;
                 } else if (selected_menu_item == 1) {
                     selected_menu_item = 0;
-                    fade_t = -1.0f;
+                    // fade_t = -1.0f;
                     enter_new_program_state(Ichiaji::MAIN_MENU);
                 } else if (selected_menu_item == 2) {
                     std::exit(0);

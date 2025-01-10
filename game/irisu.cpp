@@ -79,7 +79,7 @@ static void try_enter_entrance(i64 entrance_id) {
         auto callback = [](uptr data) {
             Ichiaji::fullscreen_transition({0.0f, 0.0f, 0.0f, 1.0f}, {0.0f, 0.0f, 0.0f, 0.0f}, 0.3f, nullptr, 0);
             auto *irisu = Ichigo::get_entity(irisu_id);
-            if (irisu) irisu->col.pos = Ichiaji::current_level.entrance_map.get((i64) data).value;
+            Ichigo::teleport_entity_considering_colliders(irisu, Ichiaji::current_level.entrance_map.get((i64) data).value);
         };
 
         Ichiaji::fullscreen_transition({0.0f, 0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 1.0f}, 0.3f, callback, (uptr) entrance_id);

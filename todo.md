@@ -1,5 +1,26 @@
 # Ichigo! and Ichigo no Aji!
 
+# MUSEKININ
+- Moving to a new school
+- Start out in the dorm
+- Objective 1 go to your room
+- Next day, go to school. See club day. Find decrepit stall: MUSEKININ society
+- Talk to them, they tell you to meet them back here tonight, disappear
+- Go back at night
+- You are now part of their club. You get a wand. They have no idea what to do with it.
+- You are told to explore a hidden ruins under the school
+- When you go under the school, there is almost like a little hub area that has entrances to different parts of the ruins
+- The only one that is accessable is one that has no obstacles, the others are locked behind gimmicks you can't solve yet.
+- You go in the first one, you find that using the wand you can activate special switches
+- You can also use a range shot. Charging is optional, but does extra damage.
+- Switches can do anything from moving blocks to form a path, or activating traps to kill enemies
+- You make your way through the stage, and at the end there is a small boss fight
+- Upon beating the boss, you obtain information on how to use the wand. You get a new spell.
+- The first spell you learn is a fire spell. This allows you to melt blocks of ice, and is more effective at killing certian kinds of enemies
+
+## Scope of the school part of the project
+- Only a demo. First 2 levels at least + hub world.
+
 ## Programming (vulkan)
 - ~~Draw triangle~~
 - ~~Fix vkfence validation error~~

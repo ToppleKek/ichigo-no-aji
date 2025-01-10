@@ -400,6 +400,23 @@ Ichigo::EntityMoveResult Ichigo::move_entity_in_world(Ichigo::Entity *entity) {
     return result;
 }
 
+void Ichigo::teleport_entity_considering_colliders(Entity *entity, Vec2<f32> pos) {
+    entity->col.pos = pos;
+    for (u32 i = 1; i < Ichigo::Internal::entities.size; ++i) {
+        Ichigo::Entity &other_entity = Ichigo::Internal::entities[i];
+
+        // Do not check against ourselves or dead entites.
+        if (other_entity.id == entity->id || other_entity.id.index == 0) {
+            continue;
+        }
+
+        if (rectangles_intersect(entity->col, other_entity.col)) {
+            if (entity->collide_proc)      entity->     collide_proc(entity, &other_entity, {0.0f, 0.0f}, {0.0f, 0.0f}, entity->col.pos);
+            if (other_entity.collide_proc) other_entity.collide_proc(&other_entity, entity, {0.0f, 0.0f}, {0.0f, 0.0f}, other_entity.col.pos);
+        }
+    }
+}
+
 // == Entity Controllers ==
 // Entity controllers are basic drop-in update functions for entities. They can be used to quickly add functionality to entities, but you probably want to write your own.
 

@@ -273,8 +273,8 @@ inline Vec2<f32> get_translation2d(Mat4<f32> m) {
 // }
 
 inline bool rectangles_intersect(Rect<f32> rect1, Rect<f32> rect2) {
-    return ((rect1.pos.x > rect2.pos.x && rect1.pos.x < rect2.pos.x + rect2.w) || (rect2.pos.x > rect1.pos.x && rect2.pos.x < rect1.pos.x + rect1.w)) &&
-           ((rect1.pos.y > rect2.pos.y && rect1.pos.y < rect2.pos.y + rect2.h) || (rect2.pos.y > rect1.pos.y && rect2.pos.y < rect1.pos.y + rect1.h));
+    return ((rect1.pos.x >= rect2.pos.x && rect1.pos.x <= rect2.pos.x + rect2.w) || (rect2.pos.x >= rect1.pos.x && rect2.pos.x <= rect1.pos.x + rect1.w)) &&
+           ((rect1.pos.y >= rect2.pos.y && rect1.pos.y <= rect2.pos.y + rect2.h) || (rect2.pos.y >= rect1.pos.y && rect2.pos.y <= rect1.pos.y + rect1.h));
 }
 
 inline f32 pixels_to_metres(f32 pixels) {
