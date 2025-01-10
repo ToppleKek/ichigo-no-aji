@@ -328,7 +328,7 @@ static Vec4<f32> ft_current_colour;
 static f32 ft_duration;
 static f32 ft_current_t;
 static Ichiaji::FullscreenTransitionCompleteCallback *ft_callback;
-static void *ft_callback_data;
+static uptr ft_callback_data;
 static void update_fullscreen_transition() {
     static bool clear_next_frame = false;
 
@@ -357,7 +357,7 @@ static void update_fullscreen_transition() {
     ft_current_t = clamp(ft_current_t + Ichigo::Internal::dt, 0.0f, ft_duration);
 }
 
-void Ichiaji::fullscreen_transition(Vec4<f32> from, Vec4<f32> to, f32 t, FullscreenTransitionCompleteCallback *on_complete, void *callback_data) {
+void Ichiaji::fullscreen_transition(Vec4<f32> from, Vec4<f32> to, f32 t, FullscreenTransitionCompleteCallback *on_complete, uptr callback_data) {
     ft_start_colour    = from;
     ft_end_colour      = to;
     ft_current_colour  = from;
@@ -371,13 +371,13 @@ void Ichiaji::fullscreen_transition(Vec4<f32> from, Vec4<f32> to, f32 t, Fullscr
 // END Fullscreen transitions
 ////////////////////////////
 
-static void enter_game_state([[maybe_unused]] void *data) {
-    Ichiaji::fullscreen_transition({0.0f, 0.0f, 0.0f, 1.0f}, {0.0f, 0.0f, 0.0f, 0.0f}, 0.3f, nullptr, nullptr);
+static void enter_game_state([[maybe_unused]] uptr data) {
+    Ichiaji::fullscreen_transition({0.0f, 0.0f, 0.0f, 1.0f}, {0.0f, 0.0f, 0.0f, 0.0f}, 0.3f, nullptr, 0);
     init_game();
     Ichiaji::program_state = Ichiaji::GAME;
 }
 
-static void enter_main_menu_state([[maybe_unused]] void *data) {
+static void enter_main_menu_state([[maybe_unused]] uptr data) {
     deinit_game();
     Ichiaji::program_state = Ichiaji::MAIN_MENU;
 }
@@ -385,11 +385,11 @@ static void enter_main_menu_state([[maybe_unused]] void *data) {
 static void enter_new_program_state(Ichiaji::ProgramState state) {
     switch (state) {
         case Ichiaji::MAIN_MENU: {
-            Ichiaji::fullscreen_transition({0.0f, 0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 1.0f}, 0.3f, enter_main_menu_state, nullptr);
+            Ichiaji::fullscreen_transition({0.0f, 0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 1.0f}, 0.3f, enter_main_menu_state, 0);
         } break;
 
         case Ichiaji::GAME: {
-            Ichiaji::fullscreen_transition({0.0f, 0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 1.0f}, 0.3f, enter_game_state, nullptr);
+            Ichiaji::fullscreen_transition({0.0f, 0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 1.0f}, 0.3f, enter_game_state, 0);
         } break;
 
         case Ichiaji::PAUSE: {

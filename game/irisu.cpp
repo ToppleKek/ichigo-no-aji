@@ -73,11 +73,16 @@ static void on_collide(Ichigo::Entity *irisu, Ichigo::Entity *other, Vec2<f32> n
     }
 }
 
-static void try_enter_entrance(Ichigo::Entity *irisu, i64 entrance_id) {
+static void try_enter_entrance(i64 entrance_id) {
     const auto &e = Ichiaji::current_level.entrance_map.get(entrance_id);
     if (e.has_value) {
-        ICHIGO_INFO("Exit position of entrance: %f,%f", e.value.x, e.value.y);
-        irisu->col.pos = e.value;
+        auto callback = [](uptr data) {
+            Ichiaji::fullscreen_transition({0.0f, 0.0f, 0.0f, 1.0f}, {0.0f, 0.0f, 0.0f, 0.0f}, 0.3f, nullptr, 0);
+            auto *irisu = Ichigo::get_entity(irisu_id);
+            if (irisu) irisu->col.pos = Ichiaji::current_level.entrance_map.get((i64) data).value;
+        };
+
+        Ichiaji::fullscreen_transition({0.0f, 0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 1.0f}, 0.3f, callback, (uptr) entrance_id);
     }
 }
 
@@ -237,7 +242,7 @@ void Irisu::update(Ichigo::Entity *irisu) {
             process_movement_keys();
 
             if (up_button_down_this_frame && entrance_to_enter != -1) {
-                try_enter_entrance(irisu, entrance_to_enter);
+                try_enter_entrance(entrance_to_enter);
             }
 
             if (jump_button_down_this_frame) {

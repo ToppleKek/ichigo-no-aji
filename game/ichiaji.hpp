@@ -34,6 +34,6 @@ extern ProgramState program_state;
 // extern bool ai_disabled;
 extern Level current_level;
 
-using FullscreenTransitionCompleteCallback = void (void *);
-void fullscreen_transition(Vec4<f32> from, Vec4<f32> to, f32 t, FullscreenTransitionCompleteCallback *on_complete, void *callback_data);
+using FullscreenTransitionCompleteCallback = void (uptr);
+void fullscreen_transition(Vec4<f32> from, Vec4<f32> to, f32 t, FullscreenTransitionCompleteCallback *on_complete, uptr callback_data);
 }
