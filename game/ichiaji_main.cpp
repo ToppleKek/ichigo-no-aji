@@ -89,7 +89,6 @@ struct Coin {
 
 Ichiaji::ProgramState Ichiaji::program_state = Ichiaji::MAIN_MENU;
 Ichiaji::Level Ichiaji::current_level        = {};
-bool Ichiaji::modal_open                     = false;
 Language current_language                    = ENGLISH;
 
 static Coin coins[3] = {};
@@ -109,7 +108,7 @@ static void on_coin_collide(Ichigo::Entity *coin, Ichigo::Entity *other, [[maybe
 }
 
 static void gert_update(Ichigo::Entity *gert) {
-    if (Ichiaji::program_state != Ichiaji::GAME || Ichiaji::modal_open) {
+    if (Ichiaji::program_state != Ichiaji::GAME) {
         return;
     }
 
@@ -319,8 +318,90 @@ static void draw_game_ui() {
     }
 }
 
+////////////////////////////
+// Fullscreen transitions
+////////////////////////////
+
+static Vec4<f32> ft_start_colour;
+static Vec4<f32> ft_end_colour;
+static Vec4<f32> ft_current_colour;
+static f32 ft_duration;
+static f32 ft_current_t;
+static Ichiaji::FullscreenTransitionCompleteCallback *ft_callback;
+static void *ft_callback_data;
+static void update_fullscreen_transition() {
+    static bool clear_next_frame = false;
+
+    if (ft_duration == 0.0f) return;
+
+    if (clear_next_frame) {
+        clear_next_frame = false;
+        ft_duration = 0.0f;
+
+        if (ft_callback) ft_callback(ft_callback_data);
+
+        return;
+    }
+
+    if (ft_current_t == ft_duration) {
+        clear_next_frame = true;
+    }
+
+    ft_current_colour = {
+        ichigo_lerp(ft_start_colour.r, safe_ratio_1(ft_current_t, ft_duration), ft_end_colour.r),
+        ichigo_lerp(ft_start_colour.g, safe_ratio_1(ft_current_t, ft_duration), ft_end_colour.g),
+        ichigo_lerp(ft_start_colour.b, safe_ratio_1(ft_current_t, ft_duration), ft_end_colour.b),
+        ichigo_lerp(ft_start_colour.a, safe_ratio_1(ft_current_t, ft_duration), ft_end_colour.a),
+    };
+
+    ft_current_t = clamp(ft_current_t + Ichigo::Internal::dt, 0.0f, ft_duration);
+}
+
+void Ichiaji::fullscreen_transition(Vec4<f32> from, Vec4<f32> to, f32 t, FullscreenTransitionCompleteCallback *on_complete, void *callback_data) {
+    ft_start_colour    = from;
+    ft_end_colour      = to;
+    ft_current_colour  = from;
+    ft_duration        = t;
+    ft_current_t       = 0.0f;
+    ft_callback        = on_complete;
+    ft_callback_data   = callback_data;
+}
+
+////////////////////////////
+// END Fullscreen transitions
+////////////////////////////
+
+static void enter_game_state([[maybe_unused]] void *data) {
+    Ichiaji::fullscreen_transition({0.0f, 0.0f, 0.0f, 1.0f}, {0.0f, 0.0f, 0.0f, 0.0f}, 0.3f, nullptr, nullptr);
+    init_game();
+    Ichiaji::program_state = Ichiaji::GAME;
+}
+
+static void enter_main_menu_state([[maybe_unused]] void *data) {
+    deinit_game();
+    Ichiaji::program_state = Ichiaji::MAIN_MENU;
+}
+
+static void enter_new_program_state(Ichiaji::ProgramState state) {
+    switch (state) {
+        case Ichiaji::MAIN_MENU: {
+            Ichiaji::fullscreen_transition({0.0f, 0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 1.0f}, 0.3f, enter_main_menu_state, nullptr);
+        } break;
+
+        case Ichiaji::GAME: {
+            Ichiaji::fullscreen_transition({0.0f, 0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 1.0f}, 0.3f, enter_game_state, nullptr);
+        } break;
+
+        case Ichiaji::PAUSE: {
+
+        } break;
+    }
+}
+
 // Runs at the beginning of a new frame
 void Ichigo::Game::frame_begin() {
+    // Fullscreen transition
+    update_fullscreen_transition();
 }
 
 // Runs right before the engine begins to render
@@ -396,10 +477,7 @@ void Ichigo::Game::update_and_render() {
 
             if (menu_select_button_down_this_frame) {
                 if (selected_menu_item == 0) {
-                    init_game();
-                    Ichiaji::program_state = Ichiaji::GAME;
-                    Ichiaji::modal_open    = true;
-                    fade_in_t = -1.0f;
+                    enter_new_program_state(Ichiaji::GAME);
                 } else if (selected_menu_item == 1) {
                     std::exit(0);
                 }
@@ -455,100 +533,10 @@ void Ichigo::Game::update_and_render() {
         } break;
 
         case Ichiaji::GAME: {
-            // static Ichigo::TextStyle style = {
-            //     .alignment = Ichigo::TextAlignment::LEFT,
-            //     .scale     = 0.8f,
-            //     .colour    = {0.0f, 0.0f, 0.0f, 1.0f}
-            // };
-
-            // const char *ichiaji = "Ichigo no Aji! いちごのあじ！ イチゴノアジ！ 苺の味！ Ｉｃｈｉｇｏ ｎｏ Ａｊｉ！";
-            // Ichigo::DrawCommand test_draw_command2;
-            // test_draw_command2.coordinate_system = Ichigo::CoordinateSystem::CAMERA;
-            // test_draw_command2.type              = Ichigo::DrawCommandType::TEXT;
-            // test_draw_command2.string            = ichiaji;
-            // test_draw_command2.string_length     = std::strlen(ichiaji);
-            // test_draw_command2.string_pos        = {0.0f, 1.0f};
-            // test_draw_command2.text_style        = style;
-
-            // Ichigo::push_draw_command(test_draw_command2);
-
-            // const char *kanji_test = "一番、二番、三番、四番。「ラムネは子供っぽくないです。青春の飲み物ですから」世界一美味しい苺パスタを作るアイドル";
-            // Ichigo::DrawCommand test_draw_command3;
-            // style.alignment = Ichigo::TextAlignment::CENTER;
-            // test_draw_command3.coordinate_system = Ichigo::CoordinateSystem::CAMERA;
-            // test_draw_command3.type              = Ichigo::DrawCommandType::TEXT;
-            // test_draw_command3.string            = kanji_test;
-            // test_draw_command3.string_length     = std::strlen(kanji_test);
-            // test_draw_command3.string_pos        = {8.0f, 3.0f};
-            // test_draw_command3.text_style        = style;
-
-            // Ichigo::push_draw_command(test_draw_command3);
             draw_game_ui();
 
-            // Draw the "how to play" menu
-            if (Ichiaji::modal_open) {
-                static Ichigo::DrawCommand bg_cmd = {
-                    .type              = SOLID_COLOUR_RECT,
-                    .coordinate_system = SCREEN,
-                    .rect              = {{0.0f, 0.0f}, 1.0f, 1.0f},
-                    .colour            = {0.0f, 0.0f, 0.0f, 0.75f}
-                };
-
-                Ichigo::push_draw_command(bg_cmd);
-
-                Ichigo::DrawCommand header_cmd = {
-                    .type              = TEXT,
-                    .coordinate_system = CAMERA,
-                    .string            = TL_STR(HOW_TO_PLAY),
-                    .string_length     = std::strlen(TL_STR(HOW_TO_PLAY)),
-                    .string_pos        = {SCREEN_TILE_WIDTH / 2.0f, SCREEN_TILE_HEIGHT / 6.0f},
-                    .text_style        = title_style
-                };
-
-                Ichigo::push_draw_command(header_cmd);
-
-                const char *setsume_str = TL_STR(Internal::gamepad.connected ? EXPLANATION_CONTROLLER : EXPLANATION_KEYBOARD);
-                Ichigo::DrawCommand setsume_text_cmd = {
-                    .type              = TEXT,
-                    .coordinate_system = CAMERA,
-                    .string            = setsume_str,
-                    .string_length     = std::strlen(setsume_str),
-                    .string_pos        = {SCREEN_TILE_WIDTH / 2.0f, SCREEN_TILE_HEIGHT / 3.0f},
-                    .text_style        = menu_item_style
-                };
-
-                Ichigo::push_draw_command(setsume_text_cmd);
-
-                Ichigo::DrawCommand confirmation_text_cmd = {
-                    .type              = TEXT,
-                    .coordinate_system = CAMERA,
-                    .string            = TL_STR(GOT_IT),
-                    .string_length     = std::strlen(TL_STR(GOT_IT)),
-                    .string_pos        = {SCREEN_TILE_WIDTH / 2.0f, SCREEN_TILE_HEIGHT - 1.0f},
-                    .text_style        = menu_item_style
-                };
-
-                Ichigo::push_draw_command(confirmation_text_cmd);
-
-                f32 got_it_text_width = Ichigo::get_text_width(TL_STR(GOT_IT), std::strlen(TL_STR(GOT_IT)), menu_item_style);
-                Ichigo::DrawCommand button_cmd = {
-                    .type              = TEXTURED_RECT,
-                    .coordinate_system = CAMERA,
-                    .texture_rect      = {{(SCREEN_TILE_WIDTH / 2.0f) + got_it_text_width * 0.6f, SCREEN_TILE_HEIGHT - 1.4f}, 0.5f, 0.5f},
-                    .texture_id        = Internal::gamepad.connected ? ui_a_button : ui_enter_key
-                };
-
-                Ichigo::push_draw_command(button_cmd);
-
-                bool accept_button_down_this_frame = Internal::keyboard_state[IK_ENTER].down_this_frame || Internal::gamepad.a.down_this_frame;
-
-                if (accept_button_down_this_frame) {
-                    Ichiaji::modal_open = false;
-                }
-            } else {
-                if (Internal::keyboard_state[IK_ESCAPE].down_this_frame || Internal::gamepad.start.down_this_frame) {
-                    Ichiaji::program_state = Ichiaji::PAUSE;
-                }
+            if (Internal::keyboard_state[IK_ESCAPE].down_this_frame || Internal::gamepad.start.down_this_frame) {
+                Ichiaji::program_state = Ichiaji::PAUSE;
             }
         } break;
 
@@ -646,10 +634,9 @@ void Ichigo::Game::update_and_render() {
                     selected_menu_item = 0;
                     fade_t = -1.0f;
                 } else if (selected_menu_item == 1) {
-                    deinit_game();
                     selected_menu_item = 0;
-                    Ichiaji::program_state = Ichiaji::MAIN_MENU;
                     fade_t = -1.0f;
+                    enter_new_program_state(Ichiaji::MAIN_MENU);
                 } else if (selected_menu_item == 2) {
                     std::exit(0);
                 }
@@ -657,6 +644,18 @@ void Ichigo::Game::update_and_render() {
 #undef PAUSE_MENU_FADE_DURATION
 #undef PAUSE_MENU_ITEM_COUNT
         } break;
+    }
+
+    // Render fullscreen transition rect, if it exists
+    if (ft_duration != 0.0f) {
+        Ichigo::DrawCommand cmd = {
+            .type              = SOLID_COLOUR_RECT,
+            .coordinate_system = SCREEN,
+            .rect              = {{0.0f, 0.0f}, 1.0f, 1.0f},
+            .colour            = ft_current_colour
+        };
+
+        Ichigo::push_draw_command(cmd);
     }
 }
 

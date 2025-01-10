@@ -30,6 +30,10 @@ struct Level {
 };
 
 extern ProgramState program_state;
-extern bool modal_open;
+// extern bool input_disabled;
+// extern bool ai_disabled;
 extern Level current_level;
+
+using FullscreenTransitionCompleteCallback = void (void *);
+void fullscreen_transition(Vec4<f32> from, Vec4<f32> to, f32 t, FullscreenTransitionCompleteCallback *on_complete, void *callback_data);
 }

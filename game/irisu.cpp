@@ -184,7 +184,7 @@ static inline void maybe_enter_animation(Ichigo::Entity *entity, Ichigo::Animati
 #define DIVE_X_VELOCITY 2.0f
 #define DIVE_Y_VELOCITY 4.0f
 void Irisu::update(Ichigo::Entity *irisu) {
-    if (Ichiaji::program_state != Ichiaji::GAME || Ichiaji::modal_open) {
+    if (Ichiaji::program_state != Ichiaji::GAME) {
         return;
     }
 
