@@ -27,6 +27,12 @@ enum IrisuState {
     CUTSCENE
 };
 
+#define IRISU_DEFAULT_GRAVITY 14.0f
+#define IRISU_MAX_JUMP_T 0.20f
+#define DIVE_X_VELOCITY 2.0f
+#define DIVE_Y_VELOCITY 4.0f
+#define IRISU_DEFAULT_JUMP_ACCELERATION 6.0f
+
 static u32 irisu_state = IrisuState::IDLE;
 static Ichigo::Animation irisu_idle        = {};
 static Ichigo::Animation irisu_walk        = {};
@@ -99,8 +105,8 @@ void Irisu::init(Ichigo::Entity *entity, Vec2<f32> pos) {
     entity->col               = {pos, 0.3f, 1.1f};
     entity->max_velocity      = {8.0f, 12.0f};
     entity->movement_speed    = 16.0f;
-    entity->jump_acceleration = 4.5f;
-    entity->gravity           = 14.0f; // TODO: gravity should be a property of the level?
+    entity->jump_acceleration = IRISU_DEFAULT_JUMP_ACCELERATION;
+    entity->gravity           = IRISU_DEFAULT_GRAVITY; // TODO: gravity should be a property of the level?
     entity->update_proc       = Irisu::update;
     entity->collide_proc      = on_collide;
 
@@ -185,9 +191,6 @@ static inline void maybe_enter_animation(Ichigo::Entity *entity, Ichigo::Animati
     }
 }
 
-#define IRISU_MAX_JUMP_T 0.35f
-#define DIVE_X_VELOCITY 2.0f
-#define DIVE_Y_VELOCITY 4.0f
 void Irisu::update(Ichigo::Entity *irisu) {
     if (Ichiaji::program_state != Ichiaji::GAME) {
         return;
@@ -312,6 +315,10 @@ void Irisu::update(Ichigo::Entity *irisu) {
 
         case FALL: {
             maybe_enter_animation(irisu, irisu_fall);
+            irisu->gravity = IRISU_DEFAULT_GRAVITY * 1.75f;
+
+            if (FLAG_IS_SET(irisu->flags, Ichigo::EF_ON_GROUND)) irisu->gravity = IRISU_DEFAULT_GRAVITY;
+
             if      (FLAG_IS_SET(irisu->flags, Ichigo::EF_ON_GROUND) && irisu->velocity.x == 0.0f && irisu->acceleration.x == 0.0f) irisu_state = IDLE;
             else if (FLAG_IS_SET(irisu->flags, Ichigo::EF_ON_GROUND) && irisu->velocity.x != 0.0f) irisu_state = WALK;
             else if (dive_button_down_this_frame) {

@@ -60,7 +60,7 @@ if [ "${1}" = "run" ]; then
 fi
 
 if [ "${1}" = "build" ]; then
-    rm build/objects/*.o
+    rm -f build/objects/*.o
     if [ "$OS" = "win32" ]; then
         ./thirdparty/tools/ctime.exe -begin ./build/timings.ctm
         if [ "$MODE" = "debug" ]; then

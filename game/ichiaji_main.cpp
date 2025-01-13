@@ -147,7 +147,7 @@ static void spawn_gert(Vec2<f32> pos) {
     enemy->sprite = gert_sprite;
 }
 
-static Ichigo::EntityID spawn_coin(Vec2<f32> pos) {
+[[maybe_unused]] static Ichigo::EntityID spawn_coin(Vec2<f32> pos) {
     Ichigo::Entity *coin = Ichigo::spawn_entity();
 
     std::strcpy(coin->name, "coin");
