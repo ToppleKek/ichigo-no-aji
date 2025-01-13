@@ -19,7 +19,7 @@ EMBED("assets/music/song.mp3", test_song)
 EMBED("assets/music/coin.mp3", coin_sound_mp3)
 
 // Real tiles
-EMBED("assets/tiles.png", tileset_png)
+EMBED("assets/overworld_tiles.png", tileset_png)
 
 // Levels
 #include "levels/level0.ichigolvl"
@@ -214,6 +214,15 @@ void Ichigo::Game::init() {
         }
     }
 
+    // == Load level backgrounds ==
+    for (u32 i = 0; i < Level1::level.background_descriptors.size; ++i) {
+        auto &descriptor = Level1::level.background_descriptors[i];
+        Ichigo::TextureID background_texture_id = Ichigo::load_texture(descriptor.png_data, descriptor.png_size);
+        for (u32 j = 0; j < descriptor.backgrounds.size; ++j) {
+            descriptor.backgrounds[j].texture_id = background_texture_id;
+        }
+    }
+
     // Title screen level
     Ichiaji::current_level = Level0::level;
 
@@ -226,8 +235,19 @@ void Ichigo::Game::init() {
 
 static void change_level(Ichiaji::Level level) {
     Ichigo::kill_all_entities();
+    std::memset(&Ichigo::game_state.background_layers, 0, sizeof(Ichigo::game_state.background_layers));
+
     Ichiaji::current_level = level;
     Ichigo::set_tilemap(Ichiaji::current_level.tilemap_data, tileset_sheet);
+
+    // == Setup backgrounds ==
+    Ichigo::game_state.background_colour = level.background_colour;
+    for (u32 i = 0; i < level.background_descriptors.size; ++i) {
+        const auto &descriptor = level.background_descriptors[i];
+        for (u32 j = 0; j < descriptor.backgrounds.size && j < ICHIGO_MAX_BACKGROUNDS; ++j) {
+            Ichigo::game_state.background_layers[j] = descriptor.backgrounds[j];
+        }
+    }
 
     // == Spawn entities in world ==
     for (u32 i = 0; i < Ichiaji::current_level.entity_descriptors.size; ++i) {
@@ -261,17 +281,6 @@ static void change_level(Ichiaji::Level level) {
 }
 
 static void init_game() {
-    Ichigo::game_state.background_colour = {138.0f / 255.0f, 200.0f / 255.0f, 255.0f / 255.0f, 1.0f};
-    Ichigo::game_state.background_layers[0].texture_id     = test_bg_texture_id;
-    Ichigo::game_state.background_layers[0].flags          = Ichigo::BG_REPEAT_X;
-    Ichigo::game_state.background_layers[0].start_position = {0.0f, 3.5f};
-    Ichigo::game_state.background_layers[0].scroll_speed   = {0.1f, 0.5f};
-
-    Ichigo::game_state.background_layers[1].texture_id     = test_bg_texture_id;
-    Ichigo::game_state.background_layers[1].flags          = Ichigo::BG_REPEAT_X;
-    Ichigo::game_state.background_layers[1].start_position = {0.0f, 4.5f};
-    Ichigo::game_state.background_layers[1].scroll_speed   = {0.2f, 0.5f};
-
     // == SETUP CURRENT LEVEL ==
     change_level(Level1::level);
 
@@ -289,9 +298,6 @@ static void deinit_game() {
     Ichigo::Mixer::cancel_audio(game_bgm);
 
     std::memset(coins, 0, sizeof(coins));
-
-    Ichigo::game_state.background_colour = {};
-    std::memset(&Ichigo::game_state.background_layers, 0, sizeof(Ichigo::game_state.background_layers));
 
     change_level(Level0::level);
 }

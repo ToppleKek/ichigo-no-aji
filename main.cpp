@@ -853,21 +853,24 @@ static void frame_render() {
             Ichigo::Texture &bg_texture = Ichigo::Internal::textures[Ichigo::game_state.background_layers[i].texture_id];
 
             // TODO: BG_REPEAT_Y
+            // FIXME: start_position is kind of a lie.
             if (FLAG_IS_SET(bg.flags, Ichigo::BG_REPEAT_X)) {
-                f32 width_metres = pixels_to_metres(bg_texture.width);
-                f32 beginning_of_first_texture_in_screen = bg.start_position.x + calculate_background_start_position(-get_translation2d(Ichigo::Camera::transform).x, width_metres, bg.scroll_speed.x);
-                f32 end_of_first_texture_in_screen = beginning_of_first_texture_in_screen + width_metres;
+                auto camera_offset                       = -1.0f * get_translation2d(Ichigo::Camera::transform);
+                f32 width_metres                         = pixels_to_metres(bg_texture.width);
+                f32 beginning_of_first_texture_in_screen = bg.start_position.x + calculate_background_start_position(camera_offset.x, width_metres, bg.scroll_speed.x);
+                f32 y_of_first_texture                   = bg.start_position.y + camera_offset.y * (1.0f - bg.scroll_speed.y);
+                f32 end_of_first_texture_in_screen       = beginning_of_first_texture_in_screen + width_metres;
 
                 world_render_textured_rect(
                     {
-                        {beginning_of_first_texture_in_screen, bg.start_position.y + Ichigo::Camera::offset.y * bg.scroll_speed.y},
+                        {beginning_of_first_texture_in_screen, bg.start_position.y + y_of_first_texture},
                         width_metres, pixels_to_metres(bg_texture.height)
                     },
                     bg.texture_id
                 );
                 world_render_textured_rect(
                     {
-                        {end_of_first_texture_in_screen, bg.start_position.y + Ichigo::Camera::offset.y * bg.scroll_speed.y},
+                        {end_of_first_texture_in_screen, bg.start_position.y + y_of_first_texture},
                         width_metres, pixels_to_metres(bg_texture.height)
                     },
                     bg.texture_id

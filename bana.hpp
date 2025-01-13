@@ -198,6 +198,11 @@ struct Array {
         assert(i < size);
         return data[i];
     }
+
+    inline const T &operator[](isize i) const {
+        assert(i < size);
+        return data[i];
+    }
 };
 
 template<typename T>
@@ -213,6 +218,11 @@ struct FixedArray {
     }
 
     inline T &operator[](isize i) {
+        assert(i < size);
+        return data[i];
+    }
+
+    inline const T &operator[](isize i) const {
         assert(i < size);
         return data[i];
     }
@@ -312,6 +322,7 @@ void fixed_array_copy(FixedArray<T> &dst, FixedArray<T> &src) {
 }
 
 #define MAKE_STACK_ARRAY(NAME, TYPE, CAPACITY) Bana::FixedArray<TYPE> NAME = { (TYPE *) platform_alloca(CAPACITY * sizeof(TYPE)), CAPACITY, 0 }
+#define INLINE_INIT_OF_STATIC_ARRAY(STATIC_ARRAY) { STATIC_ARRAY, ARRAY_LEN(STATIC_ARRAY), ARRAY_LEN(STATIC_ARRAY) }
 #define MAKE_GLOBAL_STATIC_ARRAY(NAME, TYPE, CAPACITY) static TYPE NAME##_DATA[CAPACITY]; Bana::FixedArray<TYPE> NAME = { NAME##_DATA, CAPACITY, 0 }
 
 struct BufferReader {
