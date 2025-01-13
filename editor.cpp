@@ -87,6 +87,7 @@ private:
 
 static UndoStack undo_stack(512);
 static bool wants_to_save = false;
+static bool wants_to_reset = false;
 static bool tileset_editor_is_open = false;
 static Ichigo::TileID tiles_working_copy[ICHIGO_MAX_TILEMAP_SIZE] = {};
 static Ichigo::TileInfo tile_info_working_copy[ICHIGO_MAX_UNIQUE_TILES] = {};
@@ -210,6 +211,15 @@ static void rebuild_tilemap() {
     }
 }
 
+static void reset_tilemap() {
+    std::memset(tilemap_working_copy.tiles, 0, ICHIGO_MAX_TILEMAP_SIZE * sizeof(Ichigo::TileID));
+
+    Ichigo::Internal::current_tilemap.width  = 1;
+    Ichigo::Internal::current_tilemap.height = 1;
+    tilemap_working_copy.width               = 1;
+    tilemap_working_copy.height              = 1;
+}
+
 // Push a tilemap resize action onto the undo stack and apply the action.
 static void resize_tilemap(u16 new_width, u16 new_height) {
     EditorAction action;
@@ -271,6 +281,10 @@ void Ichigo::Editor::render_ui() {
         ImGui::OpenPopup("Save as");
     }
 
+    if (wants_to_reset && !wants_to_save) {
+        ImGui::OpenPopup("Reset tilemap");
+    }
+
     if (ImGui::BeginPopupModal("Save as", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
         static char path_buffer[256];
         ImGui::InputText("Path", path_buffer, ARRAY_LEN(path_buffer));
@@ -284,6 +298,24 @@ void Ichigo::Editor::render_ui() {
 
         if (ImGui::Button("Cancel")) {
             wants_to_save = false;
+            ImGui::CloseCurrentPopup();
+        }
+
+        ImGui::EndPopup();
+    }
+
+    if (ImGui::BeginPopupModal("Reset tilemap", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+        ImGui::Text("Really reset the tilemap?");
+        if (ImGui::Button("Reset")) {
+            reset_tilemap();
+            wants_to_reset = false;
+            ImGui::CloseCurrentPopup();
+        }
+
+        ImGui::SameLine();
+
+        if (ImGui::Button("Cancel")) {
+            wants_to_reset = false;
             ImGui::CloseCurrentPopup();
         }
 
@@ -527,6 +559,8 @@ void Ichigo::Editor::update() {
         rebuild_tilemap();
     } else if (Internal::keyboard_state[IK_LEFT_CONTROL].down && Internal::keyboard_state[IK_S].down_this_frame) {
         wants_to_save = true;
+    } else if (Internal::keyboard_state[IK_LEFT_CONTROL].down && Internal::keyboard_state[IK_N].down_this_frame) {
+        wants_to_reset = true;
     }
 
     // Mouse panning. Drag with the middle mouse button to pan the camera.
