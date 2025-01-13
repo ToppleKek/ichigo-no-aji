@@ -412,21 +412,54 @@ void Ichigo::Editor::render_ui() {
     if (tileset_editor_is_open) {
         static TileID tile_being_edited = 0;
 
-        ImGui::Begin("Tileset", nullptr);
-        if (ImGui::BeginCombo("Select tile", tilemap_working_copy.tile_info[tile_being_edited].name)) {
-            for (u32 i = 0; i < tilemap_working_copy.tile_info_count; ++i) {
-                if (i == tile_being_edited) {
-                    ImGui::SetItemDefaultFocus();
+        ImGui::Begin("Tileset", &tileset_editor_is_open, ImGuiWindowFlags_MenuBar);
+
+        if (ImGui::BeginMenuBar()) {
+            if (ImGui::BeginMenu("Tiles")) {
+                if (ImGui::MenuItem("New tile")) {
+                    tile_being_edited = tilemap_working_copy.tile_info_count;
+                    ++tilemap_working_copy.tile_info_count;
+                    // FIXME: Hack. See other notes about this.
+                    Ichigo::Internal::current_tilemap.tile_info_count = tilemap_working_copy.tile_info_count;
+
+                    std::strcpy(tilemap_working_copy.tile_info[tile_being_edited].name, "new");
                 }
 
-                if (ImGui::Selectable(tilemap_working_copy.tile_info[i].name, i == tile_being_edited)) {
-                    tile_being_edited = i;
+                // TODO
+                if (ImGui::MenuItem("Remap tile")) {
+
+                }
+
+                ImGui::EndMenu();
+            }
+
+            ImGui::EndMenuBar();
+        }
+
+        ImGui::BeginChild("##left", ImVec2(200, 0), ImGuiChildFlags_Border | ImGuiChildFlags_ResizeX);
+        if (ImGui::BeginListBox("##select", ImVec2(-FLT_MIN, -FLT_MIN))) {
+            ImGuiListClipper clipper;
+            clipper.Begin(tilemap_working_copy.tile_info_count);
+
+            while (clipper.Step()) {
+                for (u32 i = clipper.DisplayStart; i < clipper.DisplayEnd; ++i) {
+                    if (i == tile_being_edited) {
+                        ImGui::SetItemDefaultFocus();
+                    }
+
+                    if (ImGui::Selectable(tilemap_working_copy.tile_info[i].name, i == tile_being_edited)) {
+                        tile_being_edited = i;
+                    }
                 }
             }
 
-            ImGui::EndCombo();
+            ImGui::EndListBox();
         }
 
+        ImGui::EndChild();
+        ImGui::SameLine();
+
+        ImGui::BeginChild("##right", ImVec2(0, 0));
         TileInfo &current_tile_info = tilemap_working_copy.tile_info[tile_being_edited];
 
         i32 i32_one = 1;
@@ -435,27 +468,16 @@ void Ichigo::Editor::render_ui() {
         // FLAGS
         bool tangible = FLAG_IS_SET(current_tile_info.flags, TileFlag::TANGIBLE);
 
-        ImGui::InputText("Name", current_tile_info.name, ARRAY_LEN(current_tile_info.name));
-        ImGui::InputScalar("Friction", ImGuiDataType_Float, &current_tile_info.friction, &f32_one, nullptr, "%f");
-        ImGui::Checkbox("FLAG Tangible", &tangible);
+        ImGui::InputText("Name",            current_tile_info.name, ARRAY_LEN(current_tile_info.name));
+        ImGui::InputScalar("Friction",      ImGuiDataType_Float, &current_tile_info.friction, &f32_one, nullptr, "%f");
+        ImGui::Checkbox("FLAG Tangible",    &tangible);
         ImGui::InputScalar("Cell in sheet", ImGuiDataType_S32, &current_tile_info.cell, &i32_one, nullptr, "%d");
-        ImGui::Text("Tile ID: %u", tile_being_edited);
+        ImGui::Text("Tile ID: %u",          tile_being_edited);
 
         if (!tangible) CLEAR_FLAG(current_tile_info.flags, TileFlag::TANGIBLE);
         else           SET_FLAG(current_tile_info.flags, TileFlag::TANGIBLE);
 
-        if (ImGui::Button("New tile")) {
-            tile_being_edited = tilemap_working_copy.tile_info_count;
-            ++tilemap_working_copy.tile_info_count;
-            // FIXME: Hack. See other notes about this.
-            Ichigo::Internal::current_tilemap.tile_info_count = tilemap_working_copy.tile_info_count;
-
-            std::strcpy(tilemap_working_copy.tile_info[tile_being_edited].name, "new");
-        }
-
-        if (ImGui::Button("Close")) {
-            tileset_editor_is_open = false;
-        }
+        ImGui::EndChild();
 
         ImGui::End();
     }

@@ -138,6 +138,7 @@ if [ "${1}" = "shader" ]; then
 fi
 
 if [ "${1}" = "imgui" ]; then
+    rm -f ${IMGUI_OBJECT_FILES_DIRECTORY}/*.o
     for file in ${IMGUI_CXX_FILES[*]}; do
         echo $file
         clang++ ${file} ${CXX_FLAGS} ${CXX_FLAGS_IMGUI} -I ${INCLUDE} -c -o ${IMGUI_OBJECT_FILES_DIRECTORY}/$(basename ${file}).o &
