@@ -790,7 +790,7 @@ static void draw_info_log() {
         style.alignment = Ichigo::TextAlignment::CENTER;
         style.colour    = {0.0f, 0.0f, 0.0f, alpha};
 
-        Vec2<f32> pos = {SCREEN_TILE_WIDTH / 2.0f, 4.0f - (j * 0.5f)};
+        Vec2<f32> pos = {Ichigo::Camera::screen_tile_dimensions.x / 2.0f, 4.0f - (j * 0.5f)};
         render_text(pos, msg.data, msg.length, Ichigo::CoordinateSystem::CAMERA, style);
 
         style.colour = {0.9f, 0.9f, 0.9f, alpha};
@@ -833,15 +833,24 @@ static void frame_render() {
     i32 camera_uniform  = Ichigo::Internal::gl.glGetUniformLocation(texture_shader_program, "camera_transform");
     Ichigo::Internal::gl.glUniformMatrix4fv(camera_uniform, 1, GL_TRUE, (GLfloat *) &Ichigo::Camera::transform);
 
+    i32 screen_dimensions_uniform = Ichigo::Internal::gl.glGetUniformLocation(texture_shader_program, "screen_tile_dimensions");
+    Ichigo::Internal::gl.glUniform2f(screen_dimensions_uniform, (f32) Ichigo::Camera::screen_tile_dimensions.x, (f32) Ichigo::Camera::screen_tile_dimensions.y);
+
     Ichigo::Internal::gl.glUseProgram(text_shader_program);
 
     camera_uniform  = Ichigo::Internal::gl.glGetUniformLocation(text_shader_program, "camera_transform");
     Ichigo::Internal::gl.glUniformMatrix4fv(camera_uniform, 1, GL_TRUE, (GLfloat *) &Ichigo::Camera::transform);
 
+    screen_dimensions_uniform = Ichigo::Internal::gl.glGetUniformLocation(text_shader_program, "screen_tile_dimensions");
+    Ichigo::Internal::gl.glUniform2f(screen_dimensions_uniform, (f32) Ichigo::Camera::screen_tile_dimensions.x, (f32) Ichigo::Camera::screen_tile_dimensions.y);
+
     Ichigo::Internal::gl.glUseProgram(solid_colour_shader_program);
 
     camera_uniform = Ichigo::Internal::gl.glGetUniformLocation(solid_colour_shader_program, "camera_transform");
     Ichigo::Internal::gl.glUniformMatrix4fv(camera_uniform, 1, GL_TRUE, (GLfloat *) &Ichigo::Camera::transform);
+
+    screen_dimensions_uniform = Ichigo::Internal::gl.glGetUniformLocation(solid_colour_shader_program, "screen_tile_dimensions");
+    Ichigo::Internal::gl.glUniform2f(screen_dimensions_uniform, (f32) Ichigo::Camera::screen_tile_dimensions.x, (f32) Ichigo::Camera::screen_tile_dimensions.y);
 
     // == Background ==
     // Background colour
@@ -889,8 +898,8 @@ static void frame_render() {
     // == End background ==
 
     // == Tilemap ==
-    i64 row_count = SCREEN_TILE_HEIGHT + 1;
-    i64 col_count = SCREEN_TILE_WIDTH + 1;
+    i64 row_count = Ichigo::Camera::screen_tile_dimensions.y + 1;
+    i64 col_count = Ichigo::Camera::screen_tile_dimensions.x + 1;
 
     TexturedVertex *vertex_buffer = PUSH_ARRAY(Ichigo::game_state.transient_storage_arena, TexturedVertex, (row_count * col_count) * 4);
     u32            *index_buffer  = PUSH_ARRAY(Ichigo::game_state.transient_storage_arena, u32, (row_count * col_count) * 6);
@@ -904,8 +913,8 @@ static void frame_render() {
     Util::BufferBuilder<u32>            indices(index_buffer, MAX_TEXT_STRING_LENGTH * 6);
 
     // Build the tilemap draw data.
-    for (i64 row = (i64) Ichigo::Camera::offset.y; row < (i64) Ichigo::Camera::offset.y + SCREEN_TILE_HEIGHT + 1; ++row) {
-        for (i64 col = (i64) Ichigo::Camera::offset.x; col < (i64) Ichigo::Camera::offset.x + SCREEN_TILE_WIDTH + 1; ++col) {
+    for (i64 row = (i64) Ichigo::Camera::offset.y; row < (i64) Ichigo::Camera::offset.y + Ichigo::Camera::screen_tile_dimensions.y + 1; ++row) {
+        for (i64 col = (i64) Ichigo::Camera::offset.x; col < (i64) Ichigo::Camera::offset.x + Ichigo::Camera::screen_tile_dimensions.x + 1; ++col) {
             build_tile_draw_data({(u32) clamp(col, (i64) 0, (i64) UINT32_MAX), (u32) clamp(row, (i64) 0, (i64) UINT32_MAX)}, vertices, indices);
         }
     }
@@ -941,7 +950,7 @@ static void frame_render() {
         world_render_solid_colour_rect(
             {
                 {Ichigo::Camera::offset.x, Ichigo::Camera::offset.y},
-                std::fabsf(Ichigo::Camera::offset.x), SCREEN_TILE_HEIGHT
+                std::fabsf(Ichigo::Camera::offset.x), Ichigo::Camera::screen_tile_dimensions.y
             },
             {0.0f, 0.0f, 0.0f, 0.5f}
         );
@@ -951,7 +960,7 @@ static void frame_render() {
         world_render_solid_colour_rect(
             {
                 {Ichigo::Camera::offset.x < 0.0f ? 0.0f : Ichigo::Camera::offset.x, Ichigo::Camera::offset.y},
-                SCREEN_TILE_WIDTH, std::fabsf(Ichigo::Camera::offset.y)
+                Ichigo::Camera::screen_tile_dimensions.x, std::fabsf(Ichigo::Camera::offset.y)
             },
             {0.0f, 0.0f, 0.0f, 0.5f}
         );

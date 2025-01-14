@@ -231,6 +231,7 @@ void Ichigo::Game::init() {
     ui_coin_background_height_in_metres = pixels_to_metres(t.height);
 
     Ichigo::Camera::mode = Ichigo::Camera::Mode::MANUAL;
+    Ichigo::Camera::screen_tile_dimensions = {16.0f, 9.0f};
 }
 
 static void change_level(Ichiaji::Level level) {
@@ -443,7 +444,7 @@ void Ichigo::Game::update_and_render() {
                 .coordinate_system = CAMERA,
                 .string            = TL_STR(INFO_TEXT),
                 .string_length     = std::strlen(TL_STR(INFO_TEXT)),
-                .string_pos        = {SCREEN_TILE_WIDTH, SCREEN_TILE_HEIGHT - 0.1f},
+                .string_pos        = {Ichigo::Camera::screen_tile_dimensions.x, Ichigo::Camera::screen_tile_dimensions.y - 0.1f},
                 .text_style        = info_style
             };
 
@@ -454,7 +455,7 @@ void Ichigo::Game::update_and_render() {
                 .coordinate_system = CAMERA,
                 .string            = TL_STR(CREDIT_TEXT),
                 .string_length     = std::strlen(TL_STR(CREDIT_TEXT)),
-                .string_pos        = {0.0f, SCREEN_TILE_HEIGHT - 1.05f},
+                .string_pos        = {0.0f, Ichigo::Camera::screen_tile_dimensions.y - 1.05f},
                 .text_style        = credit_style
             };
 
@@ -475,7 +476,7 @@ void Ichigo::Game::update_and_render() {
                 .coordinate_system = CAMERA,
                 .string            = TL_STR(TITLE),
                 .string_length     = std::strlen(TL_STR(TITLE)),
-                .string_pos        = {SCREEN_TILE_WIDTH / 2.0f, SCREEN_TILE_HEIGHT / ichigo_lerp(6.0f, fade_in_t / FADE_IN_DURATION, 4.0f)},
+                .string_pos        = {Ichigo::Camera::screen_tile_dimensions.x / 2.0f, Ichigo::Camera::screen_tile_dimensions.y / ichigo_lerp(6.0f, fade_in_t / FADE_IN_DURATION, 4.0f)},
                 .text_style        = title_style
             };
 
@@ -515,7 +516,7 @@ void Ichigo::Game::update_and_render() {
                     .coordinate_system = CAMERA,
                     .string            = TL_STR(START_GAME),
                     .string_length     = std::strlen(TL_STR(START_GAME)),
-                    .string_pos        = {SCREEN_TILE_WIDTH / 2.0f, SCREEN_TILE_HEIGHT / 1.5f},
+                    .string_pos        = {Ichigo::Camera::screen_tile_dimensions.x / 2.0f, Ichigo::Camera::screen_tile_dimensions.y / 1.5f},
                     .text_style        = menu_item_style
                 };
 
@@ -530,7 +531,7 @@ void Ichigo::Game::update_and_render() {
 
                 menu_draw_cmd.string        = TL_STR(EXIT);
                 menu_draw_cmd.string_length = std::strlen(TL_STR(EXIT)),
-                menu_draw_cmd.string_pos    = {SCREEN_TILE_WIDTH / 2.0f, (SCREEN_TILE_HEIGHT / 1.5f) + 1.0f};
+                menu_draw_cmd.string_pos    = {Ichigo::Camera::screen_tile_dimensions.x / 2.0f, (Ichigo::Camera::screen_tile_dimensions.y / 1.5f) + 1.0f};
 
                 Ichigo::push_draw_command(menu_draw_cmd);
             }
@@ -582,7 +583,7 @@ void Ichigo::Game::update_and_render() {
                 .coordinate_system = CAMERA,
                 .string            = TL_STR(PAUSE),
                 .string_length     = std::strlen(TL_STR(PAUSE)),
-                .string_pos        = {SCREEN_TILE_WIDTH / 2.0f, SCREEN_TILE_HEIGHT / ichigo_lerp(6.0f, fade_t / PAUSE_MENU_FADE_DURATION, 5.5f)},
+                .string_pos        = {Ichigo::Camera::screen_tile_dimensions.x / 2.0f, Ichigo::Camera::screen_tile_dimensions.y / ichigo_lerp(6.0f, fade_t / PAUSE_MENU_FADE_DURATION, 5.5f)},
                 .text_style        = title_style
             };
 
@@ -600,7 +601,7 @@ void Ichigo::Game::update_and_render() {
                 .coordinate_system = CAMERA,
                 .string            = TL_STR(RESUME_GAME),
                 .string_length     = std::strlen(TL_STR(RESUME_GAME)),
-                .string_pos        = {SCREEN_TILE_WIDTH / 2.0f, SCREEN_TILE_HEIGHT / 1.5f},
+                .string_pos        = {Ichigo::Camera::screen_tile_dimensions.x / 2.0f, Ichigo::Camera::screen_tile_dimensions.y / 1.5f},
                 .text_style        = menu_item_style
             };
 
@@ -615,7 +616,7 @@ void Ichigo::Game::update_and_render() {
 
             menu_draw_cmd.string        = TL_STR(RETURN_TO_MENU);
             menu_draw_cmd.string_length = std::strlen(TL_STR(RETURN_TO_MENU)),
-            menu_draw_cmd.string_pos    = {SCREEN_TILE_WIDTH / 2.0f, (SCREEN_TILE_HEIGHT / 1.5f) + 1.0f};
+            menu_draw_cmd.string_pos    = {Ichigo::Camera::screen_tile_dimensions.x / 2.0f, (Ichigo::Camera::screen_tile_dimensions.y / 1.5f) + 1.0f};
 
             Ichigo::push_draw_command(menu_draw_cmd);
 
@@ -624,7 +625,7 @@ void Ichigo::Game::update_and_render() {
 
             menu_draw_cmd.string        = TL_STR(EXIT);
             menu_draw_cmd.string_length = std::strlen(TL_STR(EXIT)),
-            menu_draw_cmd.string_pos    = {SCREEN_TILE_WIDTH / 2.0f, (SCREEN_TILE_HEIGHT / 1.5f) + 2.0f};
+            menu_draw_cmd.string_pos    = {Ichigo::Camera::screen_tile_dimensions.x / 2.0f, (Ichigo::Camera::screen_tile_dimensions.y / 1.5f) + 2.0f};
 
             Ichigo::push_draw_command(menu_draw_cmd);
 

@@ -442,7 +442,7 @@ void Ichigo::Editor::render_ui() {
             clipper.Begin(tilemap_working_copy.tile_info_count);
 
             while (clipper.Step()) {
-                for (u32 i = clipper.DisplayStart; i < clipper.DisplayEnd; ++i) {
+                for (i32 i = clipper.DisplayStart; i < clipper.DisplayEnd; ++i) {
                     if (i == tile_being_edited) {
                         ImGui::SetItemDefaultFocus();
                     }
@@ -491,8 +491,8 @@ static Bana::Optional<Vec2<f32>> screen_space_to_camera_space(Vec2<i32> screen_s
     }
 
     Vec2<f32> camera_space = {
-        (f32) (SCREEN_TILE_WIDTH  * viewport_pos.x) / Ichigo::Internal::viewport_width,
-        (f32) (SCREEN_TILE_HEIGHT * viewport_pos.y) / Ichigo::Internal::viewport_height,
+        (f32) (Ichigo::Camera::screen_tile_dimensions.x * viewport_pos.x) / Ichigo::Internal::viewport_width,
+        (f32) (Ichigo::Camera::screen_tile_dimensions.y * viewport_pos.y) / Ichigo::Internal::viewport_height,
     };
 
     return {camera_space};

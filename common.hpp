@@ -21,8 +21,6 @@
 #endif
 
 // TODO: Make these configurable?
-#define SCREEN_TILE_WIDTH 16
-#define SCREEN_TILE_HEIGHT 9
 #define PIXELS_PER_METRE 32
 #define AUDIO_SAMPLE_RATE 44100
 #define AUDIO_CHANNEL_COUNT 2

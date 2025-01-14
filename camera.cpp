@@ -17,6 +17,7 @@ Ichigo::Camera::Mode Ichigo::Camera::mode{};
 
 static Ichigo::EntityID follow_target{};
 Vec2<f32> Ichigo::Camera::manual_focus_point{};
+Vec2<f32> Ichigo::Camera::screen_tile_dimensions{};
 
 // Follow some entity by centering the camera on it.
 void Ichigo::Camera::follow(Ichigo::EntityID entity_id) {
@@ -49,8 +50,8 @@ void Ichigo::Camera::update() {
                 transform = m4identity();
             } else {
                 offset = {
-                    clamp(following->col.pos.x - (SCREEN_TILE_WIDTH / 2.0f), 0.0f, (f32) Internal::current_tilemap.width - SCREEN_TILE_WIDTH),
-                    clamp(following->col.pos.y - (SCREEN_TILE_HEIGHT / 2.0f), 0.0f, (f32) Internal::current_tilemap.height - SCREEN_TILE_HEIGHT)
+                    clamp(following->col.pos.x - (Camera::screen_tile_dimensions.x / 2.0f), 0.0f, (f32) Internal::current_tilemap.width - Camera::screen_tile_dimensions.x),
+                    clamp(following->col.pos.y - (Camera::screen_tile_dimensions.y / 2.0f), 0.0f, (f32) Internal::current_tilemap.height - Camera::screen_tile_dimensions.y)
                 };
                 transform = translate2d({-offset.x, -offset.y});
             }

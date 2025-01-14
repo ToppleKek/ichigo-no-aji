@@ -28,6 +28,7 @@ enum IrisuState {
 };
 
 #define IRISU_DEFAULT_GRAVITY 14.0f
+#define IRISU_FALL_GRAVITY (IRISU_DEFAULT_GRAVITY * 1.75f)
 #define IRISU_MAX_JUMP_T 0.20f
 #define DIVE_X_VELOCITY 2.0f
 #define DIVE_Y_VELOCITY 4.0f
@@ -237,6 +238,7 @@ void Irisu::update(Ichigo::Entity *irisu) {
     bool dive_button_down_this_frame = Ichigo::Internal::keyboard_state[Ichigo::IK_Z].down_this_frame || Ichigo::Internal::gamepad.lb.down_this_frame || Ichigo::Internal::gamepad.rb.down_this_frame;
     bool up_button_down_this_frame   = Ichigo::Internal::keyboard_state[Ichigo::IK_UP].down_this_frame || Ichigo::Internal::gamepad.up.down_this_frame;
 
+    irisu->gravity = IRISU_DEFAULT_GRAVITY;
     switch (irisu_state) {
         case IDLE: {
             maybe_enter_animation(irisu, irisu_idle);
@@ -290,6 +292,7 @@ void Irisu::update(Ichigo::Entity *irisu) {
 
         case JUMP: {
             maybe_enter_animation(irisu, irisu_jump);
+
             if      ( FLAG_IS_SET(irisu->flags, Ichigo::EF_ON_GROUND) && irisu->velocity.x == 0.0f && irisu->acceleration.x == 0.0f) irisu_state = IDLE;
             else if ( FLAG_IS_SET(irisu->flags, Ichigo::EF_ON_GROUND) && irisu->velocity.x != 0.0f) irisu_state = WALK;
             else if (!FLAG_IS_SET(irisu->flags, Ichigo::EF_ON_GROUND) && irisu->velocity.y > 0.0f)  irisu_state = FALL;
@@ -315,9 +318,7 @@ void Irisu::update(Ichigo::Entity *irisu) {
 
         case FALL: {
             maybe_enter_animation(irisu, irisu_fall);
-            irisu->gravity = IRISU_DEFAULT_GRAVITY * 1.75f;
-
-            if (FLAG_IS_SET(irisu->flags, Ichigo::EF_ON_GROUND)) irisu->gravity = IRISU_DEFAULT_GRAVITY;
+            irisu->gravity = IRISU_FALL_GRAVITY;
 
             if      (FLAG_IS_SET(irisu->flags, Ichigo::EF_ON_GROUND) && irisu->velocity.x == 0.0f && irisu->acceleration.x == 0.0f) irisu_state = IDLE;
             else if (FLAG_IS_SET(irisu->flags, Ichigo::EF_ON_GROUND) && irisu->velocity.x != 0.0f) irisu_state = WALK;
@@ -333,6 +334,8 @@ void Irisu::update(Ichigo::Entity *irisu) {
 
         case DIVE: {
             maybe_enter_animation(irisu, irisu_dive);
+            irisu->gravity = IRISU_FALL_GRAVITY;
+
             if (FLAG_IS_SET(irisu->flags, Ichigo::EF_ON_GROUND)) {
                 irisu_state = LAY_DOWN;
                 maybe_enter_animation(irisu, irisu_lay_down);
