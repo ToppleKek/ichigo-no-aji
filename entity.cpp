@@ -276,16 +276,16 @@ Ichigo::EntityMoveResult Ichigo::move_entity_in_world(Ichigo::Entity *entity) {
     // Make 4 move attempts.
     for (u32 i = 0; i < 4 && t_remaining > 0.0f; ++i) {
         // Calculate which tiles are theoretically reachable by the movement vector so that the whole tilemap doesn't need to be checked.
-        u32 max_tile_y = std::ceil(MAX(potential_next_col.pos.y + entity->col.h, entity->col.pos.y + entity->col.h));
-        u32 max_tile_x = std::ceil(MAX(potential_next_col.pos.x + entity->col.w, entity->col.pos.x + entity->col.w));
-        u32 min_tile_y = MIN(potential_next_col.pos.y, entity->col.pos.y);
-        u32 min_tile_x = MIN(potential_next_col.pos.x, entity->col.pos.x);
+        i32 max_tile_y = std::ceil(MAX(potential_next_col.pos.y + entity->col.h, entity->col.pos.y + entity->col.h));
+        i32 max_tile_x = std::ceil(MAX(potential_next_col.pos.x + entity->col.w, entity->col.pos.x + entity->col.w));
+        i32 min_tile_y = MIN(potential_next_col.pos.y, entity->col.pos.y);
+        i32 min_tile_x = MIN(potential_next_col.pos.x, entity->col.pos.x);
         f32 best_t = 1.0f;
         Vec2<f32> wall_normal{};
         Vec2<f32> wall_position{};
 
-        for (u32 tile_y = min_tile_y; tile_y <= max_tile_y; ++tile_y) {
-            for (u32 tile_x = min_tile_x; tile_x <= max_tile_x; ++tile_x) {
+        for (i32 tile_y = min_tile_y; tile_y <= max_tile_y; ++tile_y) {
+            for (i32 tile_x = min_tile_x; tile_x <= max_tile_x; ++tile_x) {
                 const TileInfo &tile_info = Internal::current_tilemap.tile_info[Ichigo::tile_at({tile_x, tile_y})];
 
                 if (FLAG_IS_SET(tile_info.flags, TileFlag::TANGIBLE)) {
@@ -389,8 +389,8 @@ Ichigo::EntityMoveResult Ichigo::move_entity_in_world(Ichigo::Entity *entity) {
 
     // Check if the entity is standing on anything. If it isn't anymore, mark it as airborne.
     if (FLAG_IS_SET(entity->flags, Ichigo::EntityFlag::EF_ON_GROUND)) {
-        entity->left_standing_tile  = { (u32) entity->col.pos.x, (u32) (entity->col.pos.y + entity->col.h) + 1 };
-        entity->right_standing_tile = { (u32) (entity->col.pos.x + entity->col.w), (u32) (entity->col.pos.y + entity->col.h) + 1 };
+        entity->left_standing_tile  = { (i32) entity->col.pos.x, (i32) (entity->col.pos.y + entity->col.h) + 1 };
+        entity->right_standing_tile = { (i32) (entity->col.pos.x + entity->col.w), (i32) (entity->col.pos.y + entity->col.h) + 1 };
         if (Ichigo::tile_at(entity->left_standing_tile) == ICHIGO_AIR_TILE && Ichigo::tile_at(entity->right_standing_tile) == ICHIGO_AIR_TILE) {
             result = BECAME_AIRBORNE;
             CLEAR_FLAG(entity->flags, Ichigo::EntityFlag::EF_ON_GROUND);
@@ -454,8 +454,8 @@ void Ichigo::EntityControllers::patrol_controller(Entity *entity) {
 
     Vec2<f32> projected_next_pos = calculate_projected_next_position(entity);
 
-    Vec2<u32> projected_left_standing_tile  = { (u32) projected_next_pos.x, (u32) (projected_next_pos.y + entity->col.h) + 1 };
-    Vec2<u32> projected_right_standing_tile = { (u32) (projected_next_pos.x + entity->col.w), (u32) (projected_next_pos.y + entity->col.h) + 1 };
+    Vec2<i32> projected_left_standing_tile  = { (i32) projected_next_pos.x, (i32) (projected_next_pos.y + entity->col.h) + 1 };
+    Vec2<i32> projected_right_standing_tile = { (i32) (projected_next_pos.x + entity->col.w), (i32) (projected_next_pos.y + entity->col.h) + 1 };
 
     const TileInfo &left_info  = Internal::current_tilemap.tile_info[Ichigo::tile_at(projected_left_standing_tile)];
     const TileInfo &right_info = Internal::current_tilemap.tile_info[Ichigo::tile_at(projected_right_standing_tile)];

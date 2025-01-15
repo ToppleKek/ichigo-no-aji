@@ -467,6 +467,11 @@ static LRESULT window_proc(HWND window, u32 msg, WPARAM wparam, LPARAM lparam) {
         return 0;
     } break;
 
+    case WM_MOUSEWHEEL: {
+        Ichigo::Internal::mouse.scroll_wheel_delta_this_frame = (f32) GET_WHEEL_DELTA_WPARAM(wparam) / (f32) WHEEL_DELTA;
+        return 0;
+    } break;
+
 #define SET_MOUSE_BTN_DOWN(BTN)                              \
     do {                                                     \
         Ichigo::Internal::mouse.BTN.down_this_frame = true;  \
@@ -845,6 +850,7 @@ i32 WinMain(HINSTANCE instance, [[maybe_unused]] HINSTANCE prev_instance, [[mayb
         RESET_MOUSE_BTN_STATE(middle_button);
         RESET_MOUSE_BTN_STATE(button4);
         RESET_MOUSE_BTN_STATE(button5);
+        Ichigo::Internal::mouse.scroll_wheel_delta_this_frame = 0.0f;
 
 #undef RESET_MOUSE_BTN_STATE
 

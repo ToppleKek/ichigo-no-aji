@@ -214,35 +214,6 @@ struct IchigoCircularStack {
     T *data;
 };
 
-template<typename T>
-struct Optional {
-    bool has_value = false;
-    T value;
-};
-
-template<typename T>
-struct BufferBuilder {
-    BufferBuilder(T *buffer, usize count) {
-        capacity    = count;
-        data        = buffer;
-        size        = 0;
-    }
-
-    void append(T *items, usize count) {
-        assert(size + count <= capacity);
-        std::memcpy(&data[size], items, count * sizeof(T));
-        size += count;
-    }
-
-    void append(T item) {
-        append(&item, 1);
-    }
-
-    T *data;
-    usize size;
-    usize capacity;
-};
-
 char *json_string_serialize(const char *json_string);
 void json_return_serialized_string(char *json_string);
 char *strcat_escape_quotes(char *dest, const char *source);

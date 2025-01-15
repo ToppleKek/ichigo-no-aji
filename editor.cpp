@@ -12,6 +12,9 @@
 #include "ichigo.hpp"
 #include "thirdparty/imgui/imgui.h"
 
+#define MAX_CAMERA_ZOOM 4.0f
+#define MIN_CAMERA_ZOOM 0.3f
+
 enum ActionType {
     FILL,
     RESIZE_TILEMAP,
@@ -92,6 +95,8 @@ static bool tileset_editor_is_open = false;
 static Ichigo::TileID tiles_working_copy[ICHIGO_MAX_TILEMAP_SIZE] = {};
 static Ichigo::TileInfo tile_info_working_copy[ICHIGO_MAX_UNIQUE_TILES] = {};
 static Ichigo::Tilemap saved_tilemap;
+static Vec2<f32> saved_screen_tile_dimensions = {};
+static f32 zoom_scale = 1.0f;
 
 // The working copy of the tilemap. This copy is edited by the editor, and then copied back to the engine when you exit the editor (in before_close()).
 static Ichigo::Tilemap tilemap_working_copy = {
@@ -255,6 +260,13 @@ void Ichigo::Editor::render_ui() {
     ImGui::SetNextWindowSize({Ichigo::Internal::window_width * 0.2f, (f32) Ichigo::Internal::window_height});
     ImGui::Begin("Editor", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse);
 
+    if (ImGui::CollapsingHeader("Camera", ImGuiTreeNodeFlags_DefaultOpen)) {
+        ImGui::SliderFloat("Zoom", &zoom_scale, MIN_CAMERA_ZOOM, MAX_CAMERA_ZOOM, "%2fx");
+        if (ImGui::Button("Reset zoom")) {
+            zoom_scale = 1.0f;
+        }
+    }
+
     if (ImGui::CollapsingHeader("Tilemap", ImGuiTreeNodeFlags_DefaultOpen)) {
         ImGui::Text("Current size: %ux%u", Internal::current_tilemap.width, Internal::current_tilemap.height);
         ImGui::InputText("width", tilemap_w_text, ARRAY_LEN(tilemap_w_text), ImGuiInputTextFlags_CharsDecimal);
@@ -381,7 +393,7 @@ void Ichigo::Editor::render_ui() {
         if (selected_region.w == 1 && selected_region.h == 1) {
             if (ImGui::CollapsingHeader("Selected Tile", ImGuiTreeNodeFlags_DefaultOpen)) {
                 Vec2<i32> selected_tile     = selected_region.pos;
-                TileID tile                 = Ichigo::tile_at(vector_cast<u32>(selected_tile));
+                TileID tile                 = Ichigo::tile_at(selected_tile);
                 TileInfo &current_tile_info = Internal::current_tilemap.tile_info[tile];
 
                 i32 i32_one = 1;
@@ -515,14 +527,14 @@ static Bana::Optional<Vec2<f32>> screen_space_to_world_space(Vec2<i32> screen_sp
     return {world_space};
 }
 
-static Bana::Optional<Vec2<u32>> tile_at_mouse_coordinate(Vec2<i32> mouse_coord) {
+static Bana::Optional<Vec2<i32>> tile_at_mouse_coordinate(Vec2<i32> mouse_coord) {
     auto ws = screen_space_to_world_space(mouse_coord);
 
     if (ws.has_value) {
         Vec2<f32> world_space = ws.value;
 
         // The tile coord is just the world space coord of the mouse truncated towards 0
-        return {vector_cast<u32>(world_space)};
+        return {vector_cast<i32>(world_space)};
     }
 
     return {};
@@ -530,6 +542,11 @@ static Bana::Optional<Vec2<u32>> tile_at_mouse_coordinate(Vec2<i32> mouse_coord)
 
 #define BASE_CAMERA_SPEED 10.0f
 void Ichigo::Editor::update() {
+    zoom_scale += Ichigo::Internal::mouse.scroll_wheel_delta_this_frame * 0.05f;
+    zoom_scale = clamp(zoom_scale, MIN_CAMERA_ZOOM, MAX_CAMERA_ZOOM);
+    Ichigo::Camera::screen_tile_dimensions = saved_screen_tile_dimensions * 1.0f / zoom_scale;
+
+
     f32 camera_speed = BASE_CAMERA_SPEED;
 
     // Triple the camera speed if shift is held.
@@ -605,13 +622,13 @@ void Ichigo::Editor::update() {
     }
 
     // Tile selection.
-    static Vec2<u32> mouse_down_tile;
+    static Vec2<i32> mouse_down_tile;
     if (Internal::mouse.left_button.down_this_frame) {
         auto t = tile_at_mouse_coordinate(Internal::mouse.pos);
         if (t.has_value) {
-            Vec2<u32> tile_coord = t.value;
+            Vec2<i32> tile_coord = t.value;
             mouse_down_tile = tile_coord;
-            if (tile_coord.x < Internal::current_tilemap.width && tile_coord.y < Internal::current_tilemap.height) {
+            if (tile_coord.x < (i32) Internal::current_tilemap.width && tile_coord.y < (i32) Internal::current_tilemap.height) {
                 tiles_selected  = true;
                 selected_region = {vector_cast<i32>(tile_coord), 1, 1};
             } else {
@@ -656,6 +673,8 @@ void Ichigo::Editor::update() {
 
 // Run before the tilemap editor opens. Copy the current tilemap information to our working copy.
 void Ichigo::Editor::before_open() {
+    saved_screen_tile_dimensions = Ichigo::Camera::screen_tile_dimensions;
+
     // TODO: We can use this to clear all changes as well. It is just used to restore the original current_tilemap tiles pointer.
     std::memcpy(&saved_tilemap, &Internal::current_tilemap, sizeof(Tilemap));
 
@@ -673,6 +692,8 @@ void Ichigo::Editor::before_open() {
 
 // Run before the tilemap editor closes. Copy the working copy data to the current tilemap.
 void Ichigo::Editor::before_close() {
+    Ichigo::Camera::screen_tile_dimensions    = saved_screen_tile_dimensions;
+
     Internal::current_tilemap.width           = tilemap_working_copy.width;
     Internal::current_tilemap.height          = tilemap_working_copy.height;
     Internal::current_tilemap.tile_info       = tilemap_working_copy.tile_info;

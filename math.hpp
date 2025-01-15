@@ -48,6 +48,10 @@ struct Vec2 {
         return { x * rhs, y * rhs };
     }
 
+    Vec2<T> operator/(const T rhs) {
+        return { x / rhs, y / rhs };
+    }
+
     Vec2<T> operator*(const Vec2<T> rhs) {
         return { x * rhs.x, y * rhs.y };
     }

@@ -149,6 +149,7 @@ struct Gamepad {
 
 struct Mouse {
     Vec2<i32> pos;
+    f32 scroll_wheel_delta_this_frame;
 
     KeyState left_button;
     KeyState middle_button;
@@ -280,7 +281,7 @@ void set_tilemap(Tilemap *tilemap);
 void set_tilemap(u8 *ichigo_tilemap_memory, SpriteSheet tileset_sheet);
 
 // Get the tile at the specified tile coordinate. Returns INVALID_TILE if the coordinate is out of range.
-u16 tile_at(Vec2<u32> tile_coord);
+u16 tile_at(Vec2<i32> tile_coord);
 
 // Push a draw command into the draw command buffer.
 void push_draw_command(DrawCommand draw_command);

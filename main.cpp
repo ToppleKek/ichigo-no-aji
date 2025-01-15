@@ -331,8 +331,8 @@ static void render_text(Vec2<f32> pos, const char *str, usize length, Ichigo::Co
     Vec2<f32>       current_pos   = {0.0f, 0.0f};
 
     // Construct a vertex and index buffer to upload to the GPU for rendering.
-    Util::BufferBuilder<TexturedVertex> vertices(vertex_buffer, MAX_TEXT_STRING_LENGTH * 4);
-    Util::BufferBuilder<u32>            indices(index_buffer, MAX_TEXT_STRING_LENGTH * 6);
+    Bana::BufferBuilder<TexturedVertex> vertices(vertex_buffer, MAX_TEXT_STRING_LENGTH * 4);
+    Bana::BufferBuilder<u32>            indices(index_buffer, MAX_TEXT_STRING_LENGTH * 6);
 
     const u8 *unsigned_str = (const u8 *) str;
     for (u32 i = 0; i < length;) {
@@ -687,15 +687,15 @@ void Ichigo::set_tilemap(u8 *ichigo_tilemap_memory, Ichigo::SpriteSheet tileset_
 // }
 
 #define INVALID_TILE UINT16_MAX
-Ichigo::TileID Ichigo::tile_at(Vec2<u32> tile_coord) {
-    if (!Internal::current_tilemap.tiles || tile_coord.x >= Internal::current_tilemap.width || tile_coord.x < 0 || tile_coord.y >= Internal::current_tilemap.height || tile_coord.y < 0)
+Ichigo::TileID Ichigo::tile_at(Vec2<i32> tile_coord) {
+    if (!Internal::current_tilemap.tiles || tile_coord.x >= (i32) Internal::current_tilemap.width || tile_coord.x < 0 || tile_coord.y >= (i32) Internal::current_tilemap.height || tile_coord.y < 0)
         return INVALID_TILE;
 
     return Internal::current_tilemap.tiles[tile_coord.y * Internal::current_tilemap.width + tile_coord.x];
 }
 
 // Build the vertex and index buffers for drawing one tile in the tilemap.
-static void build_tile_draw_data(Vec2<u32> tile_pos, Util::BufferBuilder<TexturedVertex> &vertices, Util::BufferBuilder<u32> &indices) {
+static void build_tile_draw_data(Vec2<i32> tile_pos, Bana::BufferBuilder<TexturedVertex> &vertices, Bana::BufferBuilder<u32> &indices) {
     Ichigo::TileID tile = Ichigo::tile_at(tile_pos);
 
     if (tile == INVALID_TILE) {
@@ -909,13 +909,15 @@ static void frame_render() {
     *overrun_flag = 0;
 #endif
 
-    Util::BufferBuilder<TexturedVertex> vertices(vertex_buffer, MAX_TEXT_STRING_LENGTH * 4);
-    Util::BufferBuilder<u32>            indices(index_buffer, MAX_TEXT_STRING_LENGTH * 6);
+    Bana::BufferBuilder<TexturedVertex> vertices(vertex_buffer, MAX_TEXT_STRING_LENGTH * 4);
+    Bana::BufferBuilder<u32>            indices(index_buffer, MAX_TEXT_STRING_LENGTH * 6);
 
+    i64 DEBUG_COUNT = 0;
     // Build the tilemap draw data.
-    for (i64 row = (i64) Ichigo::Camera::offset.y; row < (i64) Ichigo::Camera::offset.y + Ichigo::Camera::screen_tile_dimensions.y + 1; ++row) {
-        for (i64 col = (i64) Ichigo::Camera::offset.x; col < (i64) Ichigo::Camera::offset.x + Ichigo::Camera::screen_tile_dimensions.x + 1; ++col) {
-            build_tile_draw_data({(u32) clamp(col, (i64) 0, (i64) UINT32_MAX), (u32) clamp(row, (i64) 0, (i64) UINT32_MAX)}, vertices, indices);
+    for (i32 row = (i32) Ichigo::Camera::offset.y; row < (i32) Ichigo::Camera::offset.y + Ichigo::Camera::screen_tile_dimensions.y + 1; ++row) {
+        for (i32 col = (i32) Ichigo::Camera::offset.x; col < (i32) Ichigo::Camera::offset.x + Ichigo::Camera::screen_tile_dimensions.x + 1; ++col) {
+            ++DEBUG_COUNT;
+            build_tile_draw_data({col, row}, vertices, indices);
         }
     }
 
