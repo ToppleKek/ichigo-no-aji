@@ -898,8 +898,8 @@ static void frame_render() {
     // == End background ==
 
     // == Tilemap ==
-    i64 row_count = Ichigo::Camera::screen_tile_dimensions.y + 1;
-    i64 col_count = Ichigo::Camera::screen_tile_dimensions.x + 1;
+    i64 row_count = (i32) Ichigo::Camera::screen_tile_dimensions.y + 1;
+    i64 col_count = (i32) Ichigo::Camera::screen_tile_dimensions.x + 1;
 
     TexturedVertex *vertex_buffer = PUSH_ARRAY(Ichigo::game_state.transient_storage_arena, TexturedVertex, (row_count * col_count) * 4);
     u32            *index_buffer  = PUSH_ARRAY(Ichigo::game_state.transient_storage_arena, u32, (row_count * col_count) * 6);
@@ -914,14 +914,15 @@ static void frame_render() {
 
     i64 DEBUG_COUNT = 0;
     // Build the tilemap draw data.
-    for (i32 row = (i32) Ichigo::Camera::offset.y; row < (i32) Ichigo::Camera::offset.y + Ichigo::Camera::screen_tile_dimensions.y + 1; ++row) {
-        for (i32 col = (i32) Ichigo::Camera::offset.x; col < (i32) Ichigo::Camera::offset.x + Ichigo::Camera::screen_tile_dimensions.x + 1; ++col) {
+    for (i32 row = (i32) Ichigo::Camera::offset.y; row < (i32) Ichigo::Camera::offset.y + row_count; ++row) {
+        for (i32 col = (i32) Ichigo::Camera::offset.x; col < (i32) Ichigo::Camera::offset.x + col_count; ++col) {
             ++DEBUG_COUNT;
             build_tile_draw_data({col, row}, vertices, indices);
         }
     }
 
 #ifdef ICHIGO_DEBUG
+    assert(DEBUG_COUNT == row_count * col_count);
     if (*overrun_flag) {
         __builtin_debugtrap();
     }
