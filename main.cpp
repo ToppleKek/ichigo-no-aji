@@ -971,15 +971,23 @@ static void frame_render() {
     // == End editor out-of-bounds boxes ==
 
     // == Entities ==
+    Rect<f32> camera_rect = {
+        Ichigo::Camera::offset,
+        Ichigo::Camera::screen_tile_dimensions.x,
+        Ichigo::Camera::screen_tile_dimensions.y,
+    };
+
     for (u32 i = 1; i < Ichigo::Internal::entities.size; ++i) {
         Ichigo::Entity &entity = Ichigo::Internal::entities[i];
-        if (entity.id.index != 0) {
-            if (entity.render_proc)
+        if (entity.id.index != 0 && rectangles_intersect(camera_rect, entity.col)) {
+            if (entity.render_proc) {
                 entity.render_proc(&entity);
-            else
+            } else {
                 default_entity_render_proc(&entity);
+            }
         }
     }
+
     // == End entities ==
 
     // TODO: Render order? The player is now a part of the entity list. We could also skip rendering the player in the loop and render afterwards
