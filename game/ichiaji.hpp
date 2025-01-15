@@ -9,7 +9,7 @@ enum ProgramState {
     PAUSE,
 };
 
-enum EntityType {
+enum EntityType : u32 {
     ET_NOTHING,
     ET_PLAYER,
     ET_GERT,

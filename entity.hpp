@@ -83,6 +83,17 @@ struct Sprite {
     f32 elapsed_animation_frame_time;
 };
 
+enum EntityPropertyType {
+    I32,
+    U32,
+    F32,
+};
+
+struct EntityProperty {
+    char name[16];
+    EntityPropertyType type;
+};
+
 struct Entity {
     char name[8];
     EntityID id;
@@ -101,6 +112,7 @@ struct Entity {
     EntityUpdateProc *update_proc;
     EntityCollideProc *collide_proc;
     i64 user_data;
+    u32 user_type_id;
 };
 
 Entity *spawn_entity();

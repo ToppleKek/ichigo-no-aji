@@ -299,6 +299,9 @@ void init();
 void frame_begin();
 void update_and_render();
 void frame_end();
+Bana::FixedArray<Ichigo::EntityProperty> get_entity_type_information(u32 type_id);
+void set_entity_property_value(EntityID entity_id, EntityProperty property, void *data);
+void *get_entity_property_value(EntityID entity_id, EntityProperty property);
 }
 
 // Internal stuff. Generally okay to read from your game, maybe don't write to it unless you know what you're doing.
