@@ -238,7 +238,7 @@ static void world_render_textured_rect(Rect<f32> rect, Ichigo::TextureID texture
 }
 
 // Render a solid colour rectangle in worldspace.
-static void world_render_solid_colour_rect(Rect<f32> rect, Vec4<f32> colour) {
+void Ichigo::world_render_solid_colour_rect(Rect<f32> rect, Vec4<f32> colour) {
     Vec2<f32> draw_pos = { rect.pos.x, rect.pos.y };
     Vertex vertices[] = {
         {draw_pos.x, draw_pos.y, 0.0f},  // top left
@@ -321,7 +321,7 @@ f32 Ichigo::get_text_width(const char *str, usize length, Ichigo::TextStyle styl
     return width * pixels_to_metres(0.2f);
 }
 
-static void render_text(Vec2<f32> pos, const char *str, usize length, Ichigo::CoordinateSystem coordinate_system, Ichigo::TextStyle style) {
+void Ichigo::render_text(Vec2<f32> pos, const char *str, usize length, Ichigo::CoordinateSystem coordinate_system, Ichigo::TextStyle style) {
     assert(Util::utf8_char_count(str, length) < MAX_TEXT_STRING_LENGTH);
 
     // Use some transient memory temporarily :)
@@ -602,7 +602,7 @@ void default_entity_render_proc(Ichigo::Entity *entity) {
 
 skip_sprite_draw:
     if (DEBUG_draw_colliders) {
-        world_render_solid_colour_rect(entity->col, {1.0f, 0.2f, 0.2f, 0.6f});
+        Ichigo::world_render_solid_colour_rect(entity->col, {1.0f, 0.2f, 0.2f, 0.6f});
 
         Ichigo::TextStyle style;
         style.scale     = 0.5f;
@@ -612,7 +612,7 @@ skip_sprite_draw:
         usize name_len = std::strlen(entity->name);
         f32 text_width = get_text_width(entity->name, name_len, style);
         Vec2<f32> pos = entity->col.pos + Vec2<f32>{0.0f, -0.05f};
-        world_render_solid_colour_rect({pos + Vec2<f32>{0.0f, -0.15f}, text_width, 0.2f}, {0.0f, 0.0f, 0.0f, 0.8f});
+        Ichigo::world_render_solid_colour_rect({pos + Vec2<f32>{0.0f, -0.15f}, text_width, 0.2f}, {0.0f, 0.0f, 0.0f, 0.8f});
         render_text(pos, entity->name, name_len, Ichigo::CoordinateSystem::WORLD, style);
     }
 #endif
@@ -950,7 +950,7 @@ static void frame_render() {
 
     // == Editor out-of-bounds boxes ==
     if (Ichigo::Camera::offset.x < 0.0f) {
-        world_render_solid_colour_rect(
+        Ichigo::world_render_solid_colour_rect(
             {
                 {Ichigo::Camera::offset.x, Ichigo::Camera::offset.y},
                 std::fabsf(Ichigo::Camera::offset.x), Ichigo::Camera::screen_tile_dimensions.y
@@ -960,7 +960,7 @@ static void frame_render() {
     }
 
     if (Ichigo::Camera::offset.y < 0.0f) {
-        world_render_solid_colour_rect(
+        Ichigo::world_render_solid_colour_rect(
             {
                 {Ichigo::Camera::offset.x < 0.0f ? 0.0f : Ichigo::Camera::offset.x, Ichigo::Camera::offset.y},
                 Ichigo::Camera::screen_tile_dimensions.x, std::fabsf(Ichigo::Camera::offset.y)
@@ -1007,13 +1007,13 @@ static void frame_render() {
             case Ichigo::DrawCommandType::SOLID_COLOUR_RECT: {
                 switch (cmd.coordinate_system) {
                     case Ichigo::WORLD: {
-                        world_render_solid_colour_rect(cmd.rect, cmd.colour);
+                        Ichigo::world_render_solid_colour_rect(cmd.rect, cmd.colour);
                     } break;
 
                     case Ichigo::CAMERA: {
                         Rect<f32> draw_rect = cmd.rect;
                         draw_rect.pos = cmd.rect.pos - get_translation2d(Ichigo::Camera::transform);
-                        world_render_solid_colour_rect(draw_rect, cmd.colour);
+                        Ichigo::world_render_solid_colour_rect(draw_rect, cmd.colour);
                     } break;
 
                     case Ichigo::SCREEN: {
@@ -1062,6 +1062,10 @@ static void frame_render() {
     draw_info_log();
 
 #ifdef ICHIGO_DEBUG
+    if (program_mode == Ichigo::Internal::ProgramMode::EDITOR) {
+        Ichigo::Editor::render();
+    }
+
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 #endif
 
@@ -1119,6 +1123,11 @@ void Ichigo::Internal::do_frame() {
     // Toggle the debug menu when F3 is pressed.
     if (Ichigo::Internal::keyboard_state[Ichigo::IK_F3].down_this_frame) {
         show_debug_menu = !show_debug_menu;
+    }
+
+    // Hard reset the level when you press Ctrl + R
+    if (Ichigo::Internal::keyboard_state[Ichigo::IK_LEFT_CONTROL].down && Ichigo::Internal::keyboard_state[Ichigo::IK_R].down_this_frame) {
+        Ichigo::Game::hard_reset_level();
     }
 
     ImGui_ImplOpenGL3_NewFrame();

@@ -17,12 +17,6 @@ enum EntityType : u32 {
     ET_ENTRANCE,
 };
 
-struct EntityDescriptor {
-    EntityType type;
-    Vec2<f32> pos;
-    i64 data;
-};
-
 struct BackgroundPngDescriptor {
     usize png_size;
     u8 *png_data;
@@ -33,7 +27,7 @@ struct Level {
     u8 *tilemap_data;
     Vec4<f32> background_colour;
     Bana::FixedArray<Ichiaji::BackgroundPngDescriptor> background_descriptors;
-    Bana::FixedArray<Ichiaji::EntityDescriptor> entity_descriptors;
+    Bana::FixedArray<Ichigo::EntityDescriptor> entity_descriptors;
     Bana::FixedMap<i64, Vec2<f32>> entrance_map; // A map from entrance id (stored in the user data of the entity) to exit position.
 };
 

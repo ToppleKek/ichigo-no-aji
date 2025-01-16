@@ -83,15 +83,10 @@ struct Sprite {
     f32 elapsed_animation_frame_time;
 };
 
-enum EntityPropertyType {
-    I32,
-    U32,
-    F32,
-};
-
-struct EntityProperty {
-    char name[16];
-    EntityPropertyType type;
+struct EntityDescriptor {
+    u32 type;
+    Vec2<f32> pos;
+    i64 data;
 };
 
 struct Entity {

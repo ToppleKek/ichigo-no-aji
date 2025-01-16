@@ -110,7 +110,7 @@ static Ichigo::Tilemap tilemap_working_copy = {
 
 static bool tiles_selected                = false;
 static Rect<i32> selected_region          = {};
-
+static i32 selected_entity_descriptor_idx = -1;
 // The "brush_tile" is the current tile that you are "painting" with. This is the tile type that will be filled when using the fill tool.
 static Ichigo::TileID selected_brush_tile = 0;
 
@@ -495,6 +495,46 @@ void Ichigo::Editor::render_ui() {
     }
 }
 
+void Ichigo::Editor::render() {
+    // Draw entity descriptors
+    Ichigo::TextStyle style;
+    style.scale     = 0.5f;
+    style.alignment = Ichigo::TextAlignment::LEFT;
+    style.colour    = {1.0f, 0.0f, 1.0f, 0.8f};
+
+    f64 t = std::sin(Internal::platform_get_current_time() * 3);
+    t *= t;
+    t = 0.5f + 0.5f * t;
+
+    auto *current_descriptors = Ichigo::Game::level_entity_descriptors();
+    for (u32 i = 0; i < current_descriptors->size; ++i) {
+        auto descriptor = (*current_descriptors)[i];
+        char text[32] = {};
+        std::snprintf(text, sizeof(text), "ENT %u", descriptor.type);
+
+        u32 text_length = std::strlen(text);
+        f32 text_width = get_text_width(text, text_length, style);
+
+        Ichigo::world_render_solid_colour_rect(
+            {
+                descriptor.pos + Vec2<f32>{0.0f, -0.20f},
+                text_width, 0.2f
+            },
+            {0.0f, 0.0f, 0.0f, 0.5f}
+        );
+
+        Ichigo::render_text(descriptor.pos + Vec2<f32>{0.0f, -0.05f}, text, text_length, Ichigo::CoordinateSystem::WORLD, style);
+
+        Ichigo::world_render_solid_colour_rect(
+            {
+                descriptor.pos,
+                1.0f, 1.0f
+            },
+            (i32) i == selected_entity_descriptor_idx ? Vec4<f32>{ichigo_lerp(0.3f, t, 0.8f), 0.0f, ichigo_lerp(0.3f, t, 0.8f), 0.5f} : Vec4<f32>{0.5f, 0.0f, 0.5f, 0.5f}
+        );
+    }
+}
+
 // NOTE: Actual "screen space". Eg. the mouse cursor position.
 static Bana::Optional<Vec2<f32>> screen_space_to_camera_space(Vec2<i32> screen_space_coord) {
     Vec2<i32> viewport_pos = screen_space_coord - vector_cast<i32>(Ichigo::Internal::viewport_origin);
@@ -624,19 +664,37 @@ void Ichigo::Editor::update() {
     // Tile selection.
     static Vec2<i32> mouse_down_tile;
     if (Internal::mouse.left_button.down_this_frame) {
-        auto t = tile_at_mouse_coordinate(Internal::mouse.pos);
-        if (t.has_value) {
-            Vec2<i32> tile_coord = t.value;
-            mouse_down_tile = tile_coord;
-            if (tile_coord.x < (i32) Internal::current_tilemap.width && tile_coord.y < (i32) Internal::current_tilemap.height) {
-                tiles_selected  = true;
-                selected_region = {vector_cast<i32>(tile_coord), 1, 1};
+        selected_entity_descriptor_idx = -1;
+        auto ws = screen_space_to_world_space(Internal::mouse.pos);
+
+        if (ws.has_value) {
+            auto *current_descriptors = Ichigo::Game::level_entity_descriptors();
+            for (u32 i = 0; i < current_descriptors->size; ++i) {
+                if (rectangle_contains_point({(*current_descriptors)[i].pos, 1.0f, 1.0f}, ws.value)) {
+                    selected_entity_descriptor_idx = (i32) i;
+                    tiles_selected = false;
+                    Ichigo::show_info("Selected ENT");
+                    break;
+                }
+            }
+        }
+
+        if (selected_entity_descriptor_idx == -1) {
+            auto t = tile_at_mouse_coordinate(Internal::mouse.pos);
+            if (t.has_value) {
+                Vec2<i32> tile_coord = t.value;
+                mouse_down_tile = tile_coord;
+                if (tile_coord.x < (i32) Internal::current_tilemap.width && tile_coord.y < (i32) Internal::current_tilemap.height) {
+                    tiles_selected  = true;
+                    selected_region = {vector_cast<i32>(tile_coord), 1, 1};
+                } else {
+                    tiles_selected = false;
+                }
             } else {
                 tiles_selected = false;
             }
-        } else {
-            tiles_selected = false;
         }
+
     } else if (Internal::mouse.left_button.down) {
         // The left button is still down, so select a region.
         auto t = tile_at_mouse_coordinate(Internal::mouse.pos);

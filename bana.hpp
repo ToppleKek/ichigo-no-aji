@@ -165,12 +165,12 @@ struct Array {
         data     = (T *) std::malloc(capacity * sizeof(T));
     }
 
-    ~Array() {
-        std::free(data);
-        data     = nullptr;
-        size     = 0;
-        capacity = 0;
-    }
+    // ~Array() {
+    //     if (data) std::free(data);
+    //     data     = nullptr;
+    //     size     = 0;
+    //     capacity = 0;
+    // }
 
     isize append(T item) {
         if (size == capacity) expand();
@@ -192,6 +192,13 @@ struct Array {
     void expand() {
         capacity *= 2;
         data = (T *) std::realloc(data, capacity * sizeof(T));
+    }
+
+    void ensure_capacity(isize required_capacity) {
+        if (capacity < required_capacity) {
+            capacity = required_capacity;
+            data = (T *) std::realloc(data, capacity * sizeof(T));
+        }
     }
 
     inline T &operator[](isize i) {

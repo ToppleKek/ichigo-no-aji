@@ -285,7 +285,8 @@ u16 tile_at(Vec2<i32> tile_coord);
 
 // Push a draw command into the draw command buffer.
 void push_draw_command(DrawCommand draw_command);
-
+void render_text(Vec2<f32> pos, const char *str, usize length, Ichigo::CoordinateSystem coordinate_system, Ichigo::TextStyle style);
+void world_render_solid_colour_rect(Rect<f32> rect, Vec4<f32> colour);
 // Show a popup message in the info log.
 void show_info(const char *str, u32 length);
 void show_info(const char *cstr);
@@ -299,9 +300,12 @@ void init();
 void frame_begin();
 void update_and_render();
 void frame_end();
-Bana::FixedArray<Ichigo::EntityProperty> get_entity_type_information(u32 type_id);
-void set_entity_property_value(EntityID entity_id, EntityProperty property, void *data);
-void *get_entity_property_value(EntityID entity_id, EntityProperty property);
+Bana::Array<Ichigo::EntityDescriptor> *level_entity_descriptors();
+void set_level_entity_descriptors(Bana::FixedArray<Ichigo::EntityDescriptor> descriptors);
+void hard_reset_level();
+// Bana::FixedArray<Ichigo::EntityProperty> get_entity_type_information(u32 type_id);
+// void set_entity_property_value(EntityID entity_id, EntityProperty property, void *data);
+// void *get_entity_property_value(EntityID entity_id, EntityProperty property);
 }
 
 // Internal stuff. Generally okay to read from your game, maybe don't write to it unless you know what you're doing.

@@ -1,5 +1,5 @@
 namespace Level0 {
-static Ichiaji::EntityDescriptor entity_descriptors[] = {
+static Ichigo::EntityDescriptor entity_descriptors[] = {
 };
 
 static Ichigo::Background backgrounds[] = {

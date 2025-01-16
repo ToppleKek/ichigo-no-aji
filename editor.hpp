@@ -12,6 +12,7 @@
 namespace Ichigo {
 namespace Editor {
 void render_ui();
+void render();
 void update();
 void before_open();
 void before_close();

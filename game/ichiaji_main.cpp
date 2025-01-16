@@ -82,6 +82,8 @@ static Ichigo::SpriteSheet tileset_sheet;
 
 static Ichigo::Mixer::PlayingAudioID game_bgm;
 
+static Bana::Array<Ichigo::EntityDescriptor> current_entity_descriptors{};
+
 struct Coin {
     bool collected;
     Ichigo::EntityID id;
@@ -234,25 +236,9 @@ void Ichigo::Game::init() {
     Ichigo::Camera::screen_tile_dimensions = {16.0f, 9.0f};
 }
 
-static void change_level(Ichiaji::Level level) {
-    Ichigo::kill_all_entities();
-    std::memset(&Ichigo::game_state.background_layers, 0, sizeof(Ichigo::game_state.background_layers));
-
-    Ichiaji::current_level = level;
-    Ichigo::set_tilemap(Ichiaji::current_level.tilemap_data, tileset_sheet);
-
-    // == Setup backgrounds ==
-    Ichigo::game_state.background_colour = level.background_colour;
-    for (u32 i = 0; i < level.background_descriptors.size; ++i) {
-        const auto &descriptor = level.background_descriptors[i];
-        for (u32 j = 0; j < descriptor.backgrounds.size && j < ICHIGO_MAX_BACKGROUNDS; ++j) {
-            Ichigo::game_state.background_layers[j] = descriptor.backgrounds[j];
-        }
-    }
-
-    // == Spawn entities in world ==
-    for (u32 i = 0; i < Ichiaji::current_level.entity_descriptors.size; ++i) {
-        const auto &d = Ichiaji::current_level.entity_descriptors[i];
+static void respawn_all_entities(const Bana::Array<Ichigo::EntityDescriptor> &descriptors) {
+    for (u32 i = 0; i < descriptors.size; ++i) {
+        const auto &d = descriptors[i];
 
         switch (d.type) {
             case Ichiaji::ET_PLAYER: {
@@ -279,6 +265,30 @@ static void change_level(Ichiaji::Level level) {
             }
         }
     }
+}
+
+static void change_level(Ichiaji::Level level) {
+    Ichigo::kill_all_entities();
+    std::memset(&Ichigo::game_state.background_layers, 0, sizeof(Ichigo::game_state.background_layers));
+
+    Ichiaji::current_level = level;
+    Ichigo::set_tilemap(Ichiaji::current_level.tilemap_data, tileset_sheet);
+
+    // == Setup backgrounds ==
+    Ichigo::game_state.background_colour = level.background_colour;
+    for (u32 i = 0; i < level.background_descriptors.size; ++i) {
+        const auto &descriptor = level.background_descriptors[i];
+        for (u32 j = 0; j < descriptor.backgrounds.size && j < ICHIGO_MAX_BACKGROUNDS; ++j) {
+            Ichigo::game_state.background_layers[j] = descriptor.backgrounds[j];
+        }
+    }
+
+    current_entity_descriptors.size = Ichiaji::current_level.entity_descriptors.size;
+    current_entity_descriptors.ensure_capacity(Ichiaji::current_level.entity_descriptors.size);
+    std::memcpy(current_entity_descriptors.data, Ichiaji::current_level.entity_descriptors.data, Ichiaji::current_level.entity_descriptors.size * sizeof(Ichigo::EntityDescriptor));
+
+    // == Spawn entities in world ==
+    respawn_all_entities(current_entity_descriptors);
 }
 
 static void init_game() {
@@ -668,4 +678,19 @@ void Ichigo::Game::update_and_render() {
 
 // Runs at the end of the fame (Thinking about this interface still, maybe we don't need these?)
 void Ichigo::Game::frame_end() {
+}
+
+Bana::Array<Ichigo::EntityDescriptor> *Ichigo::Game::level_entity_descriptors() {
+    return &current_entity_descriptors;
+}
+
+void Ichigo::Game::set_level_entity_descriptors([[maybe_unused]] Bana::FixedArray<Ichigo::EntityDescriptor> descriptors) {
+    // Bana::fixed_array_copy(Ichiaji::current_level.entity_descriptors, descriptors);
+}
+
+void Ichigo::Game::hard_reset_level() {
+    Ichigo::show_info("Hard reset");
+
+    Ichigo::kill_all_entities();
+    respawn_all_entities(current_entity_descriptors);
 }

@@ -281,6 +281,10 @@ inline bool rectangles_intersect(Rect<f32> rect1, Rect<f32> rect2) {
            ((rect1.pos.y >= rect2.pos.y && rect1.pos.y <= rect2.pos.y + rect2.h) || (rect2.pos.y >= rect1.pos.y && rect2.pos.y <= rect1.pos.y + rect1.h));
 }
 
+inline bool rectangle_contains_point(Rect<f32> rect, Vec2<f32> point) {
+    return ((rect.pos.x <= point.x && rect.pos.x + rect.w >= point.x) && (rect.pos.y <= point.y && rect.pos.y + rect.h >= point.y));
+}
+
 inline f32 pixels_to_metres(f32 pixels) {
     return pixels / PIXELS_PER_METRE;
 }
