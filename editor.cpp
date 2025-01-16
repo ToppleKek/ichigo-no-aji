@@ -12,6 +12,8 @@
 #include "ichigo.hpp"
 #include "thirdparty/imgui/imgui.h"
 
+EMBED("assets/editor-move-arrow.png", move_arrow_png)
+
 #define MAX_CAMERA_ZOOM 4.0f
 #define MIN_CAMERA_ZOOM 0.3f
 
@@ -87,6 +89,8 @@ private:
         }
     }
 };
+
+static Ichigo::TextureID move_arrow_texture = 0;
 
 static UndoStack undo_stack(512);
 static bool wants_to_save = false;
@@ -419,6 +423,12 @@ void Ichigo::Editor::render_ui() {
         }
     }
 
+    if (selected_entity_descriptor_idx != -1) {
+        if (ImGui::CollapsingHeader("Selected Entity Descriptor", ImGuiTreeNodeFlags_DefaultOpen)) {
+            // ImGui::InputScalar
+        }
+    }
+
     ImGui::End();
 
     if (tileset_editor_is_open) {
@@ -663,20 +673,39 @@ void Ichigo::Editor::update() {
 
     // Tile selection.
     static Vec2<i32> mouse_down_tile;
+    static bool moving_entity = false;
+
+    auto *current_descriptors = Ichigo::Game::level_entity_descriptors();
+
+    if (Internal::keyboard_state[IK_M].down_this_frame && selected_entity_descriptor_idx != -1) {
+        moving_entity = !moving_entity;
+        show_info("Toggled entity move");
+    }
+
+    if (moving_entity && selected_entity_descriptor_idx != -1) {
+        Vec2<f32> entity_pos = (*current_descriptors)[selected_entity_descriptor_idx].pos;
+        Ichigo::render_rect_deferred(Ichigo::CoordinateSystem::WORLD, {entity_pos, 1.0f, 1.0f}, move_arrow_texture, zrot2d(90.0f));
+    }
+
     if (Internal::mouse.left_button.down_this_frame) {
-        selected_entity_descriptor_idx = -1;
         auto ws = screen_space_to_world_space(Internal::mouse.pos);
 
         if (ws.has_value) {
-            auto *current_descriptors = Ichigo::Game::level_entity_descriptors();
             for (u32 i = 0; i < current_descriptors->size; ++i) {
                 if (rectangle_contains_point({(*current_descriptors)[i].pos, 1.0f, 1.0f}, ws.value)) {
+                    if (moving_entity && selected_entity_descriptor_idx == (i32) i) goto found;
+
                     selected_entity_descriptor_idx = (i32) i;
-                    tiles_selected = false;
+                    tiles_selected                 = false;
+                    moving_entity                  = false;
+
                     Ichigo::show_info("Selected ENT");
-                    break;
+                    goto found;
                 }
             }
+
+            selected_entity_descriptor_idx = -1;
+found:;
         }
 
         if (selected_entity_descriptor_idx == -1) {
@@ -696,6 +725,14 @@ void Ichigo::Editor::update() {
         }
 
     } else if (Internal::mouse.left_button.down) {
+        if (selected_entity_descriptor_idx != -1 && moving_entity) {
+            auto ws = screen_space_to_world_space(Internal::mouse.pos);
+
+            if (ws.has_value) {
+                auto *current_descriptors = Ichigo::Game::level_entity_descriptors();
+                (*current_descriptors)[selected_entity_descriptor_idx].pos = ws.value;
+            }
+        }
         // The left button is still down, so select a region.
         auto t = tile_at_mouse_coordinate(Internal::mouse.pos);
         if (t.has_value) {
@@ -731,6 +768,8 @@ void Ichigo::Editor::update() {
 
 // Run before the tilemap editor opens. Copy the current tilemap information to our working copy.
 void Ichigo::Editor::before_open() {
+    if (move_arrow_texture == 0) move_arrow_texture = Ichigo::load_texture(move_arrow_png, move_arrow_png_len);
+
     saved_screen_tile_dimensions = Ichigo::Camera::screen_tile_dimensions;
 
     // TODO: We can use this to clear all changes as well. It is just used to restore the original current_tilemap tiles pointer.

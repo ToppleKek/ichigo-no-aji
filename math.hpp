@@ -11,6 +11,8 @@
 #include "common.hpp"
 #include <cmath>
 
+#define MATH_PI 3.14159265
+
 template<typename T>
 inline T clamp(T value, T min, T max);
 
@@ -234,13 +236,15 @@ struct Rect {
     T h;
 };
 
+constexpr const Mat4<f32> m4identity_f32 = {
+    {1, 0, 0, 0},
+    {0, 1, 0, 0},
+    {0, 0, 1, 0},
+    {0, 0, 0, 1},
+};
+
 inline Mat4<f32> m4identity() {
-    return {
-        {1, 0, 0, 0},
-        {0, 1, 0, 0},
-        {0, 0, 1, 0},
-        {0, 0, 0, 1},
-    };
+    return m4identity_f32;
 }
 
 inline Mat4<f32> translate2d(Vec2<f32> t) {
@@ -258,6 +262,36 @@ inline Mat4<f32> scale2d(Vec2<f32> s) {
         {0,   s.y, 0, 0},
         {0,   0,   1, 0},
         {0,   0,   0, 1},
+    };
+}
+
+inline Mat4<f32> yrot2d(f32 deg) {
+    f32 rad = deg * (MATH_PI / 180.0f);
+    return {
+        {std::cos(rad),  0, std::sin(rad), 0},
+        {0,              1, 0,             0},
+        {-std::sin(rad), 0, std::cos(rad), 0},
+        {0,              0, 0,             1},
+    };
+}
+
+inline Mat4<f32> xrot2d(f32 deg) {
+    f32 rad = deg * (MATH_PI / 180.0f);
+    return {
+        {1, 0,             0,              0},
+        {0, std::cos(rad), -std::sin(rad), 0},
+        {0, std::sin(rad), std::cos(rad),  0},
+        {0, 0,             0,              1},
+    };
+}
+
+inline Mat4<f32> zrot2d(f32 deg) {
+    f32 rad = deg * (MATH_PI / 180.0f);
+    return {
+        {std::cos(rad), -std::sin(rad), 0, 0},
+        {std::sin(rad), std::cos(rad),  0, 0},
+        {0,             0,              1, 0},
+        {0,             0,              0, 1},
     };
 }
 

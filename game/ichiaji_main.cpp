@@ -317,6 +317,7 @@ static void draw_game_ui() {
     static Ichigo::DrawCommand coins_background_cmd = {
         .type              = Ichigo::TEXTURED_RECT,
         .coordinate_system = Ichigo::CAMERA,
+        .transform         = m4identity_f32,
         .texture_rect      = {{0.1f, 0.1f}, ui_coin_background_width_in_metres, ui_coin_background_height_in_metres},
         .texture_id        = ui_coin_background
     };
@@ -327,6 +328,7 @@ static void draw_game_ui() {
         Ichigo::DrawCommand coin_cmd = {
             .type              = Ichigo::TEXTURED_RECT,
             .coordinate_system = Ichigo::CAMERA,
+            .transform         = m4identity_f32,
             .texture_rect      = {{0.25f + i + (i * 0.1f), 0.37f}, 1.0f, 1.0f},
             .texture_id        = coins[i].collected ? ui_collected_coin_texture : ui_uncollected_coin_texture
         };
@@ -452,6 +454,7 @@ void Ichigo::Game::update_and_render() {
             Ichigo::DrawCommand info_text_cmd = {
                 .type              = TEXT,
                 .coordinate_system = CAMERA,
+                .transform         = m4identity_f32,
                 .string            = TL_STR(INFO_TEXT),
                 .string_length     = std::strlen(TL_STR(INFO_TEXT)),
                 .string_pos        = {Ichigo::Camera::screen_tile_dimensions.x, Ichigo::Camera::screen_tile_dimensions.y - 0.1f},
@@ -463,6 +466,7 @@ void Ichigo::Game::update_and_render() {
             Ichigo::DrawCommand credit_text_cmd = {
                 .type              = TEXT,
                 .coordinate_system = CAMERA,
+                .transform         = m4identity_f32,
                 .string            = TL_STR(CREDIT_TEXT),
                 .string_length     = std::strlen(TL_STR(CREDIT_TEXT)),
                 .string_pos        = {0.0f, Ichigo::Camera::screen_tile_dimensions.y - 1.05f},
@@ -484,6 +488,7 @@ void Ichigo::Game::update_and_render() {
             Ichigo::DrawCommand title_draw_cmd = {
                 .type              = TEXT,
                 .coordinate_system = CAMERA,
+                .transform         = m4identity_f32,
                 .string            = TL_STR(TITLE),
                 .string_length     = std::strlen(TL_STR(TITLE)),
                 .string_pos        = {Ichigo::Camera::screen_tile_dimensions.x / 2.0f, Ichigo::Camera::screen_tile_dimensions.y / ichigo_lerp(6.0f, fade_in_t / FADE_IN_DURATION, 4.0f)},
@@ -504,6 +509,7 @@ void Ichigo::Game::update_and_render() {
                 Ichigo::DrawCommand fade_in_cmd = {
                     .type              = SOLID_COLOUR_RECT,
                     .coordinate_system = SCREEN,
+                    .transform         = m4identity_f32,
                     .rect              = {{0.0f, 0.0f}, 1.0f, 1.0f},
                     .colour            = {0.0f, 0.0f, 0.0f, fade_in_t / FADE_IN_DURATION}
                 };
@@ -524,6 +530,7 @@ void Ichigo::Game::update_and_render() {
                 Ichigo::DrawCommand menu_draw_cmd = {
                     .type              = TEXT,
                     .coordinate_system = CAMERA,
+                    .transform         = m4identity_f32,
                     .string            = TL_STR(START_GAME),
                     .string_length     = std::strlen(TL_STR(START_GAME)),
                     .string_pos        = {Ichigo::Camera::screen_tile_dimensions.x / 2.0f, Ichigo::Camera::screen_tile_dimensions.y / 1.5f},
@@ -582,6 +589,7 @@ void Ichigo::Game::update_and_render() {
             Ichigo::DrawCommand fade_in_cmd = {
                 .type              = SOLID_COLOUR_RECT,
                 .coordinate_system = SCREEN,
+                .transform         = m4identity_f32,
                 .rect              = {{0.0f, 0.0f}, 1.0f, 1.0f},
                 .colour            = {0.0f, 0.0f, 0.0f, ichigo_lerp(0.75f, fade_t / PAUSE_MENU_FADE_DURATION, 0.0f)}
             };
@@ -591,6 +599,7 @@ void Ichigo::Game::update_and_render() {
             Ichigo::DrawCommand pause_text_cmd = {
                 .type              = TEXT,
                 .coordinate_system = CAMERA,
+                .transform         = m4identity_f32,
                 .string            = TL_STR(PAUSE),
                 .string_length     = std::strlen(TL_STR(PAUSE)),
                 .string_pos        = {Ichigo::Camera::screen_tile_dimensions.x / 2.0f, Ichigo::Camera::screen_tile_dimensions.y / ichigo_lerp(6.0f, fade_t / PAUSE_MENU_FADE_DURATION, 5.5f)},
@@ -609,6 +618,7 @@ void Ichigo::Game::update_and_render() {
             Ichigo::DrawCommand menu_draw_cmd = {
                 .type              = TEXT,
                 .coordinate_system = CAMERA,
+                .transform         = m4identity_f32,
                 .string            = TL_STR(RESUME_GAME),
                 .string_length     = std::strlen(TL_STR(RESUME_GAME)),
                 .string_pos        = {Ichigo::Camera::screen_tile_dimensions.x / 2.0f, Ichigo::Camera::screen_tile_dimensions.y / 1.5f},
@@ -668,6 +678,7 @@ void Ichigo::Game::update_and_render() {
         Ichigo::DrawCommand cmd = {
             .type              = SOLID_COLOUR_RECT,
             .coordinate_system = SCREEN,
+            .transform         = m4identity_f32,
             .rect              = {{0.0f, 0.0f}, 1.0f, 1.0f},
             .colour            = ft_current_colour
         };
