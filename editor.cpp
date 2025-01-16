@@ -682,11 +682,6 @@ void Ichigo::Editor::update() {
         show_info("Toggled entity move");
     }
 
-    if (moving_entity && selected_entity_descriptor_idx != -1) {
-        Vec2<f32> entity_pos = (*current_descriptors)[selected_entity_descriptor_idx].pos;
-        Ichigo::render_rect_deferred(Ichigo::CoordinateSystem::WORLD, {entity_pos, 1.0f, 1.0f}, move_arrow_texture, zrot2d(90.0f));
-    }
-
     if (Internal::mouse.left_button.down_this_frame) {
         auto ws = screen_space_to_world_space(Internal::mouse.pos);
 
@@ -723,7 +718,6 @@ found:;
                 tiles_selected = false;
             }
         }
-
     } else if (Internal::mouse.left_button.down) {
         if (selected_entity_descriptor_idx != -1 && moving_entity) {
             auto ws = screen_space_to_world_space(Internal::mouse.pos);
@@ -744,6 +738,11 @@ found:;
             selected_region.w     = w == 0 ? 1 : w + 1;
             selected_region.h     = h == 0 ? 1 : h + 1;
         }
+    }
+
+    if (moving_entity && selected_entity_descriptor_idx != -1) {
+        Vec2<f32> entity_pos = (*current_descriptors)[selected_entity_descriptor_idx].pos;
+        Ichigo::render_rect_deferred(Ichigo::CoordinateSystem::WORLD, {entity_pos, 1.0f, 1.0f}, move_arrow_texture, zrot2d(90.0f));
     }
 
     // Draw pulsing red selection region rectangle.
