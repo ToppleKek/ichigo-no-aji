@@ -319,7 +319,8 @@ static void draw_game_ui() {
         .coordinate_system = Ichigo::CAMERA,
         .transform         = m4identity_f32,
         .texture_rect      = {{0.1f, 0.1f}, ui_coin_background_width_in_metres, ui_coin_background_height_in_metres},
-        .texture_id        = ui_coin_background
+        .texture_id        = ui_coin_background,
+        .texture_tint      = COLOUR_WHITE
     };
 
     Ichigo::push_draw_command(coins_background_cmd);
@@ -330,7 +331,8 @@ static void draw_game_ui() {
             .coordinate_system = Ichigo::CAMERA,
             .transform         = m4identity_f32,
             .texture_rect      = {{0.25f + i + (i * 0.1f), 0.37f}, 1.0f, 1.0f},
-            .texture_id        = coins[i].collected ? ui_collected_coin_texture : ui_uncollected_coin_texture
+            .texture_id        = coins[i].collected ? ui_collected_coin_texture : ui_uncollected_coin_texture,
+            .texture_tint      = COLOUR_WHITE
         };
 
         Ichigo::push_draw_command(coin_cmd);

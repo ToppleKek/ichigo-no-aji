@@ -208,7 +208,7 @@ static void screen_render_textured_rect(Rect<f32> rect, Ichigo::TextureID textur
 }
 
 // Render a textured rectangle in worldspace.
-static void world_render_textured_rect(Rect<f32> rect, Ichigo::TextureID texture_id, Mat4<f32> transform = m4identity_f32) {
+static void world_render_textured_rect(Rect<f32> rect, Ichigo::TextureID texture_id, Mat4<f32> transform = m4identity_f32, Vec4<f32> tint = COLOUR_WHITE) {
     Vec2<f32> draw_pos = { rect.pos.x, rect.pos.y };
     transform = translate2d(draw_pos) * transform;
 
@@ -232,7 +232,7 @@ static void world_render_textured_rect(Rect<f32> rect, Ichigo::TextureID texture
     i32 object_uniform  = Ichigo::Internal::gl.glGetUniformLocation(texture_shader_program, "object_transform");
     i32 tint_uniform    = Ichigo::Internal::gl.glGetUniformLocation(texture_shader_program, "colour_tint");
 
-    Ichigo::Internal::gl.glUniform4f(tint_uniform, 1.0f, 1.0f, 1.0f, 1.0f);
+    Ichigo::Internal::gl.glUniform4fv(tint_uniform, 1, (GLfloat *) &tint);
     Ichigo::Internal::gl.glUniform1i(texture_uniform, 0);
     Ichigo::Internal::gl.glUniformMatrix4fv(object_uniform, 1, GL_TRUE, (GLfloat *) &transform);
 
@@ -242,11 +242,13 @@ static void world_render_textured_rect(Rect<f32> rect, Ichigo::TextureID texture
 // Render a solid colour rectangle in worldspace.
 void Ichigo::world_render_solid_colour_rect(Rect<f32> rect, Vec4<f32> colour, Mat4<f32> transform) {
     Vec2<f32> draw_pos = { rect.pos.x, rect.pos.y };
+    transform = translate2d(draw_pos) * transform;
+
     Vertex vertices[] = {
-        {draw_pos.x, draw_pos.y, 0.0f},  // top left
-        {draw_pos.x + rect.w, draw_pos.y, 0.0f}, // top right
-        {draw_pos.x, draw_pos.y + rect.h, 0.0f}, // bottom left
-        {draw_pos.x + rect.w, draw_pos.y + rect.h, 0.0f}, // bottom right
+        {0.0f, 0.0f, 0.0f},     // top left
+        {rect.w, 0.0f, 0.0f},   // top right
+        {0.0f, rect.h, 0.0f},   // bottom left
+        {rect.w, rect.h, 0.0f}, // bottom right
     };
 
     Ichigo::Internal::gl.glUseProgram(solid_colour_shader_program);
@@ -765,13 +767,14 @@ void Ichigo::render_rect_deferred(CoordinateSystem coordinate_system, Rect<f32> 
     Ichigo::push_draw_command(c);
 }
 
-void Ichigo::render_rect_deferred(CoordinateSystem coordinate_system, Rect<f32> rect, TextureID texture_id, Mat4<f32> transform) {
+void Ichigo::render_rect_deferred(CoordinateSystem coordinate_system, Rect<f32> rect, TextureID texture_id, Mat4<f32> transform, Vec4<f32> tint) {
     Ichigo::DrawCommand c = {
         .type              = TEXTURED_RECT,
         .coordinate_system = coordinate_system,
         .transform         = transform,
         .texture_rect      = rect,
-        .texture_id        = texture_id
+        .texture_id        = texture_id,
+        .texture_tint      = tint
     };
 
     Ichigo::push_draw_command(c);
@@ -1055,13 +1058,13 @@ static void frame_render() {
             case Ichigo::DrawCommandType::TEXTURED_RECT: {
                 switch (cmd.coordinate_system) {
                     case Ichigo::WORLD: {
-                        world_render_textured_rect(cmd.rect, cmd.texture_id, cmd.transform);
+                        world_render_textured_rect(cmd.rect, cmd.texture_id, cmd.transform, cmd.texture_tint);
                     } break;
 
                     case Ichigo::CAMERA: {
                         Rect<f32> draw_rect = cmd.rect;
                         draw_rect.pos = cmd.rect.pos - get_translation2d(Ichigo::Camera::transform);
-                        world_render_textured_rect(draw_rect, cmd.texture_id, cmd.transform);
+                        world_render_textured_rect(draw_rect, cmd.texture_id, cmd.transform, cmd.texture_tint);
                     } break;
 
                     case Ichigo::SCREEN: {

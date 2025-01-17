@@ -742,7 +742,11 @@ found:;
 
     if (moving_entity && selected_entity_descriptor_idx != -1) {
         Vec2<f32> entity_pos = (*current_descriptors)[selected_entity_descriptor_idx].pos;
-        Ichigo::render_rect_deferred(Ichigo::CoordinateSystem::WORLD, {entity_pos, 1.0f, 1.0f}, move_arrow_texture, zrot2d(90.0f));
+        Vec4<f32> tint = {1.0f, 1.0f, 1.0f, 0.5f};
+        Ichigo::render_rect_deferred(Ichigo::CoordinateSystem::WORLD, {entity_pos + Vec2<f32>{1.0f, 0.0f}, 1.0f, 1.0f}, move_arrow_texture, m4identity(),       tint);
+        Ichigo::render_rect_deferred(Ichigo::CoordinateSystem::WORLD, {entity_pos + Vec2<f32>{1.0f, 1.0f}, 1.0f, 1.0f}, move_arrow_texture, rotation2d(90.0f),  tint);
+        Ichigo::render_rect_deferred(Ichigo::CoordinateSystem::WORLD, {entity_pos + Vec2<f32>{0.0f, 1.0f}, 1.0f, 1.0f}, move_arrow_texture, rotation2d(180.0f), tint);
+        Ichigo::render_rect_deferred(Ichigo::CoordinateSystem::WORLD, {entity_pos                        , 1.0f, 1.0f}, move_arrow_texture, rotation2d(270.0f), tint);
     }
 
     // Draw pulsing red selection region rectangle.

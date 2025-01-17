@@ -243,6 +243,8 @@ constexpr const Mat4<f32> m4identity_f32 = {
     {0, 0, 0, 1},
 };
 
+constexpr const Vec4<f32> COLOUR_WHITE = {1.0f, 1.0f, 1.0f, 1.0f};
+
 inline Mat4<f32> m4identity() {
     return m4identity_f32;
 }
@@ -265,27 +267,7 @@ inline Mat4<f32> scale2d(Vec2<f32> s) {
     };
 }
 
-inline Mat4<f32> yrot2d(f32 deg) {
-    f32 rad = deg * (MATH_PI / 180.0f);
-    return {
-        {std::cos(rad),  0, std::sin(rad), 0},
-        {0,              1, 0,             0},
-        {-std::sin(rad), 0, std::cos(rad), 0},
-        {0,              0, 0,             1},
-    };
-}
-
-inline Mat4<f32> xrot2d(f32 deg) {
-    f32 rad = deg * (MATH_PI / 180.0f);
-    return {
-        {1, 0,             0,              0},
-        {0, std::cos(rad), -std::sin(rad), 0},
-        {0, std::sin(rad), std::cos(rad),  0},
-        {0, 0,             0,              1},
-    };
-}
-
-inline Mat4<f32> zrot2d(f32 deg) {
+inline Mat4<f32> rotation2d(f32 deg) {
     f32 rad = deg * (MATH_PI / 180.0f);
     return {
         {std::cos(rad), -std::sin(rad), 0, 0},
