@@ -165,9 +165,13 @@ enum DrawCommandType {
     TEXT
 };
 
+#define SCREEN_ASPECT_FIX_WIDTH 16
+#define SCREEN_ASPECT_FIX_HEIGHT 9
+
 enum CoordinateSystem {
     WORLD,    // The coordinates are specified in world units (metres).
     SCREEN,   // The coordinates are specified such that 0,0 is the top left of the screen, and 1,1 is the bottom right of the screen.
+    SCREEN_ASPECT_FIX, // The coordinates are specified such that 0,0 is the top left of the screen, and 16,9 is the bottom right of the screen.
     CAMERA    // The coordinates are specified in world units (metres) relative to the camera.
 };
 

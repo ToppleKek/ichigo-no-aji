@@ -450,9 +450,11 @@ void Ichigo::render_text(Vec2<f32> pos, const char *str, usize length, Ichigo::C
     i32 texture_uniform;
     i32 colour_uniform;
     i32 alpha_adjust_uniform;
+    i32 screen_dimension_uniform = Ichigo::Internal::gl.glGetUniformLocation(text_shader_program, "screen_tile_dimensions");
 
     switch (coordinate_system) { // FIXME: Having different shaders for screenspace is meccha stupid. Do something better.
         case Ichigo::CoordinateSystem::CAMERA:
+        case Ichigo::CoordinateSystem::SCREEN_ASPECT_FIX:
         case Ichigo::CoordinateSystem::WORLD: {
             Ichigo::Internal::gl.glUseProgram(text_shader_program);
             Ichigo::Internal::gl.glBindBuffer(GL_ARRAY_BUFFER, draw_data_textured.vertex_buffer_id);
@@ -462,8 +464,17 @@ void Ichigo::render_text(Vec2<f32> pos, const char *str, usize length, Ichigo::C
             Ichigo::Internal::gl.glBufferData(GL_ARRAY_BUFFER, vertices.size * sizeof(TexturedVertex), vertices.data, GL_STATIC_DRAW);
             Ichigo::Internal::gl.glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size * sizeof(u32), indices.data, GL_STATIC_DRAW);
 
+            Vec2<f32> translation;
+
             // If the coordinate system is CAMERA, the only difference is we have to consider the location of the camera in the final translation.
-            Vec2<f32> translation = coordinate_system == Ichigo::CoordinateSystem::CAMERA ? pos - get_translation2d(Ichigo::Camera::transform) : pos;
+            if (coordinate_system == Ichigo::CoordinateSystem::CAMERA) {
+                translation = pos - get_translation2d(Ichigo::Camera::transform);
+            } else if (coordinate_system == Ichigo::CoordinateSystem::SCREEN_ASPECT_FIX) {
+                translation = pos - get_translation2d(Ichigo::Camera::transform);
+                Ichigo::Internal::gl.glUniform2f(screen_dimension_uniform, 16.0f, 9.0f);
+            } else {
+                translation = pos;
+            }
 
             // Apply the alignment offset.
             translation.x += pixels_to_metres(0.2f) * x_offset;
@@ -513,6 +524,10 @@ void Ichigo::render_text(Vec2<f32> pos, const char *str, usize length, Ichigo::C
     Ichigo::Internal::gl.glUniform1i(texture_uniform, 0);
 
     Ichigo::Internal::gl.glDrawElements(GL_TRIANGLES, indices.size, GL_UNSIGNED_INT, 0);
+
+    if (coordinate_system == Ichigo::CoordinateSystem::SCREEN_ASPECT_FIX) {
+        Ichigo::Internal::gl.glUniform2f(screen_dimension_uniform, (f32) Ichigo::Camera::screen_tile_dimensions.x, (f32) Ichigo::Camera::screen_tile_dimensions.y);
+    }
 
     // Thanks for the memory :)
     END_TEMP_MEMORY(Ichigo::game_state.transient_storage_arena, temp_ptr);
@@ -819,11 +834,11 @@ static void draw_info_log() {
         style.alignment = Ichigo::TextAlignment::CENTER;
         style.colour    = {0.0f, 0.0f, 0.0f, alpha};
 
-        Vec2<f32> pos = {Ichigo::Camera::screen_tile_dimensions.x / 2.0f, 4.0f - (j * 0.5f)};
-        render_text(pos, msg.data, msg.length, Ichigo::CoordinateSystem::CAMERA, style);
+        Vec2<f32> pos = {(f32) SCREEN_ASPECT_FIX_WIDTH / 2.0f, 4.0f - (j * 0.5f)};
+        render_text(pos, msg.data, msg.length, Ichigo::CoordinateSystem::SCREEN_ASPECT_FIX, style);
 
         style.colour = {0.9f, 0.9f, 0.9f, alpha};
-        render_text(pos + Vec2<f32>{0.007, 0.007}, msg.data, msg.length, Ichigo::CoordinateSystem::CAMERA, style);
+        render_text(pos + Vec2<f32>{0.007, 0.007}, msg.data, msg.length, Ichigo::CoordinateSystem::SCREEN_ASPECT_FIX, style);
     }
 }
 
