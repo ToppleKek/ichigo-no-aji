@@ -65,16 +65,17 @@ struct Ichigo::Internal::PlatformFile {
 
 static Ichigo::Internal::PlatformFile open_files[32];
 
-static wchar_t *to_wide_char(const char *str) {
-    i32 buf_size = MultiByteToWideChar(CP_UTF8, 0, str, -1, nullptr, 0);
+static wchar_t *to_wide_char(Bana::String str) {
+    i32 buf_size = MultiByteToWideChar(CP_UTF8, 0, str.data, str.length, nullptr, 0);
     assert(buf_size > 0);
-    wchar_t *wide_buf = new wchar_t[buf_size];
-    MultiByteToWideChar(CP_UTF8, 0, str, -1, wide_buf, buf_size);
+    wchar_t *wide_buf = (wchar_t *) std::malloc((buf_size + 1) * sizeof(wchar_t));
+    std::memset(wide_buf, 0, (buf_size + 1) * sizeof(wchar_t));
+    MultiByteToWideChar(CP_UTF8, 0, str.data, str.length, wide_buf, buf_size);
     return wide_buf;
 }
 
 static inline void free_wide_char_conversion(wchar_t *buf) {
-    delete[] buf;
+    std::free(buf);
 }
 
 [[maybe_unused]] static inline void free_wide_char_conversion(char *buf) {
@@ -99,7 +100,7 @@ static i64 win32_get_timestamp() {
     return win32_get_timestamp() * 1000 / performance_frequency;
 }
 
-Ichigo::Internal::PlatformFile *Ichigo::Internal::platform_open_file_write(const char *path) {
+Ichigo::Internal::PlatformFile *Ichigo::Internal::platform_open_file_write(Bana::String path) {
     wchar_t *pathw = to_wide_char(path);
     HANDLE file = CreateFile(pathw, GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
     free_wide_char_conversion(pathw);
@@ -121,7 +122,7 @@ Ichigo::Internal::PlatformFile *Ichigo::Internal::platform_open_file_write(const
 }
 
 void Ichigo::Internal::platform_write_entire_file_sync(const char *path, const u8 *data, usize data_size) {
-    wchar_t *pathw = to_wide_char(path);
+    wchar_t *pathw = to_wide_char(Bana::temp_string(path));
     HANDLE file = CreateFile(pathw, GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
     free_wide_char_conversion(pathw);
 
@@ -151,7 +152,7 @@ void Ichigo::Internal::platform_close_file(PlatformFile *file) {
 }
 
 bool Ichigo::Internal::platform_file_exists(const char *path) {
-    wchar_t *wide_path = to_wide_char(path);
+    wchar_t *wide_path = to_wide_char(Bana::temp_string(path));
     DWORD attributes = GetFileAttributesW(wide_path);
     bool ret = attributes != INVALID_FILE_ATTRIBUTES && !(attributes & FILE_ATTRIBUTE_DIRECTORY);
     free_wide_char_conversion(wide_path);

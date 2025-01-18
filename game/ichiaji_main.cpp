@@ -211,7 +211,7 @@ void Ichigo::Game::init() {
     // == Setup level entrance maps ==
     for (u32 i = 0; i < Level1::level.entity_descriptors.size; ++i) {
         const auto &descriptor = Level1::level.entity_descriptors[i];
-        if (descriptor.type == Ichiaji::ET_ENTRANCE) {
+        if (descriptor.type == ET_ENTRANCE) {
             Level1::setup_entrance(descriptor.data);
         }
     }
@@ -241,22 +241,22 @@ static void respawn_all_entities(const Bana::Array<Ichigo::EntityDescriptor> &de
         const auto &d = descriptors[i];
 
         switch (d.type) {
-            case Ichiaji::ET_PLAYER: {
+            case ET_PLAYER: {
                 Ichigo::Entity *player = Ichigo::spawn_entity();
                 Irisu::init(player, d.pos);
                 Ichigo::Camera::mode = Ichigo::Camera::Mode::FOLLOW;
                 Ichigo::Camera::follow(player->id);
             } break;
 
-            case Ichiaji::ET_GERT: {
+            case ET_GERT: {
                 spawn_gert(d.pos);
             } break;
 
-            case Ichiaji::ET_COIN: {
+            case ET_COIN: {
 
             } break;
 
-            case Ichiaji::ET_ENTRANCE: {
+            case ET_ENTRANCE: {
                 spawn_entrance(d.pos, d.data);
             } break;
 
@@ -695,10 +695,6 @@ void Ichigo::Game::frame_end() {
 
 Bana::Array<Ichigo::EntityDescriptor> *Ichigo::Game::level_entity_descriptors() {
     return &current_entity_descriptors;
-}
-
-void Ichigo::Game::set_level_entity_descriptors([[maybe_unused]] Bana::FixedArray<Ichigo::EntityDescriptor> descriptors) {
-    // Bana::fixed_array_copy(Ichiaji::current_level.entity_descriptors, descriptors);
 }
 
 void Ichigo::Game::hard_reset_level() {

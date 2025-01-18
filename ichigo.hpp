@@ -309,7 +309,6 @@ void frame_begin();
 void update_and_render();
 void frame_end();
 Bana::Array<Ichigo::EntityDescriptor> *level_entity_descriptors();
-void set_level_entity_descriptors(Bana::FixedArray<Ichigo::EntityDescriptor> descriptors);
 void hard_reset_level();
 // Bana::FixedArray<Ichigo::EntityProperty> get_entity_type_information(u32 type_id);
 // void set_entity_property_value(EntityID entity_id, EntityProperty property, void *data);
@@ -328,6 +327,7 @@ extern Vec2<u32> viewport_origin;
 extern f32 target_frame_time;
 extern f32 dpi_scale;
 extern Tilemap current_tilemap;
+extern Bana::Allocator temp_allocator;
 
 // TODO: Move these out of internal?
 extern f32 dt;
@@ -349,7 +349,7 @@ void fill_sample_buffer(u8 *buffer, usize buffer_size, usize write_cursor_positi
 // == Platform specific functions ==
 struct PlatformFile;
 
-PlatformFile *platform_open_file_write(const char *path);
+PlatformFile *platform_open_file_write(const Bana::String path);
 void platform_write_entire_file_sync(const char *path, const u8 *data, usize data_size);
 
 // Append to an open file. Generally works like fwrite() from the CRT.

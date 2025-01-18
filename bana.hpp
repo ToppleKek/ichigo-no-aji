@@ -109,6 +109,8 @@ String temp_string(const char *bytes, usize length);
 String temp_string(const char *cstr);
 void string_concat(String &dst, String &src);
 void string_concat(String &dst, char c);
+void string_concat(String &dst, const char *cstr);
+void string_format(String &dst, const char *fmt, ...);
 void string_strip_whitespace(String &str);
 
 #define MAKE_STACK_STRING(NAME, CAPACITY) Bana::String NAME = { (char *) platform_alloca(CAPACITY), 0, CAPACITY }

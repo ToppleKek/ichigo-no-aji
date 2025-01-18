@@ -103,6 +103,17 @@ u32 Ichigo::Internal::viewport_width              = 0;
 u32 Ichigo::Internal::viewport_height             = 0;
 Vec2<u32> Ichigo::Internal::viewport_origin       = {};
 
+static void *temp_arena_alloc(usize size) {
+    return (void *) PUSH_ARRAY(Ichigo::game_state.transient_storage_arena, u8, size);
+}
+
+static void temp_arena_free(void *) {}
+
+Bana::Allocator Ichigo::Internal::temp_allocator = {
+    temp_arena_alloc,
+    temp_arena_free
+};
+
 // General purpose static string buffer.
 static char string_buffer[1024];
 

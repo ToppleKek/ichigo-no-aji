@@ -1,4 +1,5 @@
 #include "bana.hpp"
+#include <stdarg.h>
 
 Bana::Allocator Bana::heap_allocator = {
     .alloc = std::malloc,
@@ -103,6 +104,27 @@ void Bana::string_concat(String &dst, char c) {
     assert(dst.capacity >= dst.length + 1);
     dst.data[dst.length] = c;
     ++dst.length;
+}
+
+void Bana::string_concat(String &dst, const char *cstr) {
+    usize src_length = std::strlen(cstr);
+    assert(dst.capacity >= dst.length + src_length);
+    std::memcpy(&dst.data[dst.length], cstr, src_length);
+    dst.length += src_length;
+}
+
+// FIXME: standard vsnprintf null terminates the string.
+void Bana::string_format(String &dst, const char *fmt, ...) {
+    dst.length = 0;
+
+    va_list args;
+    va_start(args, fmt);
+    isize ret = std::vsnprintf(dst.data, dst.capacity, fmt, args);
+    va_end(args);
+
+    if (ret < 0 || ret > (isize) dst.capacity) return;
+
+    dst.length = ret;
 }
 
 void Bana::string_strip_whitespace(String &str) {

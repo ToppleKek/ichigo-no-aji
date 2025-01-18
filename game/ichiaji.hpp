@@ -2,19 +2,19 @@
 
 #include "../ichigo.hpp"
 
-namespace Ichiaji {
-enum ProgramState {
-    MAIN_MENU,
-    GAME,
-    PAUSE,
-};
-
 enum EntityType : u32 {
     ET_NOTHING,
     ET_PLAYER,
     ET_GERT,
     ET_COIN,
     ET_ENTRANCE,
+};
+
+namespace Ichiaji {
+enum ProgramState {
+    MAIN_MENU,
+    GAME,
+    PAUSE,
 };
 
 struct BackgroundPngDescriptor {

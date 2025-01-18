@@ -1,13 +1,8 @@
 namespace Level1 {
-EMBED("assets/musekinin_test.ichigotm", level1_tilemap)
+EMBED("assets/levels/test.ichigotm", level1_tilemap)
 EMBED("assets/starbg.png", level1_bg_png)
 
-static Ichigo::EntityDescriptor entity_descriptors[] = {
-    { Ichiaji::ET_PLAYER, {8.0f, 15.8f}, 0 },
-    // { Ichiaji::ET_GERT, {18.0f, 14.0f}, 0 },
-    { Ichiaji::ET_ENTRANCE, {10.0f, 16.0f}, 0 },
-    { Ichiaji::ET_ENTRANCE, {16.0f, 16.0f}, 1 },
-};
+#include "../../assets/levels/test.ichigoed"
 
 static Ichigo::Background backgrounds[] = {
     {

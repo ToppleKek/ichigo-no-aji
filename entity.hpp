@@ -84,6 +84,7 @@ struct Sprite {
 };
 
 struct EntityDescriptor {
+    char name[32];
     u32 type;
     Vec2<f32> pos;
     i64 data;

@@ -125,21 +125,51 @@ static Ichigo::TileID selected_brush_tile = 0;
 // u32 tilemap width
 // u32 tilemap height
 // width * height TileIDs
-static void save_tilemap(const char *path) {
-    Ichigo::Internal::PlatformFile *file = Ichigo::Internal::platform_open_file_write(path);
+static void save_tilemap(Bana::String path) {
+    MAKE_STACK_STRING(tilemap_path, path.length + sizeof(".ichigotm"));
+    MAKE_STACK_STRING(entity_descriptor_path, path.length + sizeof(".ichigoed"));
+
+    string_concat(tilemap_path, path);
+    string_concat(tilemap_path, ".ichigotm");
+
+    string_concat(entity_descriptor_path, path);
+    string_concat(entity_descriptor_path, ".ichigoed");
+
+    Ichigo::Internal::PlatformFile *tilemap_file = Ichigo::Internal::platform_open_file_write(tilemap_path);
+    Ichigo::Internal::PlatformFile *entity_file  = Ichigo::Internal::platform_open_file_write(entity_descriptor_path);
+
+    assert(tilemap_file);
+    assert(entity_file);
 
     u16 tilemap_format_version_number = 2;
 
-    Ichigo::Internal::platform_append_file_sync(file, (u8 *) &tilemap_format_version_number, sizeof(tilemap_format_version_number));
+    Ichigo::Internal::platform_append_file_sync(tilemap_file, (u8 *) &tilemap_format_version_number,        sizeof(tilemap_format_version_number));
 
-    Ichigo::Internal::platform_append_file_sync(file, (u8 *) &tilemap_working_copy.tile_info_count, sizeof(tilemap_working_copy.tile_info_count));
-    Ichigo::Internal::platform_append_file_sync(file, (u8 *) tilemap_working_copy.tile_info, sizeof(Ichigo::TileInfo) * tilemap_working_copy.tile_info_count);
+    Ichigo::Internal::platform_append_file_sync(tilemap_file, (u8 *) &tilemap_working_copy.tile_info_count, sizeof(tilemap_working_copy.tile_info_count));
+    Ichigo::Internal::platform_append_file_sync(tilemap_file, (u8 *) tilemap_working_copy.tile_info,        sizeof(Ichigo::TileInfo) * tilemap_working_copy.tile_info_count);
 
-    Ichigo::Internal::platform_append_file_sync(file, (u8 *) &tilemap_working_copy.width,    sizeof(tilemap_working_copy.width));
-    Ichigo::Internal::platform_append_file_sync(file, (u8 *) &tilemap_working_copy.height,   sizeof(tilemap_working_copy.height));
-    Ichigo::Internal::platform_append_file_sync(file, (u8 *) tilemap_working_copy.tiles,     sizeof(Ichigo::TileID) * tilemap_working_copy.width * tilemap_working_copy.height);
+    Ichigo::Internal::platform_append_file_sync(tilemap_file, (u8 *) &tilemap_working_copy.width,           sizeof(tilemap_working_copy.width));
+    Ichigo::Internal::platform_append_file_sync(tilemap_file, (u8 *) &tilemap_working_copy.height,          sizeof(tilemap_working_copy.height));
+    Ichigo::Internal::platform_append_file_sync(tilemap_file, (u8 *) tilemap_working_copy.tiles,            sizeof(Ichigo::TileID) * tilemap_working_copy.width * tilemap_working_copy.height);
 
-    Ichigo::Internal::platform_close_file(file);
+    Ichigo::Internal::platform_close_file(tilemap_file);
+
+    const char header[] = "static Ichigo::EntityDescriptor entity_descriptors[] = {\n";
+    // NOTE: sizeof header MINUS ONE because we don't want to write the null terminator
+    Ichigo::Internal::platform_append_file_sync(entity_file, (u8 *) header, sizeof(header) - 1);
+
+    auto *current_descriptors = Ichigo::Game::level_entity_descriptors();
+
+    Bana::String line = Bana::make_string(1024, Ichigo::Internal::temp_allocator);
+    for (u32 i = 0; i < current_descriptors->size; ++i) {
+        auto descriptor = (*current_descriptors)[i];
+        line.length = 0;
+        Bana::string_format(line, "    { \"%s\", %s, {%ff, %ff}, %lld },\n", descriptor.name, descriptor.name, descriptor.pos.x, descriptor.pos.y, descriptor.data);
+        Ichigo::Internal::platform_append_file_sync(entity_file, (u8 *) line.data, line.length);
+    }
+
+    Ichigo::Internal::platform_append_file_sync(entity_file, (const u8 *) "};", 2);
+    Ichigo::Internal::platform_close_file(entity_file);
 }
 
 // Commit a tilemap resize. Called when the tilemap actually needs to be resized. Eg. the undo stack is rebuilding the tilemap.
@@ -305,7 +335,7 @@ void Ichigo::Editor::render_ui() {
         static char path_buffer[256];
         ImGui::InputText("Path", path_buffer, ARRAY_LEN(path_buffer));
         if (ImGui::Button("Save")) {
-            save_tilemap(path_buffer);
+            save_tilemap(Bana::temp_string(path_buffer));
             wants_to_save = false;
             ImGui::CloseCurrentPopup();
         }
@@ -519,8 +549,8 @@ void Ichigo::Editor::render() {
     auto *current_descriptors = Ichigo::Game::level_entity_descriptors();
     for (u32 i = 0; i < current_descriptors->size; ++i) {
         auto descriptor = (*current_descriptors)[i];
-        char text[32] = {};
-        std::snprintf(text, sizeof(text), "ENT %u", descriptor.type);
+        char text[sizeof(descriptor.name) + 1] = {};
+        std::snprintf(text, sizeof(text), "%s", descriptor.name);
 
         u32 text_length = std::strlen(text);
         f32 text_width = get_text_width(text, text_length, style);
