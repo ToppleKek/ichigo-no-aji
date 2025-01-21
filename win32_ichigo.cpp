@@ -579,7 +579,8 @@ static LRESULT window_proc(HWND window, u32 msg, WPARAM wparam, LPARAM lparam) {
             case VK_BACK:     SET_KEY_STATE(Ichigo::IK_BACKSPACE);     break;
             case VK_TAB:      SET_KEY_STATE(Ichigo::IK_TAB);           break;
             case VK_RETURN:   SET_KEY_STATE(Ichigo::IK_ENTER);         break;
-            case VK_MENU:     SET_KEY_STATE(Ichigo::IK_ALT);           break;
+            case VK_LMENU:    SET_KEY_STATE(Ichigo::IK_LEFT_ALT);      break; // FIXME: This and RIGHT_ALT doesn't work
+            case VK_RMENU:    SET_KEY_STATE(Ichigo::IK_RIGHT_ALT);     break;
             case VK_ESCAPE:   SET_KEY_STATE(Ichigo::IK_ESCAPE);        break;
             case VK_SPACE:    SET_KEY_STATE(Ichigo::IK_SPACE);         break;
             case VK_PRIOR:    SET_KEY_STATE(Ichigo::IK_PAGE_UP);       break;

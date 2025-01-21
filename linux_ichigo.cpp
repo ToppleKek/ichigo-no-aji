@@ -248,7 +248,7 @@ i32 main() {
                     case SDL_SCANCODE_LCTRL:       SET_KEY_STATE(Ichigo::IK_LEFT_CONTROL);  break;
                     case SDL_SCANCODE_RSHIFT:      SET_KEY_STATE(Ichigo::IK_RIGHT_SHIFT);   break;
                     case SDL_SCANCODE_RCTRL:       SET_KEY_STATE(Ichigo::IK_RIGHT_CONTROL); break;
-                    case SDL_SCANCODE_LALT:        SET_KEY_STATE(Ichigo::IK_ALT);           break;
+                    case SDL_SCANCODE_LALT:        SET_KEY_STATE(Ichigo::IK_LEFT_ALT);      break;
                     case SDL_SCANCODE_ESCAPE:      SET_KEY_STATE(Ichigo::IK_ESCAPE);        break;
                     case SDL_SCANCODE_SPACE:       SET_KEY_STATE(Ichigo::IK_SPACE);         break;
                     case SDL_SCANCODE_PAGEUP:      SET_KEY_STATE(Ichigo::IK_PAGE_UP);       break;

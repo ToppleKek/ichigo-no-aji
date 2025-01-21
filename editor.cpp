@@ -635,8 +635,8 @@ void Ichigo::Editor::update() {
 
     f32 camera_speed = BASE_CAMERA_SPEED;
 
-    // Triple the camera speed if shift is held.
-    if (Internal::keyboard_state[IK_LEFT_SHIFT].down) {
+    // Triple the camera speed if space is held.
+    if (Internal::keyboard_state[IK_SPACE].down) {
         camera_speed *= 3.0f;
     }
 
@@ -760,7 +760,13 @@ found:;
 
             if (ws.has_value) {
                 auto *current_descriptors = Ichigo::Game::level_entity_descriptors();
-                (*current_descriptors)[selected_entity_descriptor_idx].pos = ws.value;
+
+                // Snap to tile grid if left shift is held
+                if (Internal::keyboard_state[Ichigo::IK_LEFT_SHIFT].down) {
+                    (*current_descriptors)[selected_entity_descriptor_idx].pos = {std::roundf(ws.value.x), std::roundf(ws.value.y)};
+                } else {
+                    (*current_descriptors)[selected_entity_descriptor_idx].pos = ws.value;
+                }
             }
         }
         // The left button is still down, so select a region.
