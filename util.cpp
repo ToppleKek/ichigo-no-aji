@@ -59,8 +59,3 @@ u64 Util::utf8_char_count(const char *utf8_string, usize utf8_string_length) {
 
     return char_count;
 }
-
-Vec2<f32> Util::calculate_centered_pos_offset(const Rect<f32> &col, f32 sprite_width, f32 sprite_height) {
-    return {(col.w - sprite_width) / 2.0f, col.h - sprite_height};
-}
-

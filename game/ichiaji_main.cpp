@@ -140,7 +140,7 @@ static void spawn_gert(Vec2<f32> pos) {
     Ichigo::Sprite gert_sprite    = {};
     gert_sprite.width             = 1.0f;
     gert_sprite.height            = 1.0f;
-    gert_sprite.pos_offset        = Util::calculate_centered_pos_offset(enemy->col, gert_sprite.width, gert_sprite.height);
+    gert_sprite.pos_offset        = Util::calculate_centered_pos_offset(enemy->col.w, enemy->col.h, gert_sprite.width, gert_sprite.height);
     gert_sprite.sheet.texture     = enemy_texture_id;
     gert_sprite.sheet.cell_width  = 32;
     gert_sprite.sheet.cell_height = 32;
@@ -193,6 +193,8 @@ static Ichigo::EntityID spawn_entrance(Vec2<f32> pos, i64 entrance_id) {
 
 void Ichigo::Game::init() {
     // == Load assets ==
+    Irisu::init();
+
     test_bg_texture_id    = Ichigo::load_texture(test_bg, test_bg_len);
     enemy_texture_id      = Ichigo::load_texture(enemy_png, enemy_png_len);
     coin_texture_id       = Ichigo::load_texture(coin_spritesheet_png, coin_spritesheet_png_len);
@@ -243,7 +245,7 @@ static void respawn_all_entities(const Bana::Array<Ichigo::EntityDescriptor> &de
         switch (d.type) {
             case ET_PLAYER: {
                 Ichigo::Entity *player = Ichigo::spawn_entity();
-                Irisu::init(player, d.pos);
+                Irisu::spawn(player, d.pos);
                 Ichigo::Camera::mode = Ichigo::Camera::Mode::FOLLOW;
                 Ichigo::Camera::follow(player->id);
             } break;

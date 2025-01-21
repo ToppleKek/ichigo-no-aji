@@ -13,9 +13,10 @@
 EMBED("assets/irisu.png", irisu_spritesheet_png)
 EMBED("assets/music/boo_womp441.mp3", boo_womp_mp3)
 EMBED("assets/music/jump.mp3", jump_sound_mp3)
-
+EMBED("assets/spell.png", spell_spritesheet_png)
 enum IrisuState {
     IDLE,
+    IDLE_ATTACK,
     WALK,
     JUMP,
     FALL,
@@ -34,7 +35,7 @@ enum IrisuState {
 #define DIVE_Y_VELOCITY 4.0f
 #define IRISU_DEFAULT_JUMP_ACCELERATION 6.0f
 
-static u32 irisu_state = IrisuState::IDLE;
+static IrisuState irisu_state = IrisuState::IDLE;
 static Ichigo::Animation irisu_idle        = {};
 static Ichigo::Animation irisu_walk        = {};
 static Ichigo::Animation irisu_jump        = {};
@@ -46,8 +47,16 @@ static Ichigo::Animation irisu_get_up_slow = {};
 
 static Ichigo::EntityID irisu_id          = {};
 static Ichigo::TextureID irisu_texture_id = 0;
+static Ichigo::TextureID spell_texture_id = 0;
 static Ichigo::AudioID boo_womp_id        = {};
 static Ichigo::AudioID jump_sound         = 0;
+
+static Ichigo::Sprite spell_sprite;
+static Ichigo::Sprite irisu_sprite;
+
+static f32 irisu_collider_width  = 0.3f;
+static f32 irisu_collider_height = 1.1f;
+
 
 static i64 entrance_to_enter = -1;
 
@@ -93,23 +102,11 @@ static void try_enter_entrance(i64 entrance_id) {
     }
 }
 
-void Irisu::init(Ichigo::Entity *entity, Vec2<f32> pos) {
-    invincibility_t   = 0.0f;
-    irisu_state       = IDLE;
-    entrance_to_enter = -1;
+void Irisu::init() {
     irisu_texture_id  = Ichigo::load_texture(irisu_spritesheet_png, irisu_spritesheet_png_len);
+    spell_texture_id  = Ichigo::load_texture(spell_spritesheet_png, spell_spritesheet_png_len);
     boo_womp_id       = Ichigo::load_audio(boo_womp_mp3, boo_womp_mp3_len);
     jump_sound        = Ichigo::load_audio(jump_sound_mp3, jump_sound_mp3_len);
-    irisu_id          = entity->id;
-
-    std::strcpy(entity->name, "player");
-    entity->col               = {pos, 0.3f, 1.1f};
-    entity->max_velocity      = {8.0f, 12.0f};
-    entity->movement_speed    = 16.0f;
-    entity->jump_acceleration = IRISU_DEFAULT_JUMP_ACCELERATION;
-    entity->gravity           = IRISU_DEFAULT_GRAVITY; // TODO: gravity should be a property of the level?
-    entity->update_proc       = Irisu::update;
-    entity->collide_proc      = on_collide;
 
     irisu_idle.tag                 = IrisuState::IDLE;
     irisu_idle.cell_of_first_frame = 6 * 17;
@@ -168,14 +165,41 @@ void Irisu::init(Ichigo::Entity *entity, Vec2<f32> pos) {
     irisu_get_up_slow.cell_of_loop_end    = irisu_get_up_slow.cell_of_last_frame;
     irisu_get_up_slow.seconds_per_frame   = 0.12f;
 
-    Ichigo::Sprite irisu_sprite    = {};
     irisu_sprite.width             = pixels_to_metres(60.0f);
     irisu_sprite.height            = pixels_to_metres(60.0f);
-    irisu_sprite.pos_offset        = Util::calculate_centered_pos_offset(entity->col, irisu_sprite.width, irisu_sprite.height);
+    irisu_sprite.pos_offset        = Util::calculate_centered_pos_offset(irisu_collider_width, irisu_collider_height, irisu_sprite.width, irisu_sprite.height);
     irisu_sprite.sheet.texture     = irisu_texture_id;
     irisu_sprite.sheet.cell_width  = 60;
     irisu_sprite.sheet.cell_height = 60;
     irisu_sprite.animation         = irisu_idle;
+
+    const Ichigo::Texture &spell_texture = Ichigo::Internal::textures[spell_texture_id];
+    spell_sprite.width             = pixels_to_metres(spell_texture.width);
+    spell_sprite.height            = pixels_to_metres(spell_texture.height);
+    spell_sprite.pos_offset        = {0.0f, 0.0f};
+    spell_sprite.sheet.texture     = spell_texture_id;
+    spell_sprite.sheet.cell_width  = spell_texture.width;
+    spell_sprite.sheet.cell_height = spell_texture.height;
+    spell_sprite.animation         = {0, 0, 0, 0, 0, 0.0f};
+}
+
+void Irisu::spawn(Ichigo::Entity *entity, Vec2<f32> pos) {
+    invincibility_t   = 0.0f;
+    irisu_state       = IDLE;
+    entrance_to_enter = -1;
+
+    irisu_id          = entity->id;
+
+    std::strcpy(entity->name, "player");
+    entity->col               = {pos, 0.3f, 1.1f};
+    entity->max_velocity      = {8.0f, 12.0f};
+    entity->movement_speed    = 16.0f;
+    entity->jump_acceleration = IRISU_DEFAULT_JUMP_ACCELERATION;
+    entity->gravity           = IRISU_DEFAULT_GRAVITY; // TODO: gravity should be a property of the level?
+    entity->update_proc       = Irisu::update;
+    entity->collide_proc      = on_collide;
+
+
 
     entity->sprite = irisu_sprite;
 }
@@ -192,27 +216,97 @@ static inline void maybe_enter_animation(Ichigo::Entity *entity, Ichigo::Animati
     }
 }
 
+struct InputState {
+    bool jump_button_down_this_frame;
+    bool jump_button_down;
+    bool run_button_down;
+    bool dive_button_down_this_frame;
+    bool up_button_down_this_frame;
+};
+
+static void process_movement_keys(Ichigo::Entity *irisu) {
+    if (Ichigo::Internal::keyboard_state[Ichigo::IK_RIGHT].down || Ichigo::Internal::gamepad.right.down) {
+        irisu->acceleration.x = irisu->movement_speed;
+        SET_FLAG(irisu->flags, Ichigo::EF_FLIP_H);
+    }
+
+    if (Ichigo::Internal::keyboard_state[Ichigo::IK_LEFT].down || Ichigo::Internal::gamepad.left.down) {
+        irisu->acceleration.x = -irisu->movement_speed;
+        CLEAR_FLAG(irisu->flags, Ichigo::EF_FLIP_H);
+    }
+}
+
+// static IrisuState handle_idle_state(Ichigo::Entity *irisu, InputState input_state) {
+//     IrisuState new_state = irisu_state;
+
+//     maybe_enter_animation(irisu, irisu_idle);
+//     if      (!FLAG_IS_SET(irisu->flags, Ichigo::EF_ON_GROUND)) new_state = JUMP;
+//     else if (irisu->velocity.x != 0.0f)                        new_state = WALK;
+//     process_movement_keys(irisu);
+
+//     if (input_state.up_button_down_this_frame && entrance_to_enter != -1) {
+//         try_enter_entrance(entrance_to_enter);
+//     }
+
+//     if (input_state.jump_button_down_this_frame) {
+//         released_jump     = false;
+//         applied_t         = 0.0f;
+//         new_state         = JUMP;
+//         irisu->velocity.y = -irisu->jump_acceleration;
+//         maybe_enter_animation(irisu, irisu_jump);
+//         Ichigo::Mixer::play_audio_oneshot(jump_sound, 1.0f, 1.0f, 1.0f);
+//     }
+
+//     return new_state;
+// }
+
+// static Ichigo::EntityID spell_entity_id = {};
+
+#define SPELL_MAX_VELOCITY 24.0f
+static void spell_update(Ichigo::Entity *spell) {
+    spell->velocity = {spell->velocity.x < 0.0f ? -SPELL_MAX_VELOCITY : SPELL_MAX_VELOCITY, 0.0f};
+
+    Ichigo::EntityMoveResult move_result = Ichigo::move_entity_in_world(spell);
+    if (move_result == Ichigo::HIT_WALL) {
+        Ichigo::kill_entity_deferred(spell->id);
+    }
+}
+
+static void cast_spell(Ichigo::Entity *irisu) {
+    Ichigo::Entity *spell = Ichigo::spawn_entity();
+
+    std::strcpy(spell->name, "spell");
+    spell->col            = {irisu->col.pos, spell_sprite.width, spell_sprite.height};
+    spell->max_velocity   = {SPELL_MAX_VELOCITY, 0.0f};
+    spell->movement_speed = 100.0f;
+    spell->gravity        = 0.0f;
+    spell->update_proc    = spell_update;
+    spell->sprite         = spell_sprite;
+
+    if (FLAG_IS_SET(irisu->flags, Ichigo::EF_FLIP_H)) {
+        spell->velocity.x = SPELL_MAX_VELOCITY;
+        spell->col.pos += Vec2<f32>{irisu->col.w, 0.0f};
+    } else {
+        SET_FLAG(spell->flags, Ichigo::EF_FLIP_H);
+        spell->velocity.x = -SPELL_MAX_VELOCITY;
+        spell->col.pos += Vec2<f32>{-spell_sprite.width, 0.0f};
+    }
+}
+
 void Irisu::update(Ichigo::Entity *irisu) {
     if (Ichiaji::program_state != Ichiaji::GAME) {
         return;
     }
 
     static f32 applied_t = 0.0f;
+    static f32 attack_cooldown_remaining = 0.0f;
     static bool released_jump = false;
 
+    if (attack_cooldown_remaining > 0.0f) {
+        attack_cooldown_remaining -= Ichigo::Internal::dt;
+    }
+
     irisu->acceleration = {0.0f, 0.0f};
-
-    auto process_movement_keys = [&]() {
-        if (Ichigo::Internal::keyboard_state[Ichigo::IK_RIGHT].down || Ichigo::Internal::gamepad.right.down) {
-            irisu->acceleration.x = irisu->movement_speed;
-            SET_FLAG(irisu->flags, Ichigo::EF_FLIP_H);
-        }
-
-        if (Ichigo::Internal::keyboard_state[Ichigo::IK_LEFT].down || Ichigo::Internal::gamepad.left.down) {
-            irisu->acceleration.x = -irisu->movement_speed;
-            CLEAR_FLAG(irisu->flags, Ichigo::EF_FLIP_H);
-        }
-    };
 
     static f32 invincible_flash_t = 0.0f;
 
@@ -237,14 +331,22 @@ void Irisu::update(Ichigo::Entity *irisu) {
     bool run_button_down             = Ichigo::Internal::keyboard_state[Ichigo::IK_LEFT_SHIFT].down || Ichigo::Internal::gamepad.x.down || Ichigo::Internal::gamepad.y.down;
     bool dive_button_down_this_frame = Ichigo::Internal::keyboard_state[Ichigo::IK_Z].down_this_frame || Ichigo::Internal::gamepad.lb.down_this_frame || Ichigo::Internal::gamepad.rb.down_this_frame;
     bool up_button_down_this_frame   = Ichigo::Internal::keyboard_state[Ichigo::IK_UP].down_this_frame || Ichigo::Internal::gamepad.up.down_this_frame;
+    bool fire_button_down            = Ichigo::Internal::keyboard_state[Ichigo::IK_X].down || Ichigo::Internal::gamepad.stick_left_click.down; // TODO: wtf lol
 
     irisu->gravity = IRISU_DEFAULT_GRAVITY;
+
     switch (irisu_state) {
         case IDLE: {
             maybe_enter_animation(irisu, irisu_idle);
+
+            if (fire_button_down && attack_cooldown_remaining <= 0.0f) {
+                cast_spell(irisu);
+                attack_cooldown_remaining = 0.7f;
+            }
+
             if      (!FLAG_IS_SET(irisu->flags, Ichigo::EF_ON_GROUND)) irisu_state = JUMP;
             else if (irisu->velocity.x != 0.0f)                        irisu_state = WALK;
-            process_movement_keys();
+            process_movement_keys(irisu);
 
             if (up_button_down_this_frame && entrance_to_enter != -1) {
                 try_enter_entrance(entrance_to_enter);
@@ -265,7 +367,7 @@ void Irisu::update(Ichigo::Entity *irisu) {
             if (!FLAG_IS_SET(irisu->flags, Ichigo::EF_ON_GROUND)) {
                 irisu_state = JUMP;
             } else {
-                process_movement_keys();
+                process_movement_keys(irisu);
 
                 if (irisu->velocity.x == 0.0f && irisu->acceleration.x == 0.0f) {
                     irisu_state = IDLE;
@@ -301,7 +403,7 @@ void Irisu::update(Ichigo::Entity *irisu) {
                 irisu->velocity.x += DIVE_X_VELOCITY * (FLAG_IS_SET(irisu->flags, Ichigo::EF_FLIP_H) ? 1 : -1);
                 irisu_state = DIVE;
             } else {
-                process_movement_keys();
+                process_movement_keys(irisu);
 
                 if (!jump_button_down && !released_jump) {
                     released_jump = true;
@@ -328,7 +430,7 @@ void Irisu::update(Ichigo::Entity *irisu) {
                 irisu_state = DIVE;
                 maybe_enter_animation(irisu, irisu_dive);
             } else {
-                process_movement_keys();
+                process_movement_keys(irisu);
             }
         } break;
 

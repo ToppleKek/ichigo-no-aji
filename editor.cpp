@@ -400,14 +400,20 @@ void Ichigo::Editor::render_ui() {
 
     if (ImGui::CollapsingHeader("Build", ImGuiTreeNodeFlags_DefaultOpen)) {
         if (ImGui::BeginCombo("Select tile", Internal::current_tilemap.tile_info[selected_brush_tile].name)) {
-            for (u32 i = 0; i < Internal::current_tilemap.tile_info_count; ++i) {
-                if (i == selected_brush_tile) {
-                    ImGui::SetItemDefaultFocus();
+            ImGuiListClipper clipper;
+            clipper.Begin(Internal::current_tilemap.tile_info_count);
+
+            while (clipper.Step()) {
+                for (i32 i = clipper.DisplayStart; i < clipper.DisplayEnd; ++i) {
+                    if (i == selected_brush_tile) {
+                        ImGui::SetItemDefaultFocus();
+                    }
+
+                    if (ImGui::Selectable(Internal::current_tilemap.tile_info[i].name, i == selected_brush_tile)) {
+                        selected_brush_tile = i;
+                    }
                 }
 
-                if (ImGui::Selectable(Internal::current_tilemap.tile_info[i].name, i == selected_brush_tile)) {
-                    selected_brush_tile = i;
-                }
             }
 
             ImGui::EndCombo();
@@ -784,6 +790,7 @@ found:;
         Ichigo::DrawCommand c = {};
         c.coordinate_system   = Ichigo::CoordinateSystem::WORLD;
         c.type                = Ichigo::DrawCommandType::SOLID_COLOUR_RECT;
+        c.transform           = m4identity_f32;
 
         c.rect = {
             vector_cast<f32>(selected_region.pos),
