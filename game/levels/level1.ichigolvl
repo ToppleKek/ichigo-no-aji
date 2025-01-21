@@ -30,9 +30,12 @@ static Ichiaji::BackgroundPngDescriptor background_descriptors[] = {
 };
 
 Vec2<f32> entrance_table[] = {
-    {16.0f, 15.9f},
-    {10.0f, 15.9f},
-    {4.0f, 15.9f},
+    {16.0f, 15.9f}, // Test entrance
+    {10.0f, 15.9f}, // Test entrance
+    {44.0f, 15.9f}, // To front of dorm from school
+    {33.0f, 15.9f}, // To front of school
+    {83.0f, 15.9f}, // To front of store
+    {73.0f, 15.9f}, // To front of dorm from store
 };
 
 Ichiaji::Level level = {
