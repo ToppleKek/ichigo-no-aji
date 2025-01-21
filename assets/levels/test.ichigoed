@@ -2,8 +2,5 @@ static Ichigo::EntityDescriptor entity_descriptors[] = {
     { "ET_PLAYER", ET_PLAYER, {9.076548f, 2.795643f}, 0 },
     { "ET_ENTRANCE", ET_ENTRANCE, {10.000000f, 16.000000f}, 0 },
     { "ET_ENTRANCE", ET_ENTRANCE, {16.000000f, 16.000000f}, 1 },
-    { "ET_GERT", ET_GERT, {18.000000f, 16.000000f}, 0 },
-    { "ET_GERT", ET_GERT, {19.000000f, 16.000000f}, 0 },
-    { "ET_GERT", ET_GERT, {20.000000f, 16.000000f}, 0 },
-    { "ET_GERT", ET_GERT, {21.000000f, 16.000000f}, 0 },
+    { "ET_ENTRANCE_TRIGGER", ET_ENTRANCE_TRIGGER, {18.000000f, 8.000000f}, 2 },
 };

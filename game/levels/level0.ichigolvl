@@ -8,16 +8,14 @@ static Ichigo::Background backgrounds[] = {
 static Ichiaji::BackgroundPngDescriptor background_descriptors[] = {
 };
 
-static Bana::MapEntry<i64, Vec2<f32>> map_data[2];
+Vec2<f32> entrance_table[] = {
+};
 
 Ichiaji::Level level = {
     nullptr,
     {0.0f, 0.0f, 0.0f, 1.0f},
     INLINE_INIT_OF_STATIC_ARRAY(background_descriptors),
     INLINE_INIT_OF_STATIC_ARRAY(entity_descriptors),
-    {map_data, ARRAY_LEN(map_data), 0}
+    INLINE_INIT_OF_STATIC_ARRAY(entrance_table),
 };
-
-[[maybe_unused]] void setup_entrance([[maybe_unused]] i64 entrance_id) {
-}
 }

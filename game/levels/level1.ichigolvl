@@ -29,24 +29,17 @@ static Ichiaji::BackgroundPngDescriptor background_descriptors[] = {
     { level1_bg_png_len, (u8 *) level1_bg_png, INLINE_INIT_OF_STATIC_ARRAY(backgrounds) }
 };
 
-static Bana::MapEntry<i64, Vec2<f32>> map_data[2];
+Vec2<f32> entrance_table[] = {
+    {16.0f, 15.9f},
+    {10.0f, 15.9f},
+    {4.0f, 15.9f},
+};
 
 Ichiaji::Level level = {
     (u8 *) level1_tilemap,
     {(30.0f / 255.0f), (28.0f / 255.0f), (21.0f / 255.0f), 1.0f},
     INLINE_INIT_OF_STATIC_ARRAY(background_descriptors),
     INLINE_INIT_OF_STATIC_ARRAY(entity_descriptors),
-    {map_data, ARRAY_LEN(map_data), 0}
+    INLINE_INIT_OF_STATIC_ARRAY(entrance_table),
 };
-
-void setup_entrance(i64 entrance_id) {
-    switch (entrance_id) {
-        case 0: {
-            level.entrance_map.put(entrance_id, {16.0f, 15.9f});
-        } break;
-        case 1: {
-            level.entrance_map.put(entrance_id, {10.0f, 15.9f});
-        } break;
-    }
-}
 }

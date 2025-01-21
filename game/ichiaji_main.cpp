@@ -200,6 +200,20 @@ static Ichigo::EntityID spawn_entrance(Vec2<f32> pos, i64 entrance_id) {
     return entrance->id;
 }
 
+static Ichigo::EntityID spawn_entrance_trigger(Vec2<f32> pos, i64 entrance_id) {
+    Ichigo::Entity *entrance = Ichigo::spawn_entity();
+
+    std::strcpy(entrance->name, "entrtrg");
+
+    entrance->col          = {pos, 1.0f, 9.0f};
+    entrance->user_data    = entrance_id;
+    entrance->user_type_id = ET_ENTRANCE_TRIGGER;
+
+    SET_FLAG(entrance->flags, Ichigo::EF_INVISIBLE);
+
+    return entrance->id;
+}
+
 void Ichigo::Game::init() {
     // == Load assets ==
     Irisu::init();
@@ -218,14 +232,6 @@ void Ichigo::Game::init() {
     ui_enter_key                = Ichigo::load_texture(ui_enter_key_png, ui_enter_key_png_len);
 
     tileset_sheet = { 32, 32, tileset_texture };
-
-    // == Setup level entrance maps ==
-    for (u32 i = 0; i < Level1::level.entity_descriptors.size; ++i) {
-        const auto &descriptor = Level1::level.entity_descriptors[i];
-        if (descriptor.type == ET_ENTRANCE) {
-            Level1::setup_entrance(descriptor.data);
-        }
-    }
 
     // == Load level backgrounds ==
     for (u32 i = 0; i < Level1::level.background_descriptors.size; ++i) {
@@ -269,6 +275,10 @@ static void respawn_all_entities(const Bana::Array<Ichigo::EntityDescriptor> &de
 
             case ET_ENTRANCE: {
                 spawn_entrance(d.pos, d.data);
+            } break;
+
+            case ET_ENTRANCE_TRIGGER: {
+                spawn_entrance_trigger(d.pos, d.data);
             } break;
 
             default: {

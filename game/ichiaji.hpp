@@ -8,6 +8,7 @@ enum EntityType : u32 {
     ET_GERT,
     ET_COIN,
     ET_ENTRANCE,
+    ET_ENTRANCE_TRIGGER,
     ET_SPELL,
 };
 
@@ -29,7 +30,7 @@ struct Level {
     Vec4<f32> background_colour;
     Bana::FixedArray<Ichiaji::BackgroundPngDescriptor> background_descriptors;
     Bana::FixedArray<Ichigo::EntityDescriptor> entity_descriptors;
-    Bana::FixedMap<i64, Vec2<f32>> entrance_map; // A map from entrance id (stored in the user data of the entity) to exit position.
+    Bana::FixedArray<Vec2<f32>> entrance_table; // A table indexed by entrance_id (stored in the user data of the entity) to exit position.
 };
 
 extern ProgramState program_state;

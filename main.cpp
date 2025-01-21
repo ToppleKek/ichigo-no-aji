@@ -546,6 +546,12 @@ void Ichigo::render_text(Vec2<f32> pos, const char *str, usize length, Ichigo::C
 
 // If the entity does not provide its own render procedure (likely), this one is run.
 void default_entity_render_proc(Ichigo::Entity *entity) {
+#ifdef ICHIGO_DEBUG
+    if (entity->sprite.width <= 0.0f || entity->sprite.height <= 0.0f) goto skip_sprite_draw;
+#else
+    if (entity->sprite.width <= 0.0f || entity->sprite.height <= 0.0f) return;
+#endif
+
     // FIXME: This does not advance animation frames. Games that depend on the animation ending to change state break with this option on. Just throw it in the same place as the INVISIBLE flag.
 #ifdef ICHIGO_DEBUG
     if (!DEBUG_hide_entity_sprites) {

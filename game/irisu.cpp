@@ -57,15 +57,25 @@ static Ichigo::Sprite irisu_sprite;
 static f32 irisu_collider_width  = 0.3f;
 static f32 irisu_collider_height = 1.1f;
 
-
 static i64 entrance_to_enter = -1;
 
 static f32 invincibility_t = 0.0f;
 
+static void try_enter_entrance(i64 entrance_id) {
+    auto callback = [](uptr data) {
+        const Vec2<f32> &exit_position = Ichiaji::current_level.entrance_table[data];
+        Ichiaji::fullscreen_transition({0.0f, 0.0f, 0.0f, 1.0f}, {0.0f, 0.0f, 0.0f, 0.0f}, 0.3f, nullptr, 0);
+        auto *irisu = Ichigo::get_entity(irisu_id);
+        Ichigo::teleport_entity_considering_colliders(irisu, exit_position);
+    };
+
+    Ichiaji::fullscreen_transition({0.0f, 0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 1.0f}, 0.3f, callback, (uptr) entrance_id);
+}
+
 static void on_collide(Ichigo::Entity *irisu, Ichigo::Entity *other, Vec2<f32> normal, [[maybe_unused]] Vec2<f32> collision_normal, [[maybe_unused]] Vec2<f32> collision_pos) {
     ICHIGO_INFO("IRISU collide with %s: normal=%f,%f pos=%f,%f", other->name, normal.x, normal.y, collision_pos.x, collision_pos.y);
 
-    if (std::strcmp(other->name, "gert") == 0 && irisu_state != HURT) {
+    if (other->user_type_id == ET_GERT && irisu_state != HURT) {
         if (normal.y == -1.0f && collision_normal.y == -1.0f) {
             irisu->velocity.y -= 15.0f;
             Ichigo::kill_entity(other->id);
@@ -76,7 +86,7 @@ static void on_collide(Ichigo::Entity *irisu, Ichigo::Entity *other, Vec2<f32> n
             irisu->velocity.x   = 3.0f * (FLAG_IS_SET(irisu->flags, Ichigo::EF_FLIP_H) ? -1 : 1);
             irisu_state         = HURT;
         }
-    } else if (std::strcmp(other->name, "entr") == 0) {
+    } else if (other->user_type_id == ET_ENTRANCE) {
         if (normal.x != collision_normal.x || normal.y != collision_normal.y) {
             Ichigo::show_info("exit");
             entrance_to_enter = -1;
@@ -86,19 +96,8 @@ static void on_collide(Ichigo::Entity *irisu, Ichigo::Entity *other, Vec2<f32> n
             entrance_to_enter = other->user_data;
             // try_enter_entrance(other->user_data);
         }
-    }
-}
-
-static void try_enter_entrance(i64 entrance_id) {
-    const auto &e = Ichiaji::current_level.entrance_map.get(entrance_id);
-    if (e.has_value) {
-        auto callback = [](uptr data) {
-            Ichiaji::fullscreen_transition({0.0f, 0.0f, 0.0f, 1.0f}, {0.0f, 0.0f, 0.0f, 0.0f}, 0.3f, nullptr, 0);
-            auto *irisu = Ichigo::get_entity(irisu_id);
-            Ichigo::teleport_entity_considering_colliders(irisu, Ichiaji::current_level.entrance_map.get((i64) data).value);
-        };
-
-        Ichiaji::fullscreen_transition({0.0f, 0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 1.0f}, 0.3f, callback, (uptr) entrance_id);
+    } else if (other->user_type_id == ET_ENTRANCE_TRIGGER) {
+        try_enter_entrance(other->user_data);
     }
 }
 
