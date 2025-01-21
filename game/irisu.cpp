@@ -198,8 +198,7 @@ void Irisu::spawn(Ichigo::Entity *entity, Vec2<f32> pos) {
     entity->gravity           = IRISU_DEFAULT_GRAVITY; // TODO: gravity should be a property of the level?
     entity->update_proc       = Irisu::update;
     entity->collide_proc      = on_collide;
-
-
+    entity->user_type_id      = ET_PLAYER;
 
     entity->sprite = irisu_sprite;
 }
@@ -263,12 +262,19 @@ static void process_movement_keys(Ichigo::Entity *irisu) {
 // static Ichigo::EntityID spell_entity_id = {};
 
 #define SPELL_MAX_VELOCITY 24.0f
+#define DEFAULT_SPELL_COOLDOWN 0.7f
 static void spell_update(Ichigo::Entity *spell) {
     spell->velocity = {spell->velocity.x < 0.0f ? -SPELL_MAX_VELOCITY : SPELL_MAX_VELOCITY, 0.0f};
 
     Ichigo::EntityMoveResult move_result = Ichigo::move_entity_in_world(spell);
     if (move_result == Ichigo::HIT_WALL) {
-        Ichigo::kill_entity_deferred(spell->id);
+        Ichigo::kill_entity_deferred(spell);
+    }
+}
+
+static void spell_collide(Ichigo::Entity *spell, [[maybe_unused]] Ichigo::Entity *other, [[maybe_unused]] Vec2<f32> normal, [[maybe_unused]] Vec2<f32> collision_normal, [[maybe_unused]] Vec2<f32> collision_pos) {
+    if (other->user_type_id != ET_PLAYER) {
+        Ichigo::kill_entity_deferred(spell);
     }
 }
 
@@ -276,12 +282,14 @@ static void cast_spell(Ichigo::Entity *irisu) {
     Ichigo::Entity *spell = Ichigo::spawn_entity();
 
     std::strcpy(spell->name, "spell");
-    spell->col            = {irisu->col.pos, spell_sprite.width, spell_sprite.height};
+    spell->col            = {irisu->col.pos + Vec2<f32>{0.0f, 0.2f}, spell_sprite.width, spell_sprite.height};
     spell->max_velocity   = {SPELL_MAX_VELOCITY, 0.0f};
     spell->movement_speed = 100.0f;
     spell->gravity        = 0.0f;
     spell->update_proc    = spell_update;
+    spell->collide_proc   = spell_collide;
     spell->sprite         = spell_sprite;
+    spell->user_type_id   = ET_SPELL;
 
     if (FLAG_IS_SET(irisu->flags, Ichigo::EF_FLIP_H)) {
         spell->velocity.x = SPELL_MAX_VELOCITY;
@@ -341,7 +349,7 @@ void Irisu::update(Ichigo::Entity *irisu) {
 
             if (fire_button_down && attack_cooldown_remaining <= 0.0f) {
                 cast_spell(irisu);
-                attack_cooldown_remaining = 0.7f;
+                attack_cooldown_remaining = DEFAULT_SPELL_COOLDOWN;
             }
 
             if      (!FLAG_IS_SET(irisu->flags, Ichigo::EF_ON_GROUND)) irisu_state = JUMP;
@@ -364,6 +372,12 @@ void Irisu::update(Ichigo::Entity *irisu) {
 
         case WALK: {
             maybe_enter_animation(irisu, irisu_walk);
+
+            if (fire_button_down && attack_cooldown_remaining <= 0.0f) {
+                cast_spell(irisu);
+                attack_cooldown_remaining = DEFAULT_SPELL_COOLDOWN;
+            }
+
             if (!FLAG_IS_SET(irisu->flags, Ichigo::EF_ON_GROUND)) {
                 irisu_state = JUMP;
             } else {

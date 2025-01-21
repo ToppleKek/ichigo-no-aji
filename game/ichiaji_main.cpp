@@ -117,6 +117,12 @@ static void gert_update(Ichigo::Entity *gert) {
     Ichigo::EntityControllers::patrol_controller(gert);
 }
 
+static void gert_collide(Ichigo::Entity *gert, Ichigo::Entity *other, [[maybe_unused]] Vec2<f32> normal, [[maybe_unused]] Vec2<f32> collision_normal, [[maybe_unused]] Vec2<f32> collision_pos) {
+    if (other->user_type_id == ET_SPELL) {
+        Ichigo::kill_entity_deferred(gert->id);
+    }
+}
+
 static Ichigo::EntityID gert_id;
 static bool controller_connected = false;
 
@@ -129,6 +135,8 @@ static void spawn_gert(Vec2<f32> pos) {
     enemy->movement_speed = 6.0f;
     enemy->gravity        = 9.8f;
     enemy->update_proc    = gert_update;
+    enemy->collide_proc   = gert_collide;
+    enemy->user_type_id   = ET_GERT;
 
     Ichigo::Animation gert_idle   = {};
     gert_idle.cell_of_first_frame = 0;
@@ -187,6 +195,7 @@ static Ichigo::EntityID spawn_entrance(Vec2<f32> pos, i64 entrance_id) {
     entrance->sprite.animation.cell_of_loop_end    = 7;
     entrance->sprite.animation.seconds_per_frame   = 0.12f;
     entrance->user_data                            = entrance_id;
+    entrance->user_type_id                         = ET_ENTRANCE;
 
     return entrance->id;
 }

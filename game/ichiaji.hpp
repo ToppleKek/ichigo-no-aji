@@ -8,6 +8,7 @@ enum EntityType : u32 {
     ET_GERT,
     ET_COIN,
     ET_ENTRANCE,
+    ET_SPELL,
 };
 
 namespace Ichiaji {

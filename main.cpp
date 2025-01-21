@@ -482,7 +482,7 @@ void Ichigo::render_text(Vec2<f32> pos, const char *str, usize length, Ichigo::C
                 translation = pos - get_translation2d(Ichigo::Camera::transform);
             } else if (coordinate_system == Ichigo::CoordinateSystem::SCREEN_ASPECT_FIX) {
                 translation = pos - get_translation2d(Ichigo::Camera::transform);
-                Ichigo::Internal::gl.glUniform2f(screen_dimension_uniform, 16.0f, 9.0f);
+                Ichigo::Internal::gl.glUniform2f(screen_dimension_uniform, (f32) SCREEN_ASPECT_FIX_WIDTH, (f32) SCREEN_ASPECT_FIX_HEIGHT);
             } else {
                 translation = pos;
             }

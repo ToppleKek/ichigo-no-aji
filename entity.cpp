@@ -67,6 +67,10 @@ void Ichigo::kill_entity(EntityID id) {
     entity->id.index = 0;
 }
 
+void Ichigo::kill_entity(Entity *entity) {
+    entity->id.index = 0;
+}
+
 // Kill an entity at the end of the frame. This is useful for if you know you still need to access the entity later on
 // in the frame before it is killed.
 void Ichigo::kill_entity_deferred(EntityID id) {
@@ -76,6 +80,10 @@ void Ichigo::kill_entity_deferred(EntityID id) {
         return;
     }
 
+    SET_FLAG(entity->flags, EF_MARKED_FOR_DEATH);
+}
+
+void Ichigo::kill_entity_deferred(Entity *entity) {
     SET_FLAG(entity->flags, EF_MARKED_FOR_DEATH);
 }
 
