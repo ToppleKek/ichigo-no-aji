@@ -91,6 +91,7 @@ struct Coin {
 
 Ichiaji::ProgramState Ichiaji::program_state = Ichiaji::MAIN_MENU;
 Ichiaji::Level Ichiaji::current_level        = {};
+bool Ichiaji::input_disabled                 = false;
 Language current_language                    = ENGLISH;
 
 static Coin coins[3] = {};

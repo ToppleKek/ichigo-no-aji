@@ -64,11 +64,16 @@ static f32 invincibility_t = 0.0f;
 static void try_enter_entrance(i64 entrance_id) {
     auto callback = [](uptr data) {
         const Vec2<f32> &exit_position = Ichiaji::current_level.entrance_table[data];
-        Ichiaji::fullscreen_transition({0.0f, 0.0f, 0.0f, 1.0f}, {0.0f, 0.0f, 0.0f, 0.0f}, 0.3f, nullptr, 0);
+        auto enable_input = []([[maybe_unused]] uptr data) {
+            Ichiaji::input_disabled = false;
+        };
+
+        Ichiaji::fullscreen_transition({0.0f, 0.0f, 0.0f, 1.0f}, {0.0f, 0.0f, 0.0f, 0.0f}, 0.3f, enable_input, 0);
         auto *irisu = Ichigo::get_entity(irisu_id);
         Ichigo::teleport_entity_considering_colliders(irisu, exit_position);
     };
 
+    Ichiaji::input_disabled = true;
     Ichiaji::fullscreen_transition({0.0f, 0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 1.0f}, 0.3f, callback, (uptr) entrance_id);
 }
 
@@ -223,6 +228,8 @@ struct InputState {
 };
 
 static void process_movement_keys(Ichigo::Entity *irisu) {
+    if (Ichiaji::input_disabled) return;
+
     if (Ichigo::Internal::keyboard_state[Ichigo::IK_RIGHT].down || Ichigo::Internal::gamepad.right.down) {
         irisu->acceleration.x = irisu->movement_speed;
         SET_FLAG(irisu->flags, Ichigo::EF_FLIP_H);
@@ -333,12 +340,12 @@ void Irisu::update(Ichigo::Entity *irisu) {
         }
     }
 
-    bool jump_button_down_this_frame = Ichigo::Internal::keyboard_state[Ichigo::IK_SPACE].down_this_frame || Ichigo::Internal::gamepad.a.down_this_frame || Ichigo::Internal::gamepad.b.down_this_frame;
-    bool jump_button_down            = Ichigo::Internal::keyboard_state[Ichigo::IK_SPACE].down || Ichigo::Internal::gamepad.a.down || Ichigo::Internal::gamepad.b.down;
-    bool run_button_down             = Ichigo::Internal::keyboard_state[Ichigo::IK_LEFT_SHIFT].down || Ichigo::Internal::gamepad.x.down || Ichigo::Internal::gamepad.y.down;
-    bool dive_button_down_this_frame = Ichigo::Internal::keyboard_state[Ichigo::IK_Z].down_this_frame || Ichigo::Internal::gamepad.lb.down_this_frame || Ichigo::Internal::gamepad.rb.down_this_frame;
-    bool up_button_down_this_frame   = Ichigo::Internal::keyboard_state[Ichigo::IK_UP].down_this_frame || Ichigo::Internal::gamepad.up.down_this_frame;
-    bool fire_button_down            = Ichigo::Internal::keyboard_state[Ichigo::IK_X].down || Ichigo::Internal::gamepad.stick_left_click.down; // TODO: wtf lol
+    bool jump_button_down_this_frame = !Ichiaji::input_disabled && (Ichigo::Internal::keyboard_state[Ichigo::IK_SPACE].down_this_frame || Ichigo::Internal::gamepad.a.down_this_frame || Ichigo::Internal::gamepad.b.down_this_frame);
+    bool jump_button_down            = !Ichiaji::input_disabled && (Ichigo::Internal::keyboard_state[Ichigo::IK_SPACE].down || Ichigo::Internal::gamepad.a.down || Ichigo::Internal::gamepad.b.down);
+    bool run_button_down             = !Ichiaji::input_disabled && (Ichigo::Internal::keyboard_state[Ichigo::IK_LEFT_SHIFT].down || Ichigo::Internal::gamepad.x.down || Ichigo::Internal::gamepad.y.down);
+    bool dive_button_down_this_frame = !Ichiaji::input_disabled && (Ichigo::Internal::keyboard_state[Ichigo::IK_Z].down_this_frame || Ichigo::Internal::gamepad.lb.down_this_frame || Ichigo::Internal::gamepad.rb.down_this_frame);
+    bool up_button_down_this_frame   = !Ichiaji::input_disabled && (Ichigo::Internal::keyboard_state[Ichigo::IK_UP].down_this_frame || Ichigo::Internal::gamepad.up.down_this_frame);
+    bool fire_button_down            = !Ichiaji::input_disabled && (Ichigo::Internal::keyboard_state[Ichigo::IK_X].down || Ichigo::Internal::gamepad.stick_left_click.down); // TODO: wtf lol
 
     irisu->gravity = IRISU_DEFAULT_GRAVITY;
 

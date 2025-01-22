@@ -34,7 +34,7 @@ struct Level {
 };
 
 extern ProgramState program_state;
-// extern bool input_disabled;
+extern bool input_disabled;
 // extern bool ai_disabled;
 extern Level current_level;
 
