@@ -461,7 +461,10 @@ void Ichigo::Editor::render_ui() {
 
     if (selected_entity_descriptor_idx != -1) {
         if (ImGui::CollapsingHeader("Selected Entity Descriptor", ImGuiTreeNodeFlags_DefaultOpen)) {
-            // ImGui::InputScalar
+            auto *current_descriptors = Ichigo::Game::level_entity_descriptors();
+            i64 i64_one = 1;
+            ImGui::InputScalar("user_data", ImGuiDataType_S64, &(*current_descriptors)[selected_entity_descriptor_idx].data, &i64_one, nullptr, "%lld");
+            ImGui::InputFloat2("position", (f32 *) &(*current_descriptors)[selected_entity_descriptor_idx].pos);
         }
     }
 
