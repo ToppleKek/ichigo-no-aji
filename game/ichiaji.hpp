@@ -9,6 +9,7 @@ enum EntityType : u32 {
     ET_COIN,
     ET_ENTRANCE,
     ET_ENTRANCE_TRIGGER,
+    ET_MOVING_PLATFORM,
     ET_SPELL,
 };
 

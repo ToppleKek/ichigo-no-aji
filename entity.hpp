@@ -31,6 +31,8 @@ struct EntityID {
     u32 index;
 };
 
+#define NULL_ENTITY_ID (Ichigo::EntityID{0, 0})
+
 inline bool operator==(const Ichigo::EntityID &lhs, const Ichigo::EntityID &rhs) {
     return lhs.generation == rhs.generation && lhs.index == rhs.index;
 }
@@ -38,14 +40,17 @@ inline bool operator==(const Ichigo::EntityID &lhs, const Ichigo::EntityID &rhs)
 // TODO: NOTE: The flag EF_ANIM_LOOPING is used to signal that the animation has played out and will now loop
 //             from loop_start to loop_end. Do we need this? Right now, the animation plays from the first frame
 //             to the last one, and then loops from loop start to loop end. You *could* clear EF_ANIM_LOOPING to
-//             play to the end again, but then the animation will just start over again. This doesn't seem ver
+//             play to the end again, but then the animation will just start over again. This doesn't seem very
 //             useful.
+// NOTE 2:     Yes! This does sound useful for being able to check if an animation has fully played out. Maybe it should
+//             be in some separate "animation flags" or something, but it can live here for now.
 enum EntityFlag {
     EF_MARKED_FOR_DEATH = 1 << 0, // This entity will be killed at the end of the frame
     EF_ON_GROUND        = 1 << 1, // This entity is on the ground
     EF_FLIP_H           = 1 << 2, // This entity renders with its u coordinates reversed (ie. it is horizontally flipped).
     EF_INVISIBLE        = 1 << 3, // This entity will not render its sprite. However, animation frames still advance.
-    // EF_ANIM_LOOPING = 1 << 4, // TODO: Not sure if this makes sense?
+    EF_TANGIBLE         = 1 << 4, // This entity acts as a wall/floor/ceiling. Other entities can stand on it.
+    EF_ANIM_LOOPING     = 1 << 5, // This entity has played its animation fully once and is now looping.
 };
 
 // What happened as a result of moving an entity in the world?
@@ -99,10 +104,12 @@ struct Entity {
     Vec2<f32> velocity;
     Vec2<f32> acceleration;
     Vec2<f32> max_velocity;
+    EntityID standing_entity_id; // The entity that this one is standing on.
     Sprite sprite;
     f32 movement_speed;
     f32 jump_acceleration;
     f32 gravity; // TODO: Stupid.
+    f32 friction_when_tangible; // The amount of friction is applied to entites that are walking on this one.
     EntityFlags flags;
     EntityRenderProc *render_proc;
     EntityUpdateProc *update_proc;
@@ -110,6 +117,10 @@ struct Entity {
     i64 user_data;
     u32 user_type_id;
 };
+
+inline bool entity_is_dead(EntityID entity) {
+    return entity.index == 0;
+}
 
 Entity *spawn_entity();
 Entity *get_entity(EntityID id);

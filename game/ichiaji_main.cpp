@@ -179,6 +179,30 @@ static void spawn_gert(Vec2<f32> pos) {
     return coin->id;
 }
 
+static Ichigo::EntityID spawn_moving_platform(Vec2<f32> pos) {
+    Ichigo::Entity *platform = Ichigo::spawn_entity();
+
+    std::strcpy(platform->name, "pltfm");
+
+    platform->col                                  = {pos, 1.0f, 1.0f};
+    platform->friction_when_tangible               = 8.0f;
+    platform->sprite.width                         = 1.0f;
+    platform->sprite.height                        = 1.0f;
+    platform->sprite.sheet.texture                 = coin_texture_id;
+    // platform->collide_proc                         = on_coin_collide;
+    platform->sprite.sheet.cell_width              = 32;
+    platform->sprite.sheet.cell_height             = 32;
+    platform->sprite.animation.cell_of_first_frame = 0;
+    platform->sprite.animation.cell_of_last_frame  = 7;
+    platform->sprite.animation.cell_of_loop_start  = 0;
+    platform->sprite.animation.cell_of_loop_end    = 7;
+    platform->sprite.animation.seconds_per_frame   = 0.12f;
+
+    SET_FLAG(platform->flags, Ichigo::EF_TANGIBLE);
+
+    return platform->id;
+}
+
 static Ichigo::EntityID spawn_entrance(Vec2<f32> pos, i64 entrance_id) {
     Ichigo::Entity *entrance = Ichigo::spawn_entity();
 
@@ -280,6 +304,10 @@ static void respawn_all_entities(const Bana::Array<Ichigo::EntityDescriptor> &de
 
             case ET_ENTRANCE_TRIGGER: {
                 spawn_entrance_trigger(d.pos, d.data);
+            } break;
+
+            case ET_MOVING_PLATFORM: {
+                spawn_moving_platform(d.pos);
             } break;
 
             default: {

@@ -129,7 +129,12 @@ Ichigo::EntityMoveResult Ichigo::move_entity_in_world(Ichigo::Entity *entity) {
     // The friction used in all calculations will be the tile with the highest friction.
     const TileInfo &left_standing_tile_info  = Internal::current_tilemap.tile_info[tile_at(entity->left_standing_tile)];
     const TileInfo &right_standing_tile_info = Internal::current_tilemap.tile_info[tile_at(entity->right_standing_tile)];
-    f32 friction = MAX(left_standing_tile_info.friction, right_standing_tile_info.friction);
+
+    f32 standing_entity_friction = 0.0f;
+    const Entity *standing_entity = get_entity(entity->standing_entity_id);
+    if (standing_entity) standing_entity_friction = standing_entity->friction_when_tangible;
+
+    f32 friction = MAX(MAX(left_standing_tile_info.friction, right_standing_tile_info.friction), standing_entity_friction);
 
     Vec2<f32> external_acceleration = {};
     i32 direction = (i32) signof(entity->velocity.x);
@@ -216,6 +221,8 @@ Ichigo::EntityMoveResult Ichigo::move_entity_in_world(Ichigo::Entity *entity) {
         return NO_MOVE;
     }
 
+    MAKE_STACK_ARRAY(colliding_tangible_entities, Entity *, 32);
+
     // Check entity collisions.
     // Do not check dead entities, or entities that are not moving (since the detection algorithm depends on checking if one collider is moving into another).
     if (entity->id.index != 0 && entity->velocity != Vec2<f32>{0.0f, 0.0f}) {
@@ -273,6 +280,12 @@ Ichigo::EntityMoveResult Ichigo::move_entity_in_world(Ichigo::Entity *entity) {
                 if (other_entity.collide_proc) {
                     other_entity.collide_proc(&other_entity, entity, collider_normal * Vec2<f32>{-1.0f, -1.0f}, collision_normal, entity->col.pos + entity_delta * best_t);
                 }
+
+                // NOTE: Even though we just calculated the best_t and stuff for this entity, we will check again in the wall collision code. The reason we do this is to make the logic simpler
+                //       when making the 4 move steps later (ie. we don't have to special case the first collision check in the loop).
+                if (FLAG_IS_SET(other_entity.flags, EF_TANGIBLE) && colliding_tangible_entities.size < colliding_tangible_entities.capacity) {
+                    colliding_tangible_entities.append(&other_entity);
+                }
             }
         }
     }
@@ -291,13 +304,28 @@ Ichigo::EntityMoveResult Ichigo::move_entity_in_world(Ichigo::Entity *entity) {
         f32 best_t = 1.0f;
         Vec2<f32> wall_normal{};
         Vec2<f32> wall_position{};
+        Vec2<f32> centered_entity_p = entity->col.pos + Vec2<f32>{entity->col.w / 2.0f, entity->col.h / 2.0f};
 
+        if (!Ichigo::entity_is_dead(entity->standing_entity_id)) {
+            Entity *other_entity = Ichigo::get_entity(entity->standing_entity_id);
+            Vec2<f32> min_corner = {other_entity->col.pos.x - entity->col.w / 2.0f, other_entity->col.pos.y - entity->col.h / 2.0f};
+            Vec2<f32> max_corner = {other_entity->col.pos.x + other_entity->col.w + entity->col.w / 2.0f, other_entity->col.pos.y + other_entity->col.h + entity->col.h / 2.0f};
+
+            f32 floating_check_t = 1.0f;
+            if (!test_wall(min_corner.y, centered_entity_p.y, entity->gravity * Ichigo::Internal::dt, centered_entity_p.x, entity->col.pos.x, min_corner.x, max_corner.x, &floating_check_t)) {
+                ICHIGO_INFO("Entity (%s) is no longer standing on other entity (%s)", entity->name, other_entity->name);
+                entity->standing_entity_id = NULL_ENTITY_ID;
+                CLEAR_FLAG(entity->flags, EF_ON_GROUND);
+                result = BECAME_AIRBORNE;
+            }
+        }
+
+        // Test each reachable tile.
         for (i32 tile_y = min_tile_y; tile_y <= max_tile_y; ++tile_y) {
             for (i32 tile_x = min_tile_x; tile_x <= max_tile_x; ++tile_x) {
                 const TileInfo &tile_info = Internal::current_tilemap.tile_info[Ichigo::tile_at({tile_x, tile_y})];
 
                 if (FLAG_IS_SET(tile_info.flags, TileFlag::TANGIBLE)) {
-                    Vec2<f32> centered_entity_p = entity->col.pos + Vec2<f32>{entity->col.w / 2.0f, entity->col.h / 2.0f};
                     Vec2<f32> min_corner = {tile_x - entity->col.w / 2.0f, tile_y - entity->col.h / 2.0f};
                     Vec2<f32> max_corner = {tile_x + 1 + entity->col.w / 2.0f, tile_y + 1 + entity->col.h / 2.0f};
 
@@ -319,6 +347,37 @@ Ichigo::EntityMoveResult Ichigo::move_entity_in_world(Ichigo::Entity *entity) {
                         wall_position = { (f32) tile_x, (f32) tile_y };
                     }
                 }
+            }
+        }
+
+        for (i32 j = 0; j < colliding_tangible_entities.size; ++j) {
+            Entity *other_entity = colliding_tangible_entities[j];
+            Vec2<f32> min_corner = {other_entity->col.pos.x - entity->col.w / 2.0f, other_entity->col.pos.y - entity->col.h / 2.0f};
+            Vec2<f32> max_corner = {other_entity->col.pos.x + other_entity->col.w + entity->col.w / 2.0f, other_entity->col.pos.y + other_entity->col.h + entity->col.h / 2.0f};
+
+            // Test each side of the collider.
+            if (test_wall(min_corner.x, centered_entity_p.x, entity_delta.x, centered_entity_p.y, entity_delta.y, min_corner.y, max_corner.y, &best_t)) {
+                wall_normal   = { -1.0f, 0.0f };
+                wall_position = { other_entity->col.pos.x, other_entity->col.pos.y };
+            }
+
+            if (test_wall(max_corner.x, centered_entity_p.x, entity_delta.x, centered_entity_p.y, entity_delta.y, min_corner.y, max_corner.y, &best_t)) {
+                wall_normal   = { 1.0f, 0.0f };
+                wall_position = { other_entity->col.pos.x, other_entity->col.pos.y };
+            }
+
+            if (test_wall(min_corner.y, centered_entity_p.y, entity_delta.y, centered_entity_p.x, entity_delta.x, min_corner.x, max_corner.x, &best_t)) {
+                wall_normal   = { 0.0f, -1.0f };
+                wall_position = { other_entity->col.pos.x, other_entity->col.pos.y };
+
+                // NOTE: It should not be ever possible to collide with both the entity as a floor and as a wall. This shouldn't ever be invalid in the case where
+                //       we accept a move that doesn't actually have us standing on the entity.
+                entity->standing_entity_id = other_entity->id;
+            }
+
+            if (test_wall(max_corner.y, centered_entity_p.y, entity_delta.y, centered_entity_p.x, entity_delta.x, min_corner.x, max_corner.x, &best_t)) {
+                wall_normal   = { 0.0f, 1.0f };
+                wall_position = { other_entity->col.pos.x, other_entity->col.pos.y };
             }
         }
 
@@ -399,7 +458,7 @@ Ichigo::EntityMoveResult Ichigo::move_entity_in_world(Ichigo::Entity *entity) {
     if (FLAG_IS_SET(entity->flags, Ichigo::EntityFlag::EF_ON_GROUND)) {
         entity->left_standing_tile  = { (i32) entity->col.pos.x, (i32) (entity->col.pos.y + entity->col.h) + 1 };
         entity->right_standing_tile = { (i32) (entity->col.pos.x + entity->col.w), (i32) (entity->col.pos.y + entity->col.h) + 1 };
-        if (Ichigo::tile_at(entity->left_standing_tile) == ICHIGO_AIR_TILE && Ichigo::tile_at(entity->right_standing_tile) == ICHIGO_AIR_TILE) {
+        if (entity_is_dead(entity->standing_entity_id) && Ichigo::tile_at(entity->left_standing_tile) == ICHIGO_AIR_TILE && Ichigo::tile_at(entity->right_standing_tile) == ICHIGO_AIR_TILE) {
             result = BECAME_AIRBORNE;
             CLEAR_FLAG(entity->flags, Ichigo::EntityFlag::EF_ON_GROUND);
         }
