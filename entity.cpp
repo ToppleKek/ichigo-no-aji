@@ -50,8 +50,8 @@ void Ichigo::conduct_end_of_frame_executions() {
     for (u32 i = 1; i < Internal::entities.size; ++i) {
         Entity &entity = Internal::entities[i];
         if (entity.id.index != 0 && FLAG_IS_SET(entity.flags, EF_MARKED_FOR_DEATH)) {
-            entity.id.index = 0;
             CLEAR_FLAG(entity.flags, EF_MARKED_FOR_DEATH);
+            kill_entity(&entity);
         }
     }
 }
@@ -64,10 +64,12 @@ void Ichigo::kill_entity(EntityID id) {
         return;
     }
 
-    entity->id.index = 0;
+    kill_entity(entity);
 }
 
 void Ichigo::kill_entity(Entity *entity) {
+    if (entity->kill_proc) entity->kill_proc(entity);
+
     entity->id.index = 0;
 }
 
@@ -89,7 +91,7 @@ void Ichigo::kill_entity_deferred(Entity *entity) {
 
 void Ichigo::kill_all_entities() {
     for (u32 i = 1; i < Internal::entities.size; ++i) {
-        Internal::entities[i].id.index = 0;
+        kill_entity(&Internal::entities[i]);
     }
 }
 
@@ -306,6 +308,7 @@ Ichigo::EntityMoveResult Ichigo::move_entity_in_world(Ichigo::Entity *entity) {
         Vec2<f32> wall_position{};
         Vec2<f32> centered_entity_p = entity->col.pos + Vec2<f32>{entity->col.w / 2.0f, entity->col.h / 2.0f};
 
+        // Check to see if the currently stood on entity is still actually below us.
         if (!Ichigo::entity_is_dead(entity->standing_entity_id)) {
             Entity *other_entity = Ichigo::get_entity(entity->standing_entity_id);
             Vec2<f32> min_corner = {other_entity->col.pos.x - entity->col.w / 2.0f, other_entity->col.pos.y - entity->col.h / 2.0f};
@@ -317,6 +320,8 @@ Ichigo::EntityMoveResult Ichigo::move_entity_in_world(Ichigo::Entity *entity) {
                 entity->standing_entity_id = NULL_ENTITY_ID;
                 CLEAR_FLAG(entity->flags, EF_ON_GROUND);
                 result = BECAME_AIRBORNE;
+
+                if (other_entity->stand_proc) other_entity->stand_proc(other_entity, entity, false);
             }
         }
 
@@ -373,6 +378,7 @@ Ichigo::EntityMoveResult Ichigo::move_entity_in_world(Ichigo::Entity *entity) {
                 // NOTE: It should not be ever possible to collide with both the entity as a floor and as a wall. This shouldn't ever be invalid in the case where
                 //       we accept a move that doesn't actually have us standing on the entity.
                 entity->standing_entity_id = other_entity->id;
+                if (other_entity->stand_proc) other_entity->stand_proc(other_entity, entity, true);
             }
 
             if (test_wall(max_corner.y, centered_entity_p.y, entity_delta.y, centered_entity_p.x, entity_delta.x, min_corner.x, max_corner.x, &best_t)) {

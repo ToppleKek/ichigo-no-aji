@@ -329,6 +329,7 @@ extern f32 target_frame_time;
 extern f32 dpi_scale;
 extern Tilemap current_tilemap;
 extern Bana::Allocator temp_allocator;
+extern Bana::Allocator perm_allocator;
 
 // TODO: Move these out of internal?
 extern f32 dt;

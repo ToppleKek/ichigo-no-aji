@@ -11,6 +11,7 @@
 #include "ichiaji.hpp"
 #include "strings.hpp"
 #include "irisu.hpp"
+#include "moving_platform.hpp"
 
 EMBED("assets/enemy.png", enemy_png)
 EMBED("assets/coin.png", coin_spritesheet_png)
@@ -179,30 +180,6 @@ static void spawn_gert(Vec2<f32> pos) {
     return coin->id;
 }
 
-static Ichigo::EntityID spawn_moving_platform(Vec2<f32> pos) {
-    Ichigo::Entity *platform = Ichigo::spawn_entity();
-
-    std::strcpy(platform->name, "pltfm");
-
-    platform->col                                  = {pos, 1.0f, 1.0f};
-    platform->friction_when_tangible               = 8.0f;
-    platform->sprite.width                         = 1.0f;
-    platform->sprite.height                        = 1.0f;
-    platform->sprite.sheet.texture                 = coin_texture_id;
-    // platform->collide_proc                         = on_coin_collide;
-    platform->sprite.sheet.cell_width              = 32;
-    platform->sprite.sheet.cell_height             = 32;
-    platform->sprite.animation.cell_of_first_frame = 0;
-    platform->sprite.animation.cell_of_last_frame  = 7;
-    platform->sprite.animation.cell_of_loop_start  = 0;
-    platform->sprite.animation.cell_of_loop_end    = 7;
-    platform->sprite.animation.seconds_per_frame   = 0.12f;
-
-    SET_FLAG(platform->flags, Ichigo::EF_TANGIBLE);
-
-    return platform->id;
-}
-
 static Ichigo::EntityID spawn_entrance(Vec2<f32> pos, i64 entrance_id) {
     Ichigo::Entity *entrance = Ichigo::spawn_entity();
 
@@ -219,7 +196,7 @@ static Ichigo::EntityID spawn_entrance(Vec2<f32> pos, i64 entrance_id) {
     entrance->sprite.animation.cell_of_loop_start  = 0;
     entrance->sprite.animation.cell_of_loop_end    = 7;
     entrance->sprite.animation.seconds_per_frame   = 0.12f;
-    entrance->user_data                            = entrance_id;
+    entrance->user_data_i64                        = entrance_id;
     entrance->user_type_id                         = ET_ENTRANCE;
 
     return entrance->id;
@@ -230,9 +207,9 @@ static Ichigo::EntityID spawn_entrance_trigger(Vec2<f32> pos, i64 entrance_id) {
 
     std::strcpy(entrance->name, "entrtrg");
 
-    entrance->col          = {pos, 1.0f, 9.0f};
-    entrance->user_data    = entrance_id;
-    entrance->user_type_id = ET_ENTRANCE_TRIGGER;
+    entrance->col           = {pos, 1.0f, 9.0f};
+    entrance->user_data_i64 = entrance_id;
+    entrance->user_type_id  = ET_ENTRANCE_TRIGGER;
 
     SET_FLAG(entrance->flags, Ichigo::EF_INVISIBLE);
 
@@ -242,6 +219,7 @@ static Ichigo::EntityID spawn_entrance_trigger(Vec2<f32> pos, i64 entrance_id) {
 void Ichigo::Game::init() {
     // == Load assets ==
     Irisu::init();
+    MovingPlatform::init();
 
     test_bg_texture_id    = Ichigo::load_texture(test_bg, test_bg_len);
     enemy_texture_id      = Ichigo::load_texture(enemy_png, enemy_png_len);
@@ -307,7 +285,7 @@ static void respawn_all_entities(const Bana::Array<Ichigo::EntityDescriptor> &de
             } break;
 
             case ET_MOVING_PLATFORM: {
-                spawn_moving_platform(d.pos);
+                MovingPlatform::spawn(d.pos, d.data);
             } break;
 
             default: {

@@ -18,7 +18,9 @@ struct Entity;
 
 using EntityRenderProc  = void (Entity *);
 using EntityUpdateProc  = void (Entity *);
+using EntityKillProc    = void (Entity *);
 using EntityCollideProc = void (Entity *self, Entity *other, Vec2<f32> collider_normal, Vec2<f32> collision_normal, Vec2<f32> collision_pos);
+using EntityStandProc   = void (Entity *self, Entity *other, bool standing);
 using EntityFlags       = u64;
 
 namespace EntityControllers {
@@ -113,8 +115,18 @@ struct Entity {
     EntityFlags flags;
     EntityRenderProc *render_proc;
     EntityUpdateProc *update_proc;
+    EntityKillProc *kill_proc;
     EntityCollideProc *collide_proc;
-    i64 user_data;
+    EntityStandProc *stand_proc; // Fired when you are tangible and someone stands/gets off you. TODO: is this stupid?
+
+    union {
+        i64 user_data_i64;
+        struct {
+            f32 user_data_f32_1;
+            f32 user_data_f32_2;
+        };
+    };
+
     u32 user_type_id;
 };
 

@@ -250,15 +250,11 @@ struct FixedMap {
     isize capacity;
     isize size;
 
-    inline void put(Key key, Value value) {
+    void put(Key key, Value value) {
         assert(size != capacity);
-        u32 sum = 0;
-        for (u32 i = 0; i < sizeof(Key); ++i) {
-            sum += ((u8 *) &key)[i];
-        }
 
-        isize hash = sum % capacity;
-        for (isize j = hash;; j = (j + 1) % capacity) {
+        isize h = hash(key);
+        for (isize j = h;; j = (j + 1) % capacity) {
             if (!data[j].has_value) {
                 data[j].has_value = true;
                 data[j].key       = key;
@@ -269,17 +265,50 @@ struct FixedMap {
         }
     }
 
-    inline Bana::Optional<Value> get(Key key) {
-        assert(size > 0);
+    inline isize hash(Key key) {
         u32 sum = 0;
         for (u32 i = 0; i < sizeof(Key); ++i) {
             sum += ((u8 *) &key)[i];
         }
 
-        isize hash = sum % capacity;
-        for (isize i = hash, j = 0; j < capacity; i = (i + 1) % capacity, ++j) {
+        return sum % capacity;
+    }
+
+    // NOTE: Same as put() but does not overwrite the value
+    void slot_in(Key key) {
+        assert(size != capacity);
+
+        isize h = hash(key);
+        for (isize j = h;; j = (j + 1) % capacity) {
+            if (!data[j].has_value) {
+                data[j].has_value = true;
+                data[j].key       = key;
+                ++size;
+                break;
+            }
+        }
+    }
+
+    void remove(Key key) {
+        assert(size != 0);
+
+        isize h = hash(key);
+        for (isize j = h;; j = (j + 1) % capacity) {
+            if (data[j].has_value && std::memcmp(&data[j].key, &key, sizeof(Key)) == 0) {
+                data[j].has_value = false;
+                --size;
+                break;
+            }
+        }
+    }
+
+    Bana::Optional<Value *> get(Key key) {
+        assert(size > 0);
+
+        isize h = hash(key);
+        for (isize i = h, j = 0; j < capacity; i = (i + 1) % capacity, ++j) {
             if (data[i].has_value && std::memcmp(&data[i].key, &key, sizeof(Key)) == 0) {
-                return data[i].value;
+                return &data[i].value;
             }
         }
 

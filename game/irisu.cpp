@@ -98,11 +98,11 @@ static void on_collide(Ichigo::Entity *irisu, Ichigo::Entity *other, Vec2<f32> n
         } else {
             Ichigo::show_info("enter");
             ICHIGO_INFO("Collide with entrance entity with collision normal %f,%f", collision_normal.x, collision_normal.y);
-            entrance_to_enter = other->user_data;
+            entrance_to_enter = other->user_data_i64;
             // try_enter_entrance(other->user_data);
         }
     } else if (other->user_type_id == ET_ENTRANCE_TRIGGER) {
-        try_enter_entrance(other->user_data);
+        try_enter_entrance(other->user_data_i64);
     }
 }
 

@@ -1,0 +1,117 @@
+#include "moving_platform.hpp"
+
+#define MAX_PLATFORMS 64
+#define MAX_ENTITIES_ON_PLATFORM 64
+
+// TODO: Maybe a fixed array isn't the right option? We are using it like a free list.
+static Bana::FixedMap<Ichigo::EntityID, Bana::FixedArray<Ichigo::EntityID>> platform_entity_lists;
+
+static void update(Ichigo::Entity *platform) {
+    platform->velocity.x = 1.0f * signof(platform->velocity.x);
+
+    // TODO: Reflect if it hits a wall
+    [[maybe_unused]] Ichigo::EntityMoveResult move_result = Ichigo::move_entity_in_world(platform);
+
+    if (MIN(platform->user_data_f32_1, platform->user_data_f32_2) >= platform->col.pos.x) {
+        platform->col.pos.x = MIN(platform->user_data_f32_1, platform->user_data_f32_2);
+        platform->velocity.x *= -1.0f;
+    }
+
+    if (MAX(platform->user_data_f32_1, platform->user_data_f32_2) <= platform->col.pos.x) {
+        platform->col.pos.x = MAX(platform->user_data_f32_1, platform->user_data_f32_2);
+        platform->velocity.x *= -1.0f;
+    }
+
+    auto list = platform_entity_lists.get(platform->id);
+    if (!list.has_value)       return;
+    if (list.value->size == 0) return;
+
+    // FIXME: HACK!!! This hack is here because when we move the entity that is standing on the platform, it considers friction which makes it slowly slide off the platform.
+    f32 saved_friction = platform->friction_when_tangible;
+    platform->friction_when_tangible = 0.0f;
+    for (i32 i = 0; i < list.value->capacity; ++i) {
+        if (!Ichigo::entity_is_dead(list.value->data[i])) {
+            Ichigo::Entity *e        = Ichigo::get_entity(list.value->data[i]);
+            Vec2<f32> saved_velocity = e->velocity;
+            e->velocity              = platform->velocity;
+
+            Ichigo::move_entity_in_world(e);
+
+            e->velocity = saved_velocity;
+        }
+    }
+
+    platform->friction_when_tangible = saved_friction;
+}
+
+static void on_stand(Ichigo::Entity *platform, Ichigo::Entity *other_entity, bool standing) {
+    auto list = platform_entity_lists.get(platform->id);
+    if (!list.has_value) return;
+
+    if (standing) {
+        if (list.value->size >= list.value->capacity) return;
+        for (i32 i = 0; i < list.value->capacity; ++i) {
+            if (Ichigo::entity_is_dead(list.value->data[i])) {
+                list.value->data[i] = other_entity->id;
+                list.value->size++;
+                return;
+            }
+        }
+    } else {
+        if (list.value->size == 0) return;
+        for (i32 i = 0; i < list.value->capacity; ++i) {
+            if (list.value->data[i] == other_entity->id) {
+                list.value->data[i] = NULL_ENTITY_ID;
+                list.value->size--;
+                return;
+            }
+        }
+    }
+}
+
+static void on_kill(Ichigo::Entity *platform) {
+    auto list = platform_entity_lists.get(platform->id);
+    if (list.has_value) {
+        std::memset(list.value->data, 0, sizeof(Ichigo::EntityID) * list.value->capacity);
+        platform_entity_lists.remove(platform->id);
+    }
+}
+
+void MovingPlatform::init() {
+    platform_entity_lists = make_fixed_map<Ichigo::EntityID, Bana::FixedArray<Ichigo::EntityID>>(MAX_PLATFORMS, Ichigo::Internal::perm_allocator);
+    for (i32 i = 0; i < platform_entity_lists.capacity; ++i) {
+        platform_entity_lists.data[i].value = make_fixed_array<Ichigo::EntityID>(MAX_ENTITIES_ON_PLATFORM, Ichigo::Internal::perm_allocator);
+    }
+}
+
+void MovingPlatform::spawn(Vec2<f32> pos, i64 data) {
+    Ichigo::Entity *platform = Ichigo::spawn_entity();
+
+    std::strcpy(platform->name, "pltfm");
+
+    platform->col                                  = {pos, 1.0f, 1.0f};
+    platform->friction_when_tangible               = 8.0f;
+    platform->sprite.width                         = 0.0f;
+    platform->sprite.height                        = 0.0f;
+    // platform->sprite.sheet.texture                 = coin_texture_id;
+    platform->update_proc                          = update;
+    platform->stand_proc                           = on_stand;
+    platform->kill_proc                            = on_kill;
+    platform->user_data_f32_1                      = *((f32 *) &data);
+    platform->user_data_f32_2                      = *((f32 *) ((u8 *) (&data) + sizeof(f32)));
+    platform->sprite.sheet.cell_width              = 32;
+    platform->sprite.sheet.cell_height             = 32;
+    platform->sprite.animation.cell_of_first_frame = 0;
+    platform->sprite.animation.cell_of_last_frame  = 7;
+    platform->sprite.animation.cell_of_loop_start  = 0;
+    platform->sprite.animation.cell_of_loop_end    = 7;
+    platform->sprite.animation.seconds_per_frame   = 0.12f;
+
+    SET_FLAG(platform->flags, Ichigo::EF_TANGIBLE);
+
+    platform_entity_lists.slot_in(platform->id);
+}
+
+void MovingPlatform::deinit() {
+
+}

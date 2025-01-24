@@ -107,11 +107,20 @@ static void *temp_arena_alloc(usize size) {
     return (void *) PUSH_ARRAY(Ichigo::game_state.transient_storage_arena, u8, size);
 }
 
-static void temp_arena_free(void *) {}
+static void arena_free_nop(void *) {}
+
+static void *perm_arena_alloc(usize size) {
+    return (void *) PUSH_ARRAY(Ichigo::game_state.permanent_storage_arena, u8, size);
+}
 
 Bana::Allocator Ichigo::Internal::temp_allocator = {
     temp_arena_alloc,
-    temp_arena_free
+    arena_free_nop
+};
+
+Bana::Allocator Ichigo::Internal::perm_allocator = {
+    perm_arena_alloc,
+    arena_free_nop
 };
 
 // General purpose static string buffer.
