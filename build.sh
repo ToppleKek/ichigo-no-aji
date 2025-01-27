@@ -148,4 +148,4 @@ if [ "${1}" = "imgui" ]; then
     exit 0
 fi
 
-echo fuck you
+echo Nothing to do

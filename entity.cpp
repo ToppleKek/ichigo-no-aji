@@ -285,7 +285,7 @@ Ichigo::EntityMoveResult Ichigo::move_entity_in_world(Ichigo::Entity *entity) {
 
                 // NOTE: Even though we just calculated the best_t and stuff for this entity, we will check again in the wall collision code. The reason we do this is to make the logic simpler
                 //       when making the 4 move steps later (ie. we don't have to special case the first collision check in the loop).
-                if (FLAG_IS_SET(other_entity.flags, EF_TANGIBLE) && colliding_tangible_entities.size < colliding_tangible_entities.capacity) {
+                if ((FLAG_IS_SET(other_entity.flags, EF_TANGIBLE) || FLAG_IS_SET(other_entity.flags, EF_TANGIBLE_ON_TOP)) && colliding_tangible_entities.size < colliding_tangible_entities.capacity) {
                     colliding_tangible_entities.append(&other_entity);
                 }
             }
@@ -338,14 +338,17 @@ Ichigo::EntityMoveResult Ichigo::move_entity_in_world(Ichigo::Entity *entity) {
                     if (test_wall(min_corner.x, centered_entity_p.x, entity_delta.x, centered_entity_p.y, entity_delta.y, min_corner.y, max_corner.y, &best_t)) {
                         wall_normal   = { -1.0f, 0.0f };
                         wall_position = { (f32) tile_x, (f32) tile_y };
+
                     }
                     if (test_wall(max_corner.x, centered_entity_p.x, entity_delta.x, centered_entity_p.y, entity_delta.y, min_corner.y, max_corner.y, &best_t)) {
                         wall_normal   = { 1.0f, 0.0f };
                         wall_position = { (f32) tile_x, (f32) tile_y };
+
                     }
                     if (test_wall(min_corner.y, centered_entity_p.y, entity_delta.y, centered_entity_p.x, entity_delta.x, min_corner.x, max_corner.x, &best_t)) {
                         wall_normal   = { 0.0f, -1.0f };
                         wall_position = { (f32) tile_x, (f32) tile_y };
+
                     }
                     if (test_wall(max_corner.y, centered_entity_p.y, entity_delta.y, centered_entity_p.x, entity_delta.x, min_corner.x, max_corner.x, &best_t)) {
                         wall_normal   = { 0.0f, 1.0f };
@@ -361,31 +364,41 @@ Ichigo::EntityMoveResult Ichigo::move_entity_in_world(Ichigo::Entity *entity) {
             Vec2<f32> max_corner = {other_entity->col.pos.x + other_entity->col.w + entity->col.w / 2.0f, other_entity->col.pos.y + other_entity->col.h + entity->col.h / 2.0f};
 
             // Test each side of the collider.
-            if (test_wall(min_corner.x, centered_entity_p.x, entity_delta.x, centered_entity_p.y, entity_delta.y, min_corner.y, max_corner.y, &best_t)) {
-                wall_normal   = { -1.0f, 0.0f };
-                wall_position = { other_entity->col.pos.x, other_entity->col.pos.y };
-            }
 
-            if (test_wall(max_corner.x, centered_entity_p.x, entity_delta.x, centered_entity_p.y, entity_delta.y, min_corner.y, max_corner.y, &best_t)) {
-                wall_normal   = { 1.0f, 0.0f };
-                wall_position = { other_entity->col.pos.x, other_entity->col.pos.y };
-            }
-
+            // FIXME: HACK!! Do not count this collision if we are entering from inside the collider. This is so you do not snap onto the top of entities that are only tangible on the top.
+            f32 saved_t = best_t;
             if (test_wall(min_corner.y, centered_entity_p.y, entity_delta.y, centered_entity_p.x, entity_delta.x, min_corner.x, max_corner.x, &best_t)) {
-                wall_normal   = { 0.0f, -1.0f };
-                wall_position = { other_entity->col.pos.x, other_entity->col.pos.y };
+                if (entity_delta.y < 0.0f) {
+                    best_t = saved_t;
+                } else {
+                    wall_normal   = { 0.0f, -1.0f };
+                    wall_position = { other_entity->col.pos.x, other_entity->col.pos.y };
 
-                // NOTE: It should not be ever possible to collide with both the entity as a floor and as a wall. This shouldn't ever be invalid in the case where
-                //       we accept a move that doesn't actually have us standing on the entity.
-                entity->standing_entity_id = other_entity->id;
-                if (other_entity->stand_proc) other_entity->stand_proc(other_entity, entity, true);
+                    // NOTE: It should not be ever possible to collide with both the entity as a floor and as a wall. This shouldn't ever be invalid in the case where
+                    //       we accept a move that doesn't actually have us standing on the entity.
+                    entity->standing_entity_id = other_entity->id;
+                    if (other_entity->stand_proc) other_entity->stand_proc(other_entity, entity, true);
+                }
             }
 
-            if (test_wall(max_corner.y, centered_entity_p.y, entity_delta.y, centered_entity_p.x, entity_delta.x, min_corner.x, max_corner.x, &best_t)) {
-                wall_normal   = { 0.0f, 1.0f };
-                wall_position = { other_entity->col.pos.x, other_entity->col.pos.y };
+            if (!FLAG_IS_SET(other_entity->flags, EF_TANGIBLE_ON_TOP)) {
+                if (test_wall(min_corner.x, centered_entity_p.x, entity_delta.x, centered_entity_p.y, entity_delta.y, min_corner.y, max_corner.y, &best_t)) {
+                    wall_normal   = { -1.0f, 0.0f };
+                    wall_position = { other_entity->col.pos.x, other_entity->col.pos.y };
+                }
+
+                if (test_wall(max_corner.x, centered_entity_p.x, entity_delta.x, centered_entity_p.y, entity_delta.y, min_corner.y, max_corner.y, &best_t)) {
+                    wall_normal   = { 1.0f, 0.0f };
+                    wall_position = { other_entity->col.pos.x, other_entity->col.pos.y };
+                }
+
+                if (test_wall(max_corner.y, centered_entity_p.y, entity_delta.y, centered_entity_p.x, entity_delta.x, min_corner.x, max_corner.x, &best_t)) {
+                    wall_normal   = { 0.0f, 1.0f };
+                    wall_position = { other_entity->col.pos.x, other_entity->col.pos.y };
+                }
             }
         }
+
 
         if (wall_normal.x != 0.0f) {
             result = HIT_WALL;

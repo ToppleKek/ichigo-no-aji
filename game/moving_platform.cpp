@@ -107,7 +107,7 @@ void MovingPlatform::spawn(Vec2<f32> pos, i64 data) {
     platform->sprite.animation.cell_of_loop_end    = 7;
     platform->sprite.animation.seconds_per_frame   = 0.12f;
 
-    SET_FLAG(platform->flags, Ichigo::EF_TANGIBLE);
+    SET_FLAG(platform->flags, Ichigo::EF_TANGIBLE_ON_TOP);
 
     platform_entity_lists.slot_in(platform->id);
 }

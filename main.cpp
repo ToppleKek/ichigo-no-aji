@@ -57,7 +57,7 @@ static ImFontConfig font_config;
 static f32 last_dpi_scale = 1.0f;
 static GLuint texture_shader_program;
 static GLuint text_shader_program;
-static GLuint screenspace_text_shader_program; // FIXME: All these "screenspace" variants fucking suck
+static GLuint screenspace_text_shader_program; // FIXME: All these "screenspace" variants suck
 static GLuint solid_colour_shader_program;
 static GLuint screenspace_solid_colour_rect_program;
 static GLuint screenspace_texture_program;
@@ -472,7 +472,7 @@ void Ichigo::render_text(Vec2<f32> pos, const char *str, usize length, Ichigo::C
     i32 alpha_adjust_uniform;
     i32 screen_dimension_uniform = Ichigo::Internal::gl.glGetUniformLocation(text_shader_program, "screen_tile_dimensions");
 
-    switch (coordinate_system) { // FIXME: Having different shaders for screenspace is meccha stupid. Do something better.
+    switch (coordinate_system) { // FIXME: Remove screenspace??
         case Ichigo::CoordinateSystem::CAMERA:
         case Ichigo::CoordinateSystem::SCREEN_ASPECT_FIX:
         case Ichigo::CoordinateSystem::WORLD: {
