@@ -164,7 +164,19 @@ static void save_tilemap(Bana::String path) {
     for (u32 i = 0; i < current_descriptors->size; ++i) {
         auto descriptor = (*current_descriptors)[i];
         line.length = 0;
-        Bana::string_format(line, "    { \"%s\", %s, {%ff, %ff}, %lld },\n", descriptor.name, descriptor.name, descriptor.pos.x, descriptor.pos.y, descriptor.data);
+        Bana::string_format(
+            line,
+            "    { \"%s\", %s, {%ff, %ff}, %ff, %ff, %ff, %lld },\n",
+            descriptor.name,
+            descriptor.name,
+            descriptor.pos.x,
+            descriptor.pos.y,
+            descriptor.custom_width,
+            descriptor.custom_height,
+            descriptor.movement_speed,
+            descriptor.data
+        );
+
         Ichigo::Internal::platform_append_file_sync(entity_file, (u8 *) line.data, line.length);
     }
 
@@ -466,6 +478,9 @@ void Ichigo::Editor::render_ui() {
             ImGui::InputScalar("user_data", ImGuiDataType_S64, &(*current_descriptors)[selected_entity_descriptor_idx].data, &i64_one, nullptr, "%lld");
             ImGui::InputFloat2("user_data_f32", (f32 *) &(*current_descriptors)[selected_entity_descriptor_idx].data);
             ImGui::InputFloat2("position", (f32 *) &(*current_descriptors)[selected_entity_descriptor_idx].pos);
+            ImGui::InputFloat("custom width", &(*current_descriptors)[selected_entity_descriptor_idx].custom_width, 0.1f, 1.0f, "%.3fm");
+            ImGui::InputFloat("custom height", &(*current_descriptors)[selected_entity_descriptor_idx].custom_height, 0.1f, 1.0f, "%.3fm");
+            ImGui::InputFloat("custom movement speed", &(*current_descriptors)[selected_entity_descriptor_idx].movement_speed, 0.1f, 1.0f, "%.3f");
         }
     }
 

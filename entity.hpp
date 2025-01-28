@@ -95,6 +95,9 @@ struct EntityDescriptor {
     char name[32];
     u32 type;
     Vec2<f32> pos;
+    f32 custom_width;
+    f32 custom_height;
+    f32 movement_speed;
     i64 data;
 };
 
