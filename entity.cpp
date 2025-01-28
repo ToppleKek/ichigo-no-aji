@@ -91,7 +91,9 @@ void Ichigo::kill_entity_deferred(Entity *entity) {
 
 void Ichigo::kill_all_entities() {
     for (u32 i = 1; i < Internal::entities.size; ++i) {
-        kill_entity(&Internal::entities[i]);
+        if (!entity_is_dead(Internal::entities[i].id)) {
+            kill_entity(&Internal::entities[i]);
+        }
     }
 }
 
