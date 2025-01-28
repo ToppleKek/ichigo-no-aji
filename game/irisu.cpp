@@ -58,6 +58,7 @@ static f32 irisu_collider_width  = 0.3f;
 static f32 irisu_collider_height = 1.1f;
 
 static i64 entrance_to_enter = -1;
+static i64 level_to_enter    = -1;
 
 static f32 invincibility_t = 0.0f;
 
@@ -75,6 +76,20 @@ static void try_enter_entrance(i64 entrance_id) {
 
     Ichiaji::input_disabled = true;
     Ichiaji::fullscreen_transition({0.0f, 0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 1.0f}, 0.3f, callback, (uptr) entrance_id);
+}
+
+static void try_enter_new_level(i64 level_index) {
+    auto callback = [](uptr data) {
+        auto enable_input = []([[maybe_unused]] uptr data) {
+            Ichiaji::input_disabled = false;
+        };
+
+        Ichiaji::fullscreen_transition({0.0f, 0.0f, 0.0f, 1.0f}, {0.0f, 0.0f, 0.0f, 0.0f}, 0.3f, enable_input, 0);
+        Ichiaji::try_change_level((u32) data);
+    };
+
+    Ichiaji::input_disabled = true;
+    Ichiaji::fullscreen_transition({0.0f, 0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 1.0f}, 0.3f, callback, (uptr) level_index);
 }
 
 static void on_collide(Ichigo::Entity *irisu, Ichigo::Entity *other, Vec2<f32> normal, [[maybe_unused]] Vec2<f32> collision_normal, [[maybe_unused]] Vec2<f32> collision_pos) {
@@ -101,6 +116,13 @@ static void on_collide(Ichigo::Entity *irisu, Ichigo::Entity *other, Vec2<f32> n
             entrance_to_enter = other->user_data_i64;
             // try_enter_entrance(other->user_data);
         }
+    } else if (other->user_type_id == ET_LEVEL_ENTRANCE) {
+        if (normal.x != collision_normal.x || normal.y != collision_normal.y) {
+            level_to_enter = -1;
+        } else {
+            level_to_enter = other->user_data_i64;
+        }
+
     } else if (other->user_type_id == ET_ENTRANCE_TRIGGER) {
         try_enter_entrance(other->user_data_i64);
     }
@@ -364,6 +386,8 @@ void Irisu::update(Ichigo::Entity *irisu) {
 
             if (up_button_down_this_frame && entrance_to_enter != -1) {
                 try_enter_entrance(entrance_to_enter);
+            } else if (up_button_down_this_frame && level_to_enter != -1) {
+                try_enter_new_level(level_to_enter);
             }
 
             if (jump_button_down_this_frame) {

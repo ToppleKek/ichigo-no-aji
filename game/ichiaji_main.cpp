@@ -25,6 +25,13 @@ EMBED("assets/overworld_tiles.png", tileset_png)
 // Levels
 #include "levels/level0.ichigolvl"
 #include "levels/level1.ichigolvl"
+#include "levels/cave_entrance.ichigolvl"
+
+static const Ichiaji::Level all_levels[] = {
+    Level0::level,
+    Level1::level,
+    CaveEntranceLevel::level,
+};
 
 // UI
 EMBED("assets/coin-collected.png", ui_collected_coin_png)
@@ -202,6 +209,26 @@ static Ichigo::EntityID spawn_entrance(Vec2<f32> pos, i64 entrance_id) {
     return entrance->id;
 }
 
+static void spawn_level_entrance(Vec2<f32> pos, i64 level_id) {
+    Ichigo::Entity *entrance = Ichigo::spawn_entity();
+
+    std::strcpy(entrance->name, "lvlentr");
+
+    entrance->col                                  = {pos, 1.0f, 1.0f};
+    entrance->sprite.width                         = 1.0f;
+    entrance->sprite.height                        = 1.0f;
+    entrance->sprite.sheet.texture                 = coin_texture_id;
+    entrance->sprite.sheet.cell_width              = 32;
+    entrance->sprite.sheet.cell_height             = 32;
+    entrance->sprite.animation.cell_of_first_frame = 0;
+    entrance->sprite.animation.cell_of_last_frame  = 7;
+    entrance->sprite.animation.cell_of_loop_start  = 0;
+    entrance->sprite.animation.cell_of_loop_end    = 7;
+    entrance->sprite.animation.seconds_per_frame   = 0.12f;
+    entrance->user_data_i64                        = level_id;
+    entrance->user_type_id                         = ET_LEVEL_ENTRANCE;
+}
+
 static Ichigo::EntityID spawn_entrance_trigger(Vec2<f32> pos, i64 entrance_id) {
     Ichigo::Entity *entrance = Ichigo::spawn_entity();
 
@@ -280,6 +307,10 @@ static void respawn_all_entities(const Bana::Array<Ichigo::EntityDescriptor> &de
                 spawn_entrance(d.pos, d.data);
             } break;
 
+            case ET_LEVEL_ENTRANCE: {
+                spawn_level_entrance(d.pos, d.data);
+            } break;
+
             case ET_ENTRANCE_TRIGGER: {
                 spawn_entrance_trigger(d.pos, d.data);
             } break;
@@ -317,6 +348,15 @@ static void change_level(Ichiaji::Level level) {
 
     // == Spawn entities in world ==
     respawn_all_entities(current_entity_descriptors);
+}
+
+void Ichiaji::try_change_level(u32 level_index) {
+    if (level_index >= ARRAY_LEN(all_levels)) {
+        ICHIGO_ERROR("try_change_level: Invalid level index.");
+        return;
+    }
+
+    change_level(all_levels[level_index]);
 }
 
 static void init_game() {

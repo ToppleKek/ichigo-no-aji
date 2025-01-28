@@ -8,6 +8,7 @@ enum EntityType : u32 {
     ET_GERT,
     ET_COIN,
     ET_ENTRANCE,
+    ET_LEVEL_ENTRANCE,
     ET_ENTRANCE_TRIGGER,
     ET_MOVING_PLATFORM,
     ET_SPELL,
@@ -41,4 +42,5 @@ extern Level current_level;
 
 using FullscreenTransitionCompleteCallback = void (uptr);
 void fullscreen_transition(Vec4<f32> from, Vec4<f32> to, f32 t, FullscreenTransitionCompleteCallback *on_complete, uptr callback_data);
+void try_change_level(u32 level_index);
 }
