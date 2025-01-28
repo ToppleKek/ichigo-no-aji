@@ -8,9 +8,13 @@ static Bana::FixedMap<Ichigo::EntityID, Bana::FixedArray<Ichigo::EntityID>> plat
 
 static void update(Ichigo::Entity *platform) {
     platform->velocity.x = 1.0f * signof(platform->velocity.x);
+    f32 velocity_before  = platform->velocity.x;
 
-    // TODO: Reflect if it hits a wall
     [[maybe_unused]] Ichigo::EntityMoveResult move_result = Ichigo::move_entity_in_world(platform);
+
+    if (move_result == Ichigo::HIT_WALL) {
+        platform->velocity.x = velocity_before * -1.0f;
+    }
 
     if (MIN(platform->user_data_f32_1, platform->user_data_f32_2) >= platform->col.pos.x) {
         platform->col.pos.x = MIN(platform->user_data_f32_1, platform->user_data_f32_2);
