@@ -3,6 +3,6 @@
 
 namespace MovingPlatform {
 void init();
-void spawn(Vec2<f32> pos, i64 data);
+void spawn(const Ichigo::EntityDescriptor &descriptor);
 void deinit();
 }

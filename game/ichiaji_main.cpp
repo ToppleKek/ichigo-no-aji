@@ -316,7 +316,7 @@ static void respawn_all_entities(const Bana::Array<Ichigo::EntityDescriptor> &de
             } break;
 
             case ET_MOVING_PLATFORM: {
-                MovingPlatform::spawn(d.pos, d.data);
+                MovingPlatform::spawn(d);
             } break;
 
             default: {

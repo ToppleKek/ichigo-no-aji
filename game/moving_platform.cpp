@@ -7,7 +7,7 @@
 static Bana::FixedMap<Ichigo::EntityID, Bana::FixedArray<Ichigo::EntityID>> platform_entity_lists;
 
 static void update(Ichigo::Entity *platform) {
-    platform->velocity.x = 1.0f * signof(platform->velocity.x);
+    platform->velocity.x = platform->movement_speed * signof(platform->velocity.x);
     f32 velocity_before  = platform->velocity.x;
 
     [[maybe_unused]] Ichigo::EntityMoveResult move_result = Ichigo::move_entity_in_world(platform);
@@ -88,21 +88,22 @@ void MovingPlatform::init() {
     }
 }
 
-void MovingPlatform::spawn(Vec2<f32> pos, i64 data) {
+void MovingPlatform::spawn(const Ichigo::EntityDescriptor &descriptor) {
     Ichigo::Entity *platform = Ichigo::spawn_entity();
 
     std::strcpy(platform->name, "pltfm");
 
-    platform->col                                  = {pos, 1.0f, 1.0f};
-    platform->friction_when_tangible               = 8.0f;
-    platform->sprite.width                         = 0.0f;
+    platform->col                                  = {descriptor.pos, descriptor.custom_width, descriptor.custom_height};
+    platform->movement_speed                       = descriptor.movement_speed;
+    platform->friction_when_tangible               = 8.0f; // TODO: Custom friction?
+    platform->sprite.width                         = 0.0f; // TODO: Sprite for platforms, requires a custom render proc!!
     platform->sprite.height                        = 0.0f;
     // platform->sprite.sheet.texture                 = coin_texture_id;
     platform->update_proc                          = update;
     platform->stand_proc                           = on_stand;
     platform->kill_proc                            = on_kill;
-    platform->user_data_f32_1                      = *((f32 *) &data);
-    platform->user_data_f32_2                      = *((f32 *) ((u8 *) (&data) + sizeof(f32)));
+    platform->user_data_f32_1                      = *((f32 *) &descriptor.data);
+    platform->user_data_f32_2                      = *((f32 *) ((u8 *) (&descriptor.data) + sizeof(f32)));
     platform->sprite.sheet.cell_width              = 32;
     platform->sprite.sheet.cell_height             = 32;
     platform->sprite.animation.cell_of_first_frame = 0;
