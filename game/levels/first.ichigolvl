@@ -1,0 +1,29 @@
+namespace FirstLevel {
+EMBED("assets/levels/first.ichigotm", first_tilemap)
+
+#include "../../assets/levels/first.ichigoed"
+
+static Ichigo::Background backgrounds[] = {
+    {
+        0,
+        Ichigo::BG_REPEAT_X,
+        {0.0f, 0.0f},
+        {0.2f, 0.2f},
+    },
+};
+
+static Ichiaji::BackgroundPngDescriptor background_descriptors[] = {
+    { CaveEntranceLevel::cave_bg_png_len, (u8 *) CaveEntranceLevel::cave_bg_png, INLINE_INIT_OF_STATIC_ARRAY(backgrounds) }
+};
+
+Vec2<f32> entrance_table[] = {
+};
+
+Ichiaji::Level level = {
+    (u8 *) first_tilemap,
+    {(30.0f / 255.0f), (28.0f / 255.0f), (21.0f / 255.0f), 1.0f},
+    INLINE_INIT_OF_STATIC_ARRAY(background_descriptors),
+    INLINE_INIT_OF_STATIC_ARRAY(entity_descriptors),
+    INLINE_INIT_OF_STATIC_ARRAY(entrance_table),
+};
+}

@@ -26,11 +26,13 @@ EMBED("assets/overworld_tiles.png", tileset_png)
 #include "levels/level0.ichigolvl"
 #include "levels/level1.ichigolvl"
 #include "levels/cave_entrance.ichigolvl"
+#include "levels/first.ichigolvl"
 
 static const Ichiaji::Level all_levels[] = {
     Level0::level,
     Level1::level,
     CaveEntranceLevel::level,
+    FirstLevel::level,
 };
 
 // UI

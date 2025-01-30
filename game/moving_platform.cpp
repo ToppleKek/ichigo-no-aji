@@ -37,7 +37,7 @@ static void update(Ichigo::Entity *platform) {
         if (!Ichigo::entity_is_dead(list.value->data[i])) {
             Ichigo::Entity *e        = Ichigo::get_entity(list.value->data[i]);
             Vec2<f32> saved_velocity = e->velocity;
-            e->velocity              = platform->velocity;
+            e->velocity.x            = velocity_before;
 
             Ichigo::move_entity_in_world(e);
 
