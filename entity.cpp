@@ -12,6 +12,7 @@
 
 // TODO: @heap
 Bana::Array<Ichigo::Entity> Ichigo::Internal::entities;
+Bana::Array<Ichigo::EntityID> Ichigo::Internal::entity_ids_in_draw_order;
 
 // TODO: If the entity id's index is 0, that means that entity has been killed and that spot can hold a new entity.
 //       Should it really be like this? Maybe there should be an 'is_alive' flag on the entity?
@@ -23,6 +24,8 @@ Ichigo::Entity *Ichigo::spawn_entity() {
             Ichigo::EntityID new_id = {Internal::entities[i].id.generation + 1, i};
             std::memset(&Internal::entities[i], 0, sizeof(Ichigo::Entity));
             Internal::entities[i].id = new_id;
+            Ichigo::Internal::entity_ids_in_draw_order.insert(new_id, 0);
+
             return &Internal::entities[i];
         }
     }
@@ -31,6 +34,7 @@ Ichigo::Entity *Ichigo::spawn_entity() {
     Ichigo::Entity ret{};
     ret.id = {0, (u32) Internal::entities.size};
     Internal::entities.append(ret);
+    Ichigo::Internal::entity_ids_in_draw_order.insert(ret.id, 0);
     return &Internal::entities[Internal::entities.size - 1];
 }
 
@@ -42,6 +46,26 @@ Ichigo::Entity *Ichigo::get_entity(Ichigo::EntityID id) {
         return nullptr;
 
     return &Internal::entities[id.index];
+}
+
+void Ichigo::change_entity_draw_layer(Ichigo::EntityID id, i8 new_layer) {
+    Entity *e = get_entity(id);
+    if (e) change_entity_draw_layer(e, new_layer);
+}
+
+void Ichigo::change_entity_draw_layer(Ichigo::Entity *entity, i8 new_layer) {
+    Ichigo::Internal::entity_ids_in_draw_order.remove(Ichigo::Internal::entity_ids_in_draw_order.index_of(entity->id));
+
+    entity->draw_layer = new_layer;
+    for (isize i = 0; i < Ichigo::Internal::entity_ids_in_draw_order.size; ++i) {
+        Entity *other = get_entity(Ichigo::Internal::entity_ids_in_draw_order[i]);
+        if (other->draw_layer > entity->draw_layer) {
+            Ichigo::Internal::entity_ids_in_draw_order.insert(entity->id, i == 0 ? 0 : i - 1);
+            return;
+        }
+    }
+
+    Ichigo::Internal::entity_ids_in_draw_order.append(entity->id);
 }
 
 // You can mark an entity to be killed by calling kill_entity_deferred to defer the death of that entity to the end of the frame.
@@ -69,7 +93,7 @@ void Ichigo::kill_entity(EntityID id) {
 
 void Ichigo::kill_entity(Entity *entity) {
     if (entity->kill_proc) entity->kill_proc(entity);
-
+    Ichigo::Internal::entity_ids_in_draw_order.remove(Ichigo::Internal::entity_ids_in_draw_order.index_of(entity->id));
     entity->id.index = 0;
 }
 

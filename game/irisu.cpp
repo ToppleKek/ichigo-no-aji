@@ -210,6 +210,8 @@ void Irisu::init() {
 }
 
 void Irisu::spawn(Ichigo::Entity *entity, Vec2<f32> pos) {
+    Ichigo::change_entity_draw_layer(entity, 16);
+
     invincibility_t   = 0.0f;
     irisu_state       = IDLE;
     entrance_to_enter = -1;

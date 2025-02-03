@@ -1102,28 +1102,18 @@ static void frame_render() {
         Ichigo::Camera::screen_tile_dimensions.y,
     };
 
-    for (u32 i = 1; i < Ichigo::Internal::entities.size; ++i) {
-        Ichigo::Entity &entity = Ichigo::Internal::entities[i];
-        if (entity.id.index != 0 && rectangles_intersect(camera_rect, entity.col)) {
-            if (entity.render_proc) {
-                entity.render_proc(&entity);
+    for (u32 i = 1; i < Ichigo::Internal::entity_ids_in_draw_order.size; ++i) {
+        Ichigo::Entity *entity = Ichigo::get_entity(Ichigo::Internal::entity_ids_in_draw_order[i]);
+        if (entity && rectangles_intersect(camera_rect, entity->col)) {
+            if (entity->render_proc) {
+                entity->render_proc(entity);
             } else {
-                default_entity_render_proc(&entity);
+                default_entity_render_proc(entity);
             }
         }
     }
 
     // == End entities ==
-
-    // TODO: Render order? The player is now a part of the entity list. We could also skip rendering the player in the loop and render afterwards
-    //       but maybe we want a more robust layering system?
-
-    // Always render the player last (on top)
-    // if (Ichigo::game_state.player_entity.render_proc)
-    //     Ichigo::game_state.player_entity.render_proc(&Ichigo::game_state.player_entity);
-    // else
-    //     default_entity_render_proc(&Ichigo::game_state.player_entity);
-
     // == Draw commands ==
     // TODO: This is technically a "stack" I guess. Should we do this in stack order?
     for (u32 i = 0; i < Ichigo::game_state.this_frame_data.draw_command_count; ++i) {

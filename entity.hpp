@@ -101,8 +101,10 @@ struct EntityDescriptor {
     i64 data;
 };
 
+// FIXME: A lot of these fields are unused in certian use cases.
 struct Entity {
-    char name[8];
+    char name[24];
+    i8 draw_layer;
     EntityID id;
     Rect<f32> col;
     Vec2<i32> left_standing_tile;
@@ -134,12 +136,15 @@ struct Entity {
     u32 user_type_id;
 };
 
-inline bool entity_is_dead(EntityID entity) {
-    return entity.index == 0;
-}
-
 Entity *spawn_entity();
 Entity *get_entity(EntityID id);
+
+inline bool entity_is_dead(EntityID id) {
+    return get_entity(id) == nullptr;
+}
+
+void change_entity_draw_layer(Ichigo::EntityID id, i8 new_layer);
+void change_entity_draw_layer(Ichigo::Entity *entity, i8 new_layer);
 void conduct_end_of_frame_executions();
 void kill_entity(EntityID id);
 void kill_entity(Entity *entity);
@@ -150,6 +155,9 @@ EntityMoveResult move_entity_in_world(Entity *entity);
 void teleport_entity_considering_colliders(Entity *entity, Vec2<f32> pos);
 namespace Internal {
 extern Bana::Array<Ichigo::Entity> entities;
+extern Bana::Array<Ichigo::EntityID> entity_ids_in_draw_order;
+extern bool entity_draw_order_dirty;
+
 char *entity_id_as_string(EntityID entity_id); // TODO: NOT THREAD SAFE!! - message to past me- nothing really is lol. Who cares right now? We are a 2D game engine that runs at ~3000fps.
 }
 }

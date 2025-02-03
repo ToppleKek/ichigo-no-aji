@@ -181,8 +181,25 @@ struct Array {
         return size - 1;
     }
 
+    isize index_of(T item) {
+        for (isize i = 0; i < size; ++i) {
+            if (std::memcmp(&item, &data[i], sizeof(T)) == 0) return i;
+        }
+
+        return -1;
+    }
+
+    void insert(T item, isize idx) {
+        assert(idx >= 0 && idx <= size);
+        if (size == capacity) expand();
+
+        std::memmove(&data[idx + 1], &data[idx], (size - idx) * sizeof(T));
+        data[idx] = item;
+        ++size;
+    }
+
     T remove(isize i) {
-        assert(i > 0 && i < size);
+        assert(i >= 0 && i < size);
         if (i == size - 1) return data[--size];
 
         T ret = data[i];

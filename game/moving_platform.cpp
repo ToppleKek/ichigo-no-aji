@@ -23,8 +23,6 @@ static void render(Ichigo::Entity *platform) {
         rects.append(r);
     }
 
-    ICHIGO_INFO("RECT COUNT: %d", rects.size);
-
     Ichigo::world_render_rect_list(platform->col.pos, rects, platform_spritesheet_texture);
 }
 
