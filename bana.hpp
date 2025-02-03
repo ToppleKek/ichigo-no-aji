@@ -226,6 +226,12 @@ struct FixedArray {
         return size - 1;
     }
 
+    void append(T *items, isize count) {
+        assert(size + count <= capacity);
+        std::memcpy(&data[size], items, count * sizeof(T));
+        size += count;
+    }
+
     inline T &operator[](isize i) {
         assert(i < size);
         return data[i];

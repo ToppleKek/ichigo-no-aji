@@ -18,6 +18,31 @@
 - Upon beating the boss, you obtain information on how to use the wand. You get a new spell.
 - The first spell you learn is a fire spell. This allows you to melt blocks of ice, and is more effective at killing certian kinds of enemies
 
+## TODO (musekinin)
+### GRAPHICS
+- Moving platform needs graphics + custom render proc to render different sized platforms
+- - world_render_vertex_list()
+- - The platform will render two end tiles (or a 1x1 tile version) and a repeating middle tile
+- Render order
+- Animate new player character
+- Animate new enemy
+- background graphics for dorm, store, etc
+- Better magic graphics
+
+### OTHER ASSETS
+- Select music, sound effects
+- Design levels
+
+### PROGRAMMING
+- Allow casting magic in more states (falling, jumping)
+- Particle system
+- Cutscenes
+- Bezier curves for camera smoothing
+- Shop
+- Implement health
+- Moving platform has weird physics
+- Camera guide entities (blockers)
+
 ## Scope of the school part of the project
 - Only a demo. First 2 levels at least + hub world.
 

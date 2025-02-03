@@ -2,9 +2,31 @@
 
 #define MAX_PLATFORMS 64
 #define MAX_ENTITIES_ON_PLATFORM 64
+#define MAX_PLATFORM_AREA 64
+
+EMBED("assets/moving-platform.png", platform_spritesheet_png)
 
 // TODO: Maybe a fixed array isn't the right option? We are using it like a free list.
 static Bana::FixedMap<Ichigo::EntityID, Bana::FixedArray<Ichigo::EntityID>> platform_entity_lists;
+static Ichigo::TextureID platform_spritesheet_texture;
+
+static void render(Ichigo::Entity *platform) {
+    MAKE_STACK_ARRAY(rects, TexturedRect, MAX_PLATFORM_AREA);
+
+    for (u32 x = 0; x < (u32) platform->col.w; ++x) {
+        TexturedRect r = {
+            {{(f32) x, 0.0f}, 1.0f, 1.0f},
+            {{0, 0}, 32, 32}
+
+        };
+
+        rects.append(r);
+    }
+
+    ICHIGO_INFO("RECT COUNT: %d", rects.size);
+
+    Ichigo::world_render_rect_list(platform->col.pos, rects, platform_spritesheet_texture);
+}
 
 static void update(Ichigo::Entity *platform) {
     platform->velocity.x = platform->movement_speed * signof(platform->velocity.x);
@@ -82,6 +104,7 @@ static void on_kill(Ichigo::Entity *platform) {
 }
 
 void MovingPlatform::init() {
+    platform_spritesheet_texture = Ichigo::load_texture(platform_spritesheet_png, platform_spritesheet_png_len);
     platform_entity_lists = make_fixed_map<Ichigo::EntityID, Bana::FixedArray<Ichigo::EntityID>>(MAX_PLATFORMS, Ichigo::Internal::perm_allocator);
     for (i32 i = 0; i < platform_entity_lists.capacity; ++i) {
         platform_entity_lists.data[i].value = make_fixed_array<Ichigo::EntityID>(MAX_ENTITIES_ON_PLATFORM, Ichigo::Internal::perm_allocator);
@@ -89,6 +112,8 @@ void MovingPlatform::init() {
 }
 
 void MovingPlatform::spawn(const Ichigo::EntityDescriptor &descriptor) {
+    assert(descriptor.custom_width * descriptor.custom_height <= (f32) MAX_PLATFORM_AREA);
+
     Ichigo::Entity *platform = Ichigo::spawn_entity();
 
     std::strcpy(platform->name, "pltfm");
@@ -99,6 +124,7 @@ void MovingPlatform::spawn(const Ichigo::EntityDescriptor &descriptor) {
     platform->sprite.width                         = 0.0f; // TODO: Sprite for platforms, requires a custom render proc!!
     platform->sprite.height                        = 0.0f;
     // platform->sprite.sheet.texture                 = coin_texture_id;
+    platform->render_proc                          = render;
     platform->update_proc                          = update;
     platform->stand_proc                           = on_stand;
     platform->kill_proc                            = on_kill;

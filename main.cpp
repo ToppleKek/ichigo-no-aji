@@ -126,15 +126,6 @@ Bana::Allocator Ichigo::Internal::perm_allocator = {
 // General purpose static string buffer.
 static char string_buffer[1024];
 
-// A textured vertex contains both a position and UV coordinates.
-// TODO: Maybe this is stupid and we should just have one type of vertex. It would probably simplify the shader code.
-struct TexturedVertex {
-    Vec3<f32> pos;
-    Vec2<f32> tex;
-};
-
-using Vertex = Vec3<f32>;
-
 // Some state for OpenGL
 struct DrawData {
     u32 vertex_array_id;
@@ -286,6 +277,70 @@ void Ichigo::world_render_solid_colour_rect(Rect<f32> rect, Vec4<f32> colour, Ma
     Ichigo::Internal::gl.glUniformMatrix4fv(object_uniform, 1, GL_TRUE, (GLfloat *) &transform);
 
     Ichigo::Internal::gl.glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+}
+
+void Ichigo::world_render_rect_list(Vec2<f32> pos, const Bana::FixedArray<TexturedRect> &rects, TextureID texture_id, Mat4<f32> transform, Vec4<f32> tint) {
+    transform = translate2d(pos) * transform;
+
+    uptr temp_ptr = BEGIN_TEMP_MEMORY(Ichigo::game_state.transient_storage_arena);
+
+    Bana::FixedArray<TexturedVertex> vtx = Bana::make_fixed_array<TexturedVertex>(rects.size * 4, Ichigo::Internal::temp_allocator);
+    Bana::FixedArray<u32>            idx = Bana::make_fixed_array<u32>(rects.size * 6, Ichigo::Internal::temp_allocator);
+    Texture                          tex = Ichigo::Internal::textures[texture_id];
+
+    for (u32 i = 0; i < rects.size; ++i) {
+        u32 in[] = {
+            (u32) vtx.size,     (u32) vtx.size + 1, (u32) vtx.size + 2,
+            (u32) vtx.size + 1, (u32) vtx.size + 2, (u32) vtx.size + 3
+        };
+
+        idx.append(in, ARRAY_LEN(in));
+
+        f32 x = rects[i].draw_rect.pos.x;
+        f32 y = rects[i].draw_rect.pos.y;
+        f32 w = rects[i].draw_rect.w;
+        f32 h = rects[i].draw_rect.h;
+        f32 tex_x = rects[i].texture_rect.pos.x;
+        f32 tex_y = rects[i].texture_rect.pos.y;
+        f32 tex_w = rects[i].texture_rect.w;
+        f32 tex_h = rects[i].texture_rect.h;
+
+        // UV coordinates.
+        f32 u0 = (f32) tex_x / (f32) tex.width;
+        f32 v0 = (f32) (tex.height - tex_y) / (f32) tex.height;
+        f32 u1 = u0 + (tex_w / (f32) tex.width);
+        f32 v1 = v0 - (tex_h / (f32) tex.height);
+
+        TexturedVertex vt[] = {
+            {{x, y, 0.0f},         {u0, v0}}, // top left
+            {{x + w, y, 0.0f},     {u1, v0}}, // top right
+            {{x, y + h, 0.0f},     {u0, v1}}, // bottom left
+            {{x + w, y + h, 0.0f}, {u1, v1}}, // bottom right
+        };
+
+        vtx.append(vt, ARRAY_LEN(vt));
+    }
+
+    Ichigo::Internal::gl.glUseProgram(texture_shader_program);
+
+    Ichigo::Internal::gl.glBindBuffer(GL_ARRAY_BUFFER, draw_data_textured.vertex_buffer_id);
+    Ichigo::Internal::gl.glBindVertexArray(draw_data_textured.vertex_array_id);
+    Ichigo::Internal::gl.glBindTexture(GL_TEXTURE_2D, tex.id);
+
+    Ichigo::Internal::gl.glBufferData(GL_ARRAY_BUFFER, vtx.size * sizeof(TexturedVertex), vtx.data, GL_STATIC_DRAW);
+    Ichigo::Internal::gl.glBufferData(GL_ELEMENT_ARRAY_BUFFER, idx.size * sizeof(u32), idx.data, GL_STATIC_DRAW);
+
+    i32 texture_uniform = Ichigo::Internal::gl.glGetUniformLocation(texture_shader_program, "entity_texture");
+    i32 object_uniform  = Ichigo::Internal::gl.glGetUniformLocation(texture_shader_program, "object_transform");
+    i32 tint_uniform    = Ichigo::Internal::gl.glGetUniformLocation(texture_shader_program, "colour_tint");
+
+    Ichigo::Internal::gl.glUniform4fv(tint_uniform, 1, (GLfloat *) &tint);
+    Ichigo::Internal::gl.glUniform1i(texture_uniform, 0);
+    Ichigo::Internal::gl.glUniformMatrix4fv(object_uniform, 1, GL_TRUE, (GLfloat *) &transform);
+
+    Ichigo::Internal::gl.glDrawElements(GL_TRIANGLES, idx.size, GL_UNSIGNED_INT, 0);
+
+    END_TEMP_MEMORY(Ichigo::game_state.transient_storage_arena, temp_ptr);
 }
 
 f32 Ichigo::get_text_width(const char *str, usize length, Ichigo::TextStyle style) {

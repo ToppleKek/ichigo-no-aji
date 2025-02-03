@@ -236,6 +236,21 @@ struct Rect {
     T h;
 };
 
+// A textured vertex contains both a position and UV coordinates.
+// TODO: Maybe this is stupid and we should just have one type of vertex. It would probably simplify the shader code.
+struct TexturedVertex {
+    Vec3<f32> pos;
+    Vec2<f32> tex;
+};
+
+using Vertex = Vec3<f32>;
+
+// Used by some functions to define both a rectangle to be drawn (draw_rect) and a rectangle region in the texture to generate uv coordinates from (texture_rect)
+struct TexturedRect {
+    Rect<f32> draw_rect;
+    Rect<u32> texture_rect;
+};
+
 constexpr const Mat4<f32> m4identity_f32 = {
     {1, 0, 0, 0},
     {0, 1, 0, 0},
