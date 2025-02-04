@@ -17,7 +17,6 @@ static void render(Ichigo::Entity *platform) {
         TexturedRect r = {
             {{(f32) x, 0.0f}, 1.0f, 1.0f},
             {{0, 0}, 32, 32}
-
         };
 
         rects.append(r);

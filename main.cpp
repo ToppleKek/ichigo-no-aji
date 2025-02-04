@@ -1102,7 +1102,7 @@ static void frame_render() {
         Ichigo::Camera::screen_tile_dimensions.y,
     };
 
-    for (u32 i = 1; i < Ichigo::Internal::entity_ids_in_draw_order.size; ++i) {
+    for (u32 i = 0; i < Ichigo::Internal::entity_ids_in_draw_order.size; ++i) {
         Ichigo::Entity *entity = Ichigo::get_entity(Ichigo::Internal::entity_ids_in_draw_order[i]);
         if (entity && rectangles_intersect(camera_rect, entity->col)) {
             if (entity->render_proc) {
