@@ -355,6 +355,10 @@ inline f32 ichigo_lerp(f32 a, f32 t, f32 b) {
     return a + t * (b - a);
 }
 
+inline f32 bezier(f32 p0, f32 p1, f32 t, f32 p2, f32 p3) {
+    return ((1 - t) * (1 - t) * (1 - t) * p0) + (t * t * t * p3) + (3 * t * t * (1 - t) * p2) + (3 * (1 - t) * (1 - t) * t * p1);
+}
+
 inline f32 signof(f32 value) {
     return value < 0.0f ? -1.0f : 1.0f;
 }

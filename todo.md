@@ -20,10 +20,10 @@
 
 ## TODO (musekinin)
 ### GRAPHICS
-- Moving platform needs graphics + custom render proc to render different sized platforms
-- - world_render_vertex_list()
+- ~~Moving platform needs graphics + custom render proc to render different sized platforms~~
+- - ~~world_render_vertex_list()~~
 - - The platform will render two end tiles (or a 1x1 tile version) and a repeating middle tile
-- Render order
+- ~~Render order~~
 - Animate new player character
 - Animate new enemy
 - background graphics for dorm, store, etc
