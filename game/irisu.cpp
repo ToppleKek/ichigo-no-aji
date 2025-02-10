@@ -86,6 +86,7 @@ static void try_enter_new_level(i64 level_index) {
 
         Ichiaji::fullscreen_transition({0.0f, 0.0f, 0.0f, 1.0f}, {0.0f, 0.0f, 0.0f, 0.0f}, 0.3f, enable_input, 0);
         Ichiaji::try_change_level((u32) data);
+        Ichiaji::current_save_data.player_data.level_id = data;
     };
 
     Ichiaji::input_disabled = true;
@@ -552,4 +553,6 @@ void Irisu::update(Ichigo::Entity *irisu) {
         irisu_state = IDLE;
         maybe_enter_animation(irisu, irisu_idle);
     }
+
+    Ichiaji::current_save_data.player_data.position = irisu->col.pos;
 }

@@ -151,6 +151,35 @@ void Ichigo::Internal::platform_close_file(PlatformFile *file) {
     file->file_handle = INVALID_HANDLE_VALUE;
 }
 
+Bana::Optional<Bana::FixedArray<u8>> Ichigo::Internal::platform_read_entire_file_sync(const Bana::String path, Bana::Allocator allocator) {
+    wchar_t *pathw = to_wide_char(path);
+    HANDLE handle = CreateFile(pathw, GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
+    std::free(pathw);
+
+    if (handle == INVALID_HANDLE_VALUE) {
+        return {};
+    }
+
+    LARGE_INTEGER file_size;
+    if (!GetFileSizeEx(handle, &file_size)) {
+        CloseHandle(handle);
+        return {};
+    }
+
+    Bana::FixedArray<u8> ret = Bana::make_fixed_array<u8>(file_size.QuadPart, allocator);
+
+    DWORD bytes_read = 0;
+    if (!ReadFile(handle, ret.data, file_size.QuadPart, &bytes_read, nullptr)) {
+        CloseHandle(handle);
+        return {};
+    }
+
+    ret.size = file_size.QuadPart;
+
+    CloseHandle(handle);
+    return ret;
+}
+
 bool Ichigo::Internal::platform_file_exists(const char *path) {
     wchar_t *wide_path = to_wide_char(Bana::temp_string(path));
     DWORD attributes = GetFileAttributesW(wide_path);

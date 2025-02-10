@@ -358,7 +358,7 @@ void platform_write_entire_file_sync(const char *path, const u8 *data, usize dat
 // Append to an open file. Generally works like fwrite() from the CRT.
 void platform_append_file_sync(PlatformFile *file, const u8 *data, usize data_size);
 void platform_close_file(PlatformFile *file);
-// usize platform_read_entire_file_sync(const char *path, const u8 *data, usize data_size); // TODO: Implement on platform layers.
+Bana::Optional<Bana::FixedArray<u8>> platform_read_entire_file_sync(const Bana::String path, Bana::Allocator allocator = Bana::heap_allocator);
 
 bool platform_file_exists(const char *path);
 void platform_sleep(f64 t);

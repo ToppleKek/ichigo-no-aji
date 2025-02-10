@@ -22,6 +22,7 @@ enum Strings {
     EXPLANATION_KEYBOARD,
     GOT_IT,
     CREDIT_TEXT,
+    SAVE_GAME,
     STRING_COUNT
 };
 
@@ -67,7 +68,8 @@ static const char *STRINGS[STRING_COUNT][LANGUAGE_COUNT] = {
         "プレイヤーのスプライト： ラビリビ (CreSpirit)\n"
         "BGM： Get On With It - 3R2"
         "\nタイルマップ： Joel Lucenay"
-    }
+    },
+    {"Save", "セーブ"},
 };
 
 extern Language current_language;

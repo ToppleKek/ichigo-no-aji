@@ -406,15 +406,31 @@ struct BufferReader {
         return &data[cursor];
     }
 
-    inline u16 read16() {
+    inline Optional<u16> read16() {
+        if (cursor + sizeof(u16) > size) return {};
         u16 value = *((u16 *) &data[cursor]);
         cursor += sizeof(u16);
         return value;
     }
 
-    inline u32 read32() {
+    inline Optional<u32> read32() {
+        if (cursor + sizeof(u32) > size) return {};
         u32 value = *((u32 *) &data[cursor]);
         cursor += sizeof(u32);
+        return value;
+    }
+
+    inline Optional<u64> read64() {
+        if (cursor + sizeof(u64) > size) return {};
+        u64 value = *((u64 *) &data[cursor]);
+        cursor += sizeof(u64);
+        return value;
+    }
+
+    inline Optional<void *> read_bytes(usize num_bytes) {
+        if (cursor + num_bytes > size) return {};
+        void *value = (void *) &data[cursor];
+        cursor += num_bytes;
         return value;
     }
 

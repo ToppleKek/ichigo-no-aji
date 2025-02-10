@@ -2,6 +2,8 @@
 
 #include "../ichigo.hpp"
 
+#define PLAYER_STARTING_HEALTH 10.0f
+
 enum EntityType : u32 {
     ET_NOTHING,
     ET_PLAYER,
@@ -35,6 +37,25 @@ struct Level {
     Bana::FixedArray<Vec2<f32>> entrance_table; // A table indexed by entrance_id (stored in the user data of the entity) to exit position.
 };
 
+struct PlayerSaveData {
+    u16 health;
+    i64 level_id;
+    Vec2<f32> position;
+    u64 inventory_flags;
+    u64 story_flags;
+};
+
+struct LevelSaveData {
+    u64 progress_flags;
+    u64 item_flags;
+};
+
+struct GameSaveData {
+    PlayerSaveData player_data;
+    Bana::FixedArray<LevelSaveData> level_data;
+};
+
+extern GameSaveData current_save_data;
 extern ProgramState program_state;
 extern bool input_disabled;
 // extern bool ai_disabled;
@@ -43,4 +64,8 @@ extern Level current_level;
 using FullscreenTransitionCompleteCallback = void (uptr);
 void fullscreen_transition(Vec4<f32> from, Vec4<f32> to, f32 t, FullscreenTransitionCompleteCallback *on_complete, uptr callback_data);
 void try_change_level(u32 level_index);
+LevelSaveData current_level_save_data();
+bool save_game();
+bool load_game();
+void new_game();
 }

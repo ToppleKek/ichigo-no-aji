@@ -36,12 +36,31 @@
 ### PROGRAMMING
 - Allow casting magic in more states (falling, jumping)
 - Particle system
+- Save format
 - Cutscenes
-- Bezier curves for camera smoothing
+- - Cutscene trigger entity
+- - On collide, player checks level flags in save file to see if the cutscene has already played. If not, disable input and view the cutscene.
+- ~~Bezier curves for camera smoothing~~
 - Shop
 - Implement health
 - Moving platform has weird physics
 - Camera guide entities (blockers)
+
+
+### SAVE FORMAT
+NOTE: *Array<T>* is usize size, T items
+u16 VERSION NUMBER
+<PLAYER INFO>
+u16 health
+i64 level
+Vec2<f32> position
+u64 inventory_flags
+u64 story_flags
+Array<LevelInfo>
+<LEVEL INFO> structs as follows
+u64 progress_flags
+u64 item_flags
+
 
 ## Scope of the school part of the project
 - Only a demo. First 2 levels at least + hub world.

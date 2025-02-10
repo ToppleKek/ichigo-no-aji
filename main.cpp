@@ -1405,25 +1405,6 @@ void Ichigo::Internal::do_frame() {
         //       But also we have frame begin and frame end...?
         Ichigo::Game::update_and_render();
 
-        // nocheckin
-        static bool DEBUG_right = false;
-        static f32 DEBUG_t = 0.1f;
-        DEBUG_t += DEBUG_right ? Ichigo::Internal::dt : -Ichigo::Internal::dt;
-
-        if (DEBUG_t >= 3.0f) {
-            DEBUG_t = 3.0f;
-            DEBUG_right = !DEBUG_right;
-        }else if (DEBUG_t <= 0.0f) {
-            DEBUG_t = 0.0f;
-            DEBUG_right = !DEBUG_right;
-        }
-
-        f32 CAM_x = bezier(2.0f, 2.0f, DEBUG_t / 3.0f, 10.0f, 10.0f);
-        ICHIGO_INFO("DEBUG t: %f curve value: %f", DEBUG_t, CAM_x);
-        Ichigo::Camera::mode = Ichigo::Camera::Mode::MANUAL;
-        Ichigo::Camera::manual_focus_point = {CAM_x, 13.0f};
-
-
         // DEBUG
         // Open the editor when you press F1.
         if (Ichigo::Internal::keyboard_state[IK_F1].down_this_frame) {
