@@ -37,8 +37,8 @@ struct Level {
     Bana::FixedArray<Vec2<f32>> entrance_table; // A table indexed by entrance_id (stored in the user data of the entity) to exit position.
 };
 
-struct PlayerSaveData {
-    u16 health;
+struct __attribute__((packed)) PlayerSaveData {
+    f32 health;
     i64 level_id;
     Vec2<f32> position;
     u64 inventory_flags;
@@ -59,11 +59,12 @@ extern GameSaveData current_save_data;
 extern ProgramState program_state;
 extern bool input_disabled;
 // extern bool ai_disabled;
-extern Level current_level;
+extern const Level all_levels[];
+extern i64 current_level_id;
 
 using FullscreenTransitionCompleteCallback = void (uptr);
 void fullscreen_transition(Vec4<f32> from, Vec4<f32> to, f32 t, FullscreenTransitionCompleteCallback *on_complete, uptr callback_data);
-void try_change_level(u32 level_index);
+void try_change_level(i64 level_id);
 LevelSaveData current_level_save_data();
 bool save_game();
 bool load_game();

@@ -64,7 +64,7 @@ static f32 invincibility_t = 0.0f;
 
 static void try_enter_entrance(i64 entrance_id) {
     auto callback = [](uptr data) {
-        const Vec2<f32> &exit_position = Ichiaji::current_level.entrance_table[data];
+        const Vec2<f32> &exit_position = Ichiaji::all_levels[Ichiaji::current_save_data.player_data.level_id].entrance_table[data];
         auto enable_input = []([[maybe_unused]] uptr data) {
             Ichiaji::input_disabled = false;
         };

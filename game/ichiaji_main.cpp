@@ -28,7 +28,7 @@ EMBED("assets/overworld_tiles.png", tileset_png)
 #include "levels/cave_entrance.ichigolvl"
 #include "levels/first.ichigolvl"
 
-static const Ichiaji::Level all_levels[] = {
+static const Ichiaji::Level Ichiaji::all_levels[] = {
     Level0::level,
     Level1::level,
     CaveEntranceLevel::level,
@@ -100,11 +100,10 @@ struct Coin {
 };
 
 Ichiaji::ProgramState Ichiaji::program_state     = Ichiaji::MAIN_MENU;
-Ichiaji::Level Ichiaji::current_level            = {};
+i64 Ichiaji::current_level_id                    = 0;
 bool Ichiaji::input_disabled                     = false;
 Language current_language                        = ENGLISH;
 Ichiaji::GameSaveData Ichiaji::current_save_data = {};
-
 static Coin coins[3] = {};
 
 static void on_coin_collide(Ichigo::Entity *coin, Ichigo::Entity *other, [[maybe_unused]] Vec2<f32> normal, [[maybe_unused]] Vec2<f32> collision_normal, [[maybe_unused]] Vec2<f32> collision_pos) {
@@ -293,7 +292,7 @@ bool Ichiaji::load_game() {
 
     Vec2<f32> *p = nullptr;
 
-    ASSIGN_OR_FAIL(Ichiaji::current_save_data.player_data.health,          br.read16());
+    ASSIGN_OR_FAIL(Ichiaji::current_save_data.player_data.health,          br.read32());
     ASSIGN_OR_FAIL(Ichiaji::current_save_data.player_data.level_id,        br.read64());
     ASSIGN_OR_FAIL(p,                                                      br.read_bytes(sizeof(Vec2<f32>)));
     ASSIGN_OR_FAIL(Ichiaji::current_save_data.player_data.inventory_flags, br.read64());
@@ -327,7 +326,7 @@ bool Ichiaji::load_game() {
 
 void Ichiaji::new_game() {
     Ichiaji::current_save_data.player_data.health          = PLAYER_STARTING_HEALTH;
-    Ichiaji::current_save_data.player_data.level_id        = 0;
+    Ichiaji::current_save_data.player_data.level_id        = -1; // NOTE: This is set to signify that it is a new file
     Ichiaji::current_save_data.player_data.position        = {};
     Ichiaji::current_save_data.player_data.inventory_flags = 0;
     Ichiaji::current_save_data.player_data.story_flags     = 0;
@@ -383,7 +382,7 @@ void Ichigo::Game::init() {
     }
 
     // Title screen level
-    Ichiaji::current_level = Level0::level;
+    Ichiaji::current_level_id = 0;
 
     const Ichigo::Texture &t = Ichigo::Internal::textures[ui_coin_background];
     ui_coin_background_width_in_metres  = pixels_to_metres(t.width);
@@ -393,14 +392,14 @@ void Ichigo::Game::init() {
     Ichigo::Camera::screen_tile_dimensions = {16.0f, 9.0f};
 }
 
-static void respawn_all_entities(const Bana::Array<Ichigo::EntityDescriptor> &descriptors) {
+static void respawn_all_entities(const Bana::Array<Ichigo::EntityDescriptor> &descriptors, bool load_player_data_from_save) {
     for (u32 i = 0; i < descriptors.size; ++i) {
         const auto &d = descriptors[i];
 
         switch (d.type) {
             case ET_PLAYER: {
                 Ichigo::Entity *player = Ichigo::spawn_entity();
-                Irisu::spawn(player, d.pos);
+                Irisu::spawn(player, load_player_data_from_save ? Ichiaji::current_save_data.player_data.position : d.pos);
                 Ichigo::Camera::mode = Ichigo::Camera::Mode::FOLLOW;
                 Ichigo::Camera::follow(player->id);
             } break;
@@ -436,12 +435,13 @@ static void respawn_all_entities(const Bana::Array<Ichigo::EntityDescriptor> &de
     }
 }
 
-static void change_level(Ichiaji::Level level) {
+static void change_level(i64 level_id, bool first_start) {
     Ichigo::kill_all_entities();
     std::memset(&Ichigo::game_state.background_layers, 0, sizeof(Ichigo::game_state.background_layers));
 
-    Ichiaji::current_level = level;
-    Ichigo::set_tilemap(Ichiaji::current_level.tilemap_data, tileset_sheet);
+    Ichiaji::current_level_id = level_id;
+    Ichiaji::Level level      = Ichiaji::all_levels[level_id];
+    Ichigo::set_tilemap(level.tilemap_data, tileset_sheet);
 
     // == Setup backgrounds ==
     Ichigo::game_state.background_colour = level.background_colour;
@@ -452,31 +452,35 @@ static void change_level(Ichiaji::Level level) {
         }
     }
 
-    current_entity_descriptors.size = Ichiaji::current_level.entity_descriptors.size;
-    current_entity_descriptors.ensure_capacity(Ichiaji::current_level.entity_descriptors.size);
-    std::memcpy(current_entity_descriptors.data, Ichiaji::current_level.entity_descriptors.data, Ichiaji::current_level.entity_descriptors.size * sizeof(Ichigo::EntityDescriptor));
+    // NOTE: "current_entity_descriptors" is copied to a Bana::Array because the editor may need to modify it.
+    current_entity_descriptors.size = level.entity_descriptors.size;
+    current_entity_descriptors.ensure_capacity(level.entity_descriptors.size);
+    std::memcpy(current_entity_descriptors.data, level.entity_descriptors.data, level.entity_descriptors.size * sizeof(Ichigo::EntityDescriptor));
 
     // == Spawn entities in world ==
-    respawn_all_entities(current_entity_descriptors);
+    respawn_all_entities(current_entity_descriptors, first_start);
 }
 
-void Ichiaji::try_change_level(u32 level_index) {
-    if (level_index >= ARRAY_LEN(all_levels)) {
+void Ichiaji::try_change_level(i64 level_id) {
+    if (level_id >= (i64) ARRAY_LEN(all_levels)) {
         ICHIGO_ERROR("try_change_level: Invalid level index.");
         return;
     }
 
-    change_level(all_levels[level_index]);
+    change_level(level_id, false);
 }
 
 static void init_game() {
     // == SETUP CURRENT LEVEL ==
-    change_level(Level1::level);
-
-    // coins[0].id = spawn_coin({42.0f, 4.0f});
-    // coins[1].id = spawn_coin({42.0f, 14.0f});
-    // coins[2].id = spawn_coin({52.0f, 4.0f});
-
+    assert(Ichiaji::current_save_data.player_data.level_id < (i64) ARRAY_LEN(Ichiaji::all_levels));
+    if (Ichiaji::current_save_data.player_data.level_id < 0) {
+         // NOTE: Load the first level if this is a new file. Do not attempt to spawn the player at the last save point
+         //       because the last save point of a new file is 0,0.
+        change_level(1, false);
+        Ichiaji::current_save_data.player_data.level_id = 1;
+    } else {
+        change_level(Ichiaji::current_save_data.player_data.level_id, true);
+    }
 
     // == Setup initial game state ==
     game_bgm = Ichigo::Mixer::play_audio(test_music_id, 1.0f, 1.0f, 1.0f, 0.864f, 54.188f);
@@ -488,7 +492,7 @@ static void deinit_game() {
 
     std::memset(coins, 0, sizeof(coins));
 
-    change_level(Level0::level);
+    change_level(0, false);
 }
 
 static void draw_game_ui() {
@@ -898,5 +902,5 @@ void Ichigo::Game::hard_reset_level() {
     Ichigo::show_info("Hard reset");
 
     Ichigo::kill_all_entities();
-    respawn_all_entities(current_entity_descriptors);
+    respawn_all_entities(current_entity_descriptors, false);
 }
