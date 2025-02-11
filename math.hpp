@@ -42,23 +42,23 @@ struct Vec2 {
         return *this;
     }
 
-    Vec2<T> operator+(const Vec2<T> &rhs) {
+    Vec2<T> operator+(const Vec2<T> &rhs) const {
         return { x + rhs.x, y + rhs.y };
     }
 
-    Vec2<T> operator*(const T rhs) {
+    Vec2<T> operator*(const T rhs) const {
         return { x * rhs, y * rhs };
     }
 
-    Vec2<T> operator/(const T rhs) {
+    Vec2<T> operator/(const T rhs) const {
         return { x / rhs, y / rhs };
     }
 
-    Vec2<T> operator*(const Vec2<T> rhs) {
+    Vec2<T> operator*(const Vec2<T> rhs) const {
         return { x * rhs.x, y * rhs.y };
     }
 
-    Vec2<T> operator-(const Vec2<T> &rhs) {
+    Vec2<T> operator-(const Vec2<T> &rhs) const {
         return { x - rhs.x, y - rhs.y };
     }
 

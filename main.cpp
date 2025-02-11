@@ -1135,6 +1135,18 @@ static void frame_render() {
                         screen_render_solid_colour_rect(cmd.rect, cmd.colour);
                     } break;
 
+                    case Ichigo::SCREEN_ASPECT_FIX: {
+                        i32 screen_dimension_uniform = Ichigo::Internal::gl.glGetUniformLocation(solid_colour_shader_program, "screen_tile_dimensions");
+
+                        Ichigo::Internal::gl.glUniform2f(screen_dimension_uniform, (f32) SCREEN_ASPECT_FIX_WIDTH, (f32) SCREEN_ASPECT_FIX_HEIGHT);
+
+                        Rect<f32> draw_rect = cmd.rect;
+                        draw_rect.pos = cmd.rect.pos - get_translation2d(Ichigo::Camera::transform);
+                        Ichigo::world_render_solid_colour_rect(draw_rect, cmd.colour, cmd.transform);
+
+                        Ichigo::Internal::gl.glUniform2f(screen_dimension_uniform, (f32) Ichigo::Camera::screen_tile_dimensions.x, (f32) Ichigo::Camera::screen_tile_dimensions.y);
+                    } break;
+
                     default: {
                         ICHIGO_ERROR("Invalid coordinate system!");
                     }
@@ -1155,6 +1167,18 @@ static void frame_render() {
 
                     case Ichigo::SCREEN: {
                         screen_render_textured_rect(cmd.rect, cmd.texture_id);
+                    } break;
+
+                    case Ichigo::SCREEN_ASPECT_FIX: {
+                        i32 screen_dimension_uniform = Ichigo::Internal::gl.glGetUniformLocation(texture_shader_program, "screen_tile_dimensions");
+
+                        Ichigo::Internal::gl.glUniform2f(screen_dimension_uniform, (f32) SCREEN_ASPECT_FIX_WIDTH, (f32) SCREEN_ASPECT_FIX_HEIGHT);
+
+                        Rect<f32> draw_rect = cmd.rect;
+                        draw_rect.pos = cmd.rect.pos - get_translation2d(Ichigo::Camera::transform);
+                        world_render_textured_rect(draw_rect, cmd.texture_id, cmd.transform, cmd.texture_tint);
+
+                        Ichigo::Internal::gl.glUniform2f(screen_dimension_uniform, (f32) Ichigo::Camera::screen_tile_dimensions.x, (f32) Ichigo::Camera::screen_tile_dimensions.y);
                     } break;
 
                     default: {

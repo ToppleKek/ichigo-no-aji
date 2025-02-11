@@ -72,13 +72,6 @@ static Ichigo::TextStyle credit_style = {
     .line_spacing = 100.0f
 };
 
-static Ichigo::TextStyle ui_style = {
-    .alignment    = Ichigo::TextAlignment::LEFT,
-    .scale        = 1.0f,
-    .colour       = colour_white,
-    .line_spacing = 100.0f
-};
-
 static Ichigo::TextureID tileset_texture    = 0;
 static Ichigo::TextureID enemy_texture_id   = 0;
 static Ichigo::TextureID coin_texture_id    = 0;
@@ -499,16 +492,35 @@ static void deinit_game() {
 }
 
 static void draw_game_ui() {
+    static const Ichigo::TextStyle ui_style = {
+        .alignment    = Ichigo::TextAlignment::CENTER,
+        .scale        = 1.0f,
+        .colour       = colour_white,
+        .line_spacing = 100.0f
+    };
+
+    static constexpr Rect<f32> health_ui_rect  = {{0.2f, 0.2f}, 3.0f, 1.0f};
+    static constexpr Vec2<f32> health_text_pos = {health_ui_rect.pos.x + health_ui_rect.w / 2.0f, health_ui_rect.pos.y + health_ui_rect.h / 2.0f};
+    static Ichigo::DrawCommand health_text_background_cmd = {
+        .type              = Ichigo::DrawCommandType::SOLID_COLOUR_RECT,
+        .coordinate_system = Ichigo::CoordinateSystem::SCREEN_ASPECT_FIX,
+        .transform         = m4identity_f32,
+        .rect              = health_ui_rect,
+        .colour            = {0.0f, 0.0f, 0.0f, 0.75f}
+    };
+
+    Ichigo::push_draw_command(health_text_background_cmd);
+
     Bana::String health_string = Bana::make_string(64, Ichigo::Internal::temp_allocator);
     Bana::string_format(health_string, "%s %.1f", TL_STR(HEALTH_UI), Ichiaji::current_save_data.player_data.health);
 
     Ichigo::DrawCommand health_text_cmd = {
         .type              = Ichigo::DrawCommandType::TEXT,
-        .coordinate_system = Ichigo::CoordinateSystem::CAMERA,
+        .coordinate_system = Ichigo::CoordinateSystem::SCREEN_ASPECT_FIX,
         .transform         = m4identity_f32,
         .string            = health_string.data,
         .string_length     = health_string.length,
-        .string_pos        = {0.2f, 0.5f},
+        .string_pos        = health_text_pos,
         .text_style        = ui_style
     };
 

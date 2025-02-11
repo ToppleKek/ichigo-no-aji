@@ -36,13 +36,14 @@
 ### PROGRAMMING
 - Allow casting magic in more states (falling, jumping)
 - Particle system
-- Save format
+- ~~Save format~~
+- - Currency? For the shop and stuff
 - Cutscenes
 - - Cutscene trigger entity
 - - On collide, player checks level flags in save file to see if the cutscene has already played. If not, disable input and view the cutscene.
 - ~~Bezier curves for camera smoothing~~
 - Shop
-- Implement health
+- ~~Implement health~~
 - Moving platform has weird physics
 - Camera guide entities (blockers)
 
