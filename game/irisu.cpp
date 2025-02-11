@@ -93,6 +93,7 @@ static void try_enter_new_level(i64 level_index) {
     Ichiaji::fullscreen_transition({0.0f, 0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 1.0f}, 0.3f, callback, (uptr) level_index);
 }
 
+#define GERT_DAMAGE 1.0f
 static void on_collide(Ichigo::Entity *irisu, Ichigo::Entity *other, Vec2<f32> normal, [[maybe_unused]] Vec2<f32> collision_normal, [[maybe_unused]] Vec2<f32> collision_pos) {
     ICHIGO_INFO("IRISU collide with %s: normal=%f,%f pos=%f,%f", other->name, normal.x, normal.y, collision_pos.x, collision_pos.y);
 
@@ -106,6 +107,8 @@ static void on_collide(Ichigo::Entity *irisu, Ichigo::Entity *other, Vec2<f32> n
             irisu->velocity.y   = -3.0f;
             irisu->velocity.x   = 3.0f * (FLAG_IS_SET(irisu->flags, Ichigo::EF_FLIP_H) ? -1 : 1);
             irisu_state         = HURT;
+
+            Ichiaji::current_save_data.player_data.health -= GERT_DAMAGE;
         }
     } else if (other->user_type_id == ET_ENTRANCE) {
         if (normal.x != collision_normal.x || normal.y != collision_normal.y) {

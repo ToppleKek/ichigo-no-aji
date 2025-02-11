@@ -23,6 +23,7 @@ enum Strings {
     GOT_IT,
     CREDIT_TEXT,
     SAVE_GAME,
+    HEALTH_UI,
     STRING_COUNT
 };
 
@@ -70,6 +71,7 @@ static const char *STRINGS[STRING_COUNT][LANGUAGE_COUNT] = {
         "\nタイルマップ： Joel Lucenay"
     },
     {"Save", "セーブ"},
+    {"Health:", "Health:"},
 };
 
 extern Language current_language;

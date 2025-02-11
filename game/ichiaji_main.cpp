@@ -72,6 +72,13 @@ static Ichigo::TextStyle credit_style = {
     .line_spacing = 100.0f
 };
 
+static Ichigo::TextStyle ui_style = {
+    .alignment    = Ichigo::TextAlignment::LEFT,
+    .scale        = 1.0f,
+    .colour       = colour_white,
+    .line_spacing = 100.0f
+};
+
 static Ichigo::TextureID tileset_texture    = 0;
 static Ichigo::TextureID enemy_texture_id   = 0;
 static Ichigo::TextureID coin_texture_id    = 0;
@@ -290,15 +297,11 @@ bool Ichiaji::load_game() {
         return false;
     }
 
-    Vec2<f32> *p = nullptr;
+    Ichiaji::PlayerSaveData *p = nullptr;
 
-    ASSIGN_OR_FAIL(Ichiaji::current_save_data.player_data.health,          br.read32());
-    ASSIGN_OR_FAIL(Ichiaji::current_save_data.player_data.level_id,        br.read64());
-    ASSIGN_OR_FAIL(p,                                                      br.read_bytes(sizeof(Vec2<f32>)));
-    ASSIGN_OR_FAIL(Ichiaji::current_save_data.player_data.inventory_flags, br.read64());
-    ASSIGN_OR_FAIL(Ichiaji::current_save_data.player_data.story_flags,     br.read64());
+    ASSIGN_OR_FAIL(p, br.read_bytes(sizeof(Ichiaji::PlayerSaveData)));
 
-    Ichiaji::current_save_data.player_data.position = *p;
+    Ichiaji::current_save_data.player_data = *p;
 
     isize file_num_levels = 0;
     ASSIGN_OR_FAIL(file_num_levels, br.read64());
@@ -496,29 +499,20 @@ static void deinit_game() {
 }
 
 static void draw_game_ui() {
-    static Ichigo::DrawCommand coins_background_cmd = {
-        .type              = Ichigo::TEXTURED_RECT,
-        .coordinate_system = Ichigo::CAMERA,
+    Bana::String health_string = Bana::make_string(64, Ichigo::Internal::temp_allocator);
+    Bana::string_format(health_string, "%s %.1f", TL_STR(HEALTH_UI), Ichiaji::current_save_data.player_data.health);
+
+    Ichigo::DrawCommand health_text_cmd = {
+        .type              = Ichigo::DrawCommandType::TEXT,
+        .coordinate_system = Ichigo::CoordinateSystem::CAMERA,
         .transform         = m4identity_f32,
-        .texture_rect      = {{0.1f, 0.1f}, ui_coin_background_width_in_metres, ui_coin_background_height_in_metres},
-        .texture_id        = ui_coin_background,
-        .texture_tint      = COLOUR_WHITE
+        .string            = health_string.data,
+        .string_length     = health_string.length,
+        .string_pos        = {0.2f, 0.5f},
+        .text_style        = ui_style
     };
 
-    Ichigo::push_draw_command(coins_background_cmd);
-
-    for (u32 i = 0; i < ARRAY_LEN(coins); ++i) {
-        Ichigo::DrawCommand coin_cmd = {
-            .type              = Ichigo::TEXTURED_RECT,
-            .coordinate_system = Ichigo::CAMERA,
-            .transform         = m4identity_f32,
-            .texture_rect      = {{0.25f + i + (i * 0.1f), 0.37f}, 1.0f, 1.0f},
-            .texture_id        = coins[i].collected ? ui_collected_coin_texture : ui_uncollected_coin_texture,
-            .texture_tint      = COLOUR_WHITE
-        };
-
-        Ichigo::push_draw_command(coin_cmd);
-    }
+    Ichigo::push_draw_command(health_text_cmd);
 }
 
 ////////////////////////////
