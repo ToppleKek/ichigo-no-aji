@@ -231,12 +231,12 @@ static void spawn_level_entrance(Vec2<f32> pos, i64 level_id) {
     entrance->user_type_id                         = ET_LEVEL_ENTRANCE;
 }
 
-static Ichigo::EntityID spawn_entrance_trigger(Vec2<f32> pos, i64 entrance_id) {
+static Ichigo::EntityID spawn_entrance_trigger(Vec2<f32> pos, i64 entrance_id, f32 custom_width, f32 custom_height) {
     Ichigo::Entity *entrance = Ichigo::spawn_entity();
 
     std::strcpy(entrance->name, "entrtrg");
 
-    entrance->col           = {pos, 1.0f, 9.0f};
+    entrance->col           = {pos, custom_width, custom_height};
     entrance->user_data_i64 = entrance_id;
     entrance->user_type_id  = ET_ENTRANCE_TRIGGER;
 
@@ -417,7 +417,7 @@ static void respawn_all_entities(const Bana::Array<Ichigo::EntityDescriptor> &de
             } break;
 
             case ET_ENTRANCE_TRIGGER: {
-                spawn_entrance_trigger(d.pos, d.data);
+                spawn_entrance_trigger(d.pos, d.data, d.custom_width, d.custom_height);
             } break;
 
             case ET_MOVING_PLATFORM: {
