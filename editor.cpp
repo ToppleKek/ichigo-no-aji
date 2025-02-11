@@ -125,7 +125,7 @@ static Ichigo::TileID selected_brush_tile = 0;
 // u32 tilemap width
 // u32 tilemap height
 // width * height TileIDs
-static void save_tilemap(Bana::String path) {
+static bool save_tilemap(Bana::String path) {
     MAKE_STACK_STRING(tilemap_path, path.length + sizeof(".ichigotm"));
     MAKE_STACK_STRING(entity_descriptor_path, path.length + sizeof(".ichigoed"));
 
@@ -138,8 +138,10 @@ static void save_tilemap(Bana::String path) {
     Ichigo::Internal::PlatformFile *tilemap_file = Ichigo::Internal::platform_open_file_write(tilemap_path);
     Ichigo::Internal::PlatformFile *entity_file  = Ichigo::Internal::platform_open_file_write(entity_descriptor_path);
 
-    assert(tilemap_file);
-    assert(entity_file);
+    if (!tilemap_file || !entity_file) {
+        ICHIGO_ERROR("Failed to open tilemap or entity descriptor file.");
+        return false;
+    }
 
     u16 tilemap_format_version_number = 2;
 
@@ -182,6 +184,8 @@ static void save_tilemap(Bana::String path) {
 
     Ichigo::Internal::platform_append_file_sync(entity_file, (const u8 *) "};", 2);
     Ichigo::Internal::platform_close_file(entity_file);
+
+    return true;
 }
 
 // Commit a tilemap resize. Called when the tilemap actually needs to be resized. Eg. the undo stack is rebuilding the tilemap.
@@ -345,11 +349,21 @@ void Ichigo::Editor::render_ui() {
 
     if (ImGui::BeginPopupModal("Save as", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
         static char path_buffer[256];
+        static bool save_failed = false;
+
+        if (save_failed) {
+            ImGui::Text("Save failed.");
+        }
+
         ImGui::InputText("Path", path_buffer, ARRAY_LEN(path_buffer));
         if (ImGui::Button("Save")) {
-            save_tilemap(Bana::temp_string(path_buffer));
-            wants_to_save = false;
-            ImGui::CloseCurrentPopup();
+            if (save_tilemap(Bana::temp_string(path_buffer))) {
+                wants_to_save = false;
+                save_failed   = false;
+                ImGui::CloseCurrentPopup();
+            } else {
+                save_failed = true;
+            }
         }
 
         ImGui::SameLine();
