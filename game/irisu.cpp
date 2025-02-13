@@ -70,11 +70,14 @@ static void try_enter_entrance(i64 entrance_id) {
         };
 
         Ichiaji::fullscreen_transition({0.0f, 0.0f, 0.0f, 1.0f}, {0.0f, 0.0f, 0.0f, 0.0f}, 0.3f, enable_input, 0);
-        auto *irisu = Ichigo::get_entity(irisu_id);
+        Ichigo::Camera::mode = Ichigo::Camera::Mode::FOLLOW;
+        auto *irisu          = Ichigo::get_entity(irisu_id);
         Ichigo::teleport_entity_considering_colliders(irisu, exit_position);
     };
 
-    Ichiaji::input_disabled = true;
+    Ichigo::Camera::mode               = Ichigo::Camera::Mode::MANUAL;
+    Ichigo::Camera::manual_focus_point = get_translation2d(Ichigo::Camera::transform) * -1.0f;
+    Ichiaji::input_disabled            = true;
     Ichiaji::fullscreen_transition({0.0f, 0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 1.0f}, 0.3f, callback, (uptr) entrance_id);
 }
 
@@ -127,7 +130,7 @@ static void on_collide(Ichigo::Entity *irisu, Ichigo::Entity *other, Vec2<f32> n
             level_to_enter = other->user_data_i64;
         }
 
-    } else if (other->user_type_id == ET_ENTRANCE_TRIGGER) {
+    } else if (other->user_type_id == ET_ENTRANCE_TRIGGER && normal.x == collision_normal.x && normal.y == collision_normal.y) {
         try_enter_entrance(other->user_data_i64);
     }
 }

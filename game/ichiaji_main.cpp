@@ -241,6 +241,7 @@ static Ichigo::EntityID spawn_entrance_trigger(Vec2<f32> pos, i64 entrance_id, f
     entrance->user_type_id  = ET_ENTRANCE_TRIGGER;
 
     SET_FLAG(entrance->flags, Ichigo::EF_INVISIBLE);
+    SET_FLAG(entrance->flags, Ichigo::EF_BLOCKS_CAMERA);
 
     return entrance->id;
 }

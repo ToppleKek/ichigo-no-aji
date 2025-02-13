@@ -54,6 +54,7 @@ enum EntityFlag {
     EF_TANGIBLE         = 1 << 4, // This entity acts as a wall/floor/ceiling. Other entities can stand on it.
     EF_TANGIBLE_ON_TOP  = 1 << 5, // This entity acts only as a floor. Other entities can stand on it, but do not collide with it as a wall or ceiling.
     EF_ANIM_LOOPING     = 1 << 6, // This entity has played its animation fully once and is now looping.
+    EF_BLOCKS_CAMERA    = 1 << 7, // This entity blocks the camera from passing over it.
 };
 
 // What happened as a result of moving an entity in the world?

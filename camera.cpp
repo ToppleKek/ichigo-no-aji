@@ -49,11 +49,29 @@ void Ichigo::Camera::update() {
                 offset = {0.0f, 0.0f};
                 transform = m4identity();
             } else {
+
                 offset = {
                     clamp(following->col.pos.x - (Camera::screen_tile_dimensions.x / 2.0f), 0.0f, (f32) Internal::current_tilemap.width - Camera::screen_tile_dimensions.x),
                     clamp(following->col.pos.y - (Camera::screen_tile_dimensions.y / 2.0f), 0.0f, (f32) Internal::current_tilemap.height - Camera::screen_tile_dimensions.y)
                 };
                 transform = translate2d({-offset.x, -offset.y});
+
+                Rect<f32> camera_rect = {offset, screen_tile_dimensions.x, screen_tile_dimensions.y};
+                for (i64 i = 0; i < Internal::entities.size; ++i) {
+                    const Entity &e = Internal::entities[i];
+                    if (FLAG_IS_SET(e.flags, EF_BLOCKS_CAMERA) && rectangles_intersect(camera_rect, e.col)) {
+                        // FIXME: Stupid?
+                        // TODO: Block in the y axis as well
+                        if (following->col.pos.x < e.col.pos.x + e.col.w) {
+                            offset.x = clamp(offset.x, 0.0f, e.col.pos.x - screen_tile_dimensions.x);
+                        } else {
+                            offset.x = clamp(offset.x, e.col.pos.x + e.col.w, (f32) Internal::current_tilemap.width - Camera::screen_tile_dimensions.x);
+                        }
+
+                        transform   = translate2d({-offset.x, -offset.y});
+                        camera_rect = {offset, screen_tile_dimensions.x, screen_tile_dimensions.y};
+                    }
+                }
             }
         } break;
     }
