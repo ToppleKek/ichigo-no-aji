@@ -59,13 +59,23 @@ void Ichigo::Camera::update() {
                 Rect<f32> camera_rect = {offset, screen_tile_dimensions.x, screen_tile_dimensions.y};
                 for (i64 i = 0; i < Internal::entities.size; ++i) {
                     const Entity &e = Internal::entities[i];
-                    if (FLAG_IS_SET(e.flags, EF_BLOCKS_CAMERA) && rectangles_intersect(camera_rect, e.col)) {
+                    bool should_check = !entity_is_dead(e.id) && (FLAG_IS_SET(e.flags, EF_BLOCKS_CAMERA_X) || FLAG_IS_SET(e.flags, EF_BLOCKS_CAMERA_Y));
+                    if (should_check && rectangles_intersect(camera_rect, e.col)) {
                         // FIXME: Stupid?
-                        // TODO: Block in the y axis as well
-                        if (following->col.pos.x < e.col.pos.x + e.col.w) {
-                            offset.x = clamp(offset.x, 0.0f, e.col.pos.x - screen_tile_dimensions.x);
-                        } else {
-                            offset.x = clamp(offset.x, e.col.pos.x + e.col.w, (f32) Internal::current_tilemap.width - Camera::screen_tile_dimensions.x);
+                        if (FLAG_IS_SET(e.flags, EF_BLOCKS_CAMERA_X)) {
+                            if (following->col.pos.x < e.col.pos.x + e.col.w) {
+                                offset.x = clamp(offset.x, 0.0f, e.col.pos.x - screen_tile_dimensions.x);
+                            } else {
+                                offset.x = clamp(offset.x, e.col.pos.x + e.col.w, (f32) Internal::current_tilemap.width - screen_tile_dimensions.x);
+                            }
+                        }
+
+                        if (FLAG_IS_SET(e.flags, EF_BLOCKS_CAMERA_Y)) {
+                            if (following->col.pos.y < e.col.pos.y + e.col.h) {
+                                offset.y = clamp(offset.y, 0.0f, e.col.pos.y - screen_tile_dimensions.y);
+                            } else {
+                                offset.y = clamp(offset.y, e.col.pos.y + e.col.h, (f32) Internal::current_tilemap.height - screen_tile_dimensions.y);
+                            }
                         }
 
                         transform   = translate2d({-offset.x, -offset.y});

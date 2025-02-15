@@ -1,4 +1,5 @@
 #pragma once
+
 #include "../ichigo.hpp"
 
 namespace MovingPlatform {

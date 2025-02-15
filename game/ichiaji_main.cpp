@@ -241,9 +241,21 @@ static Ichigo::EntityID spawn_entrance_trigger(Vec2<f32> pos, i64 entrance_id, f
     entrance->user_type_id  = ET_ENTRANCE_TRIGGER;
 
     SET_FLAG(entrance->flags, Ichigo::EF_INVISIBLE);
-    SET_FLAG(entrance->flags, Ichigo::EF_BLOCKS_CAMERA);
+    SET_FLAG(entrance->flags, Ichigo::EF_BLOCKS_CAMERA_X);
 
     return entrance->id;
+}
+
+static void spawn_death_trigger(const Ichigo::EntityDescriptor &descriptor) {
+    Ichigo::Entity *death_trigger = Ichigo::spawn_entity();
+
+    std::strcpy(death_trigger->name, "death_trigger");
+
+    death_trigger->col           = {descriptor.pos, descriptor.custom_width, descriptor.custom_height};
+    death_trigger->user_type_id  = ET_DEATH_TRIGGER;
+
+    SET_FLAG(death_trigger->flags, Ichigo::EF_INVISIBLE);
+    SET_FLAG(death_trigger->flags, Ichigo::EF_BLOCKS_CAMERA_Y);
 }
 
 bool Ichiaji::save_game() {
@@ -423,6 +435,10 @@ static void respawn_all_entities(const Bana::Array<Ichigo::EntityDescriptor> &de
 
             case ET_MOVING_PLATFORM: {
                 MovingPlatform::spawn(d);
+            } break;
+
+            case ET_DEATH_TRIGGER: {
+                spawn_death_trigger(d);
             } break;
 
             default: {

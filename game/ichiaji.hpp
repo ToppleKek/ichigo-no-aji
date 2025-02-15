@@ -14,6 +14,7 @@ enum EntityType : u32 {
     ET_ENTRANCE_TRIGGER,
     ET_MOVING_PLATFORM,
     ET_SPELL,
+    ET_DEATH_TRIGGER,
 };
 
 namespace Ichiaji {

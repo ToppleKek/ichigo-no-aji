@@ -46,7 +46,15 @@
 - ~~Implement health~~
 - Moving platform has weird physics
 - Camera guide entities (blockers)
-
+- Game has a entity data arena or something that allows entities to allocate addtional information that can just be reset if you go to the title menu or start a new game.
+- - This makes us not have to have a deinit() on any entity type (see MovingPlatform::deinit)
+- Add entity move/edits to undo stack
+Entities:
+J Blow said that The Witness entities held a pointer to the "base" entity, and had some extra information (like doors had extra information).
+How the fuck do we do that properly? The engine calls the update proc on the "base" entity struct. How we do it now is that we look up the
+EntityID in some hash map to get the additional information. J Blow said that he used a bucket array to hold all the extra entity data.
+Maybe we will just have a fixed array or even an expanding bucket array of the extra information and literally hold a pointer or a bucket locator
+to the extra data in the user data uptr on the base entity?
 
 ### SAVE FORMAT
 NOTE: *Array<T>* is usize size, T items
