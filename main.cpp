@@ -46,7 +46,7 @@ static const u32 kanji_codepoint_count = 2999;
 EMBED("assets/music/sound.mp3", test_sound)
 static Ichigo::AudioID test_sound_id  = 0;
 static bool DEBUG_draw_colliders      = true;
-static bool DEBUG_hide_entity_sprites = true;
+static bool DEBUG_hide_entity_sprites = false;
 static bool show_debug_menu           = false;
 static ImGuiStyle initial_style;
 static ImFontConfig font_config;

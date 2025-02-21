@@ -12,6 +12,7 @@
 #include "strings.hpp"
 #include "irisu.hpp"
 #include "moving_platform.hpp"
+#include "particle_source.hpp"
 
 EMBED("assets/enemy.png", enemy_png)
 EMBED("assets/coin.png", coin_spritesheet_png)
@@ -350,6 +351,8 @@ void Ichiaji::new_game() {
 }
 
 void Ichigo::Game::init() {
+    std::srand((u64) Ichigo::Internal::platform_get_current_time());
+
     // == Load save ==
     if (Ichigo::Internal::platform_file_exists("./default.save")) {
         if (Ichiaji::load_game()) {
@@ -365,6 +368,7 @@ void Ichigo::Game::init() {
     // == Load assets ==
     Irisu::init();
     MovingPlatform::init();
+    ParticleSource::init();
 
     test_bg_texture_id    = Ichigo::load_texture(test_bg, test_bg_len);
     enemy_texture_id      = Ichigo::load_texture(enemy_png, enemy_png_len);

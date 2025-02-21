@@ -155,6 +155,7 @@ struct BufferBuilder {
     usize capacity;
 };
 
+// TODO: Change this to use a "make_array" function for consistency?
 template<typename T>
 struct Array {
     isize size;
@@ -249,16 +250,122 @@ struct FixedArray {
         size += count;
     }
 
-    inline T &operator[](isize i) {
+    T &operator[](isize i) {
         assert(i < size);
         return data[i];
     }
 
-    inline const T &operator[](isize i) const {
+    const T &operator[](isize i) const {
         assert(i < size);
         return data[i];
     }
 };
+
+
+// J Blow "Bucket Array"
+template<typename T>
+struct Bucket {
+    Bana::FixedArray<T> items;
+    Bana::FixedArray<bool> occupancy_list;
+    isize filled_count;
+    isize index;
+};
+
+struct BucketLocator {
+    i32 bucket_index;
+    i32 slot_index;
+};
+
+template<typename T>
+struct BucketArray {
+    // TODO: @heap are we okay with having these arrays be heap allocated? Probably, but it's something to think about I suppose.
+    Bana::Array<Bucket<T>> all_buckets;
+    Bana::Array<Bucket<T> *> unfull_buckets;
+    Bana::Allocator allocator;
+
+    isize size;
+    isize bucket_capacity;
+
+    BucketLocator insert(T item) {
+        if (unfull_buckets.size == 0) {
+            Bucket<T> b;
+            b.filled_count   = 0;
+            b.items          = make_fixed_array<T>(bucket_capacity, allocator);
+            b.occupancy_list = make_fixed_array<bool>(bucket_capacity, allocator);
+
+            std::memset(b.occupancy_list.data, 0, bucket_capacity * sizeof(bool));
+
+            // FIXME: @robustness: Since this is basically a free list, we have to do this to ensure that all elements are "filled"
+            b.occupancy_list.size = b.occupancy_list.capacity;
+            b.items.size          = b.items.capacity;
+
+            isize idx               = all_buckets.append(b);
+            Bucket<T> *added_bucket = &all_buckets[idx];
+            added_bucket->index     = idx;
+
+            unfull_buckets.append(added_bucket);
+        }
+
+        assert(unfull_buckets.size != 0);
+
+        Bucket<T> *b        = unfull_buckets[0];
+        BucketLocator bl    = {};
+        for (isize i = 0; i < b->occupancy_list.size; ++i) {
+            if (!b->occupancy_list[i]) {
+                bl.bucket_index      = b->index;
+                bl.slot_index        = i;
+                b->occupancy_list[i] = true;
+                b->items[i]          = item;
+                b->filled_count++;
+
+                if (b->filled_count == b->occupancy_list.capacity) {
+                    unfull_buckets.remove(0);
+                }
+
+                return bl;
+            }
+        }
+
+        // This would imply that the bucket we selected from unfull_buckets was actually full.
+        // assert(false);
+        // __builtin_debugtrap();
+
+        return {-1, -1};
+    }
+
+    void remove(BucketLocator bl) {
+        Bucket<T> &b = all_buckets[bl.bucket_index];
+        assert(b.occupancy_list[bl.slot_index]);
+
+        if (b.filled_count == bucket_capacity) {
+            unfull_buckets.append(&b);
+        }
+
+        b.occupancy_list[bl.slot_index] = false;
+        b.filled_count--;
+    }
+
+    T &operator[](BucketLocator bl) {
+        Bucket<T> &b = all_buckets[bl.bucket_index];
+        assert(b.occupancy_list[bl.slot_index]);
+        return b.items[bl.slot_index];
+    }
+
+    const T &operator[](BucketLocator bl) const {
+        const T &v = (*this)[bl];
+        return v;
+    }
+};
+
+template<typename T>
+BucketArray<T> make_bucket_array(isize bucket_capacity, Allocator allocator = heap_allocator) {
+    BucketArray<T> ba = {};
+
+    ba.allocator       = allocator;
+    ba.bucket_capacity = bucket_capacity;
+
+    return ba;
+}
 
 template<typename Key, typename Value>
 struct MapEntry {
@@ -385,6 +492,43 @@ void fixed_array_copy(FixedArray<T> &dst, FixedArray<T> &src) {
 #define MAKE_STACK_ARRAY(NAME, TYPE, CAPACITY) Bana::FixedArray<TYPE> NAME = { (TYPE *) platform_alloca(CAPACITY * sizeof(TYPE)), CAPACITY, 0 }
 #define INLINE_INIT_OF_STATIC_ARRAY(STATIC_ARRAY) { STATIC_ARRAY, ARRAY_LEN(STATIC_ARRAY), ARRAY_LEN(STATIC_ARRAY) }
 #define MAKE_GLOBAL_STATIC_ARRAY(NAME, TYPE, CAPACITY) static TYPE NAME##_DATA[CAPACITY]; Bana::FixedArray<TYPE> NAME = { NAME##_DATA, CAPACITY, 0 }
+
+struct FreeList {
+    usize item_size;
+    u8 *data;
+    FixedArray<bool> occupancy_list;
+
+    u8 *alloc(usize size) {
+        assert(size == item_size);
+        for (isize i = 0; i < occupancy_list.capacity; ++i) {
+            if (!occupancy_list[i]) {
+                occupancy_list[i] = true;
+                return data + (i * item_size);
+            }
+        }
+
+        return nullptr;
+    }
+
+    void free(u8 *ptr) {
+        assert((usize) (ptr - data) <= occupancy_list.capacity * item_size);
+        assert((ptr - data) % item_size == 0);
+        usize idx = (ptr - data) / item_size;
+        occupancy_list[idx] = false;
+    }
+};
+
+inline FreeList make_free_list(usize item_size, usize capacity, Allocator allocator = heap_allocator) {
+    FreeList fl;
+
+    fl.item_size      = item_size;
+    fl.data           = (u8 *) allocator.alloc(capacity * item_size);
+    fl.occupancy_list = make_fixed_array<bool>(capacity, allocator);
+
+    std::memset(fl.occupancy_list.data, 0, capacity * sizeof(bool));
+
+    return fl;
+}
 
 struct BufferReader {
     char *data;

@@ -57,6 +57,7 @@ enum EntityFlag {
     // FIXME: Probably not needed? Maybe with smarter camera intersection logic we can make this one flag again?
     EF_BLOCKS_CAMERA_X  = 1 << 7, // This entity blocks the camera in the x axis from passing over it.
     EF_BLOCKS_CAMERA_Y  = 1 << 8, // This entity blocks the camera in the y axis from passing over it.
+    EF_NO_COLLIDE       = 1 << 9, // Collision checks are skipped with this entity.
 };
 
 // What happened as a result of moving an entity in the world?

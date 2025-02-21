@@ -16,7 +16,7 @@ static void render(Ichigo::Entity *platform) {
     for (u32 x = 0; x < (u32) platform->col.w; ++x) {
         TexturedRect r = {
             {{(f32) x, 0.0f}, 1.0f, 1.0f},
-            {{0, 0}, 32, 32}
+            {{0, 0}, 32, 32} // FIXME: @magicnum
         };
 
         rects.append(r);

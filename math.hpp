@@ -362,3 +362,11 @@ inline f32 bezier(f32 p0, f32 p1, f32 t, f32 p2, f32 p3) {
 inline f32 signof(f32 value) {
     return value < 0.0f ? -1.0f : 1.0f;
 }
+
+inline f32 rand_01_f32() {
+    return (f32) std::rand() / (f32) RAND_MAX;
+}
+
+inline f32 rand_range_f32(f32 low, f32 high) {
+    return ichigo_lerp(low, rand_01_f32(), high);
+}

@@ -252,16 +252,16 @@ Ichigo::EntityMoveResult Ichigo::move_entity_in_world(Ichigo::Entity *entity) {
     MAKE_STACK_ARRAY(colliding_tangible_entities, Entity *, 32);
 
     // Check entity collisions.
-    // Do not check dead entities, or entities that are not moving (since the detection algorithm depends on checking if one collider is moving into another).
-    if (entity->id.index != 0 && entity->velocity != Vec2<f32>{0.0f, 0.0f}) {
+    // Do not check dead entities, do not check if the entity does not send collision events, and do not check entities that are not moving (since the detection algorithm depends on checking if one collider is moving into another).
+    if (entity->id.index != 0 && !FLAG_IS_SET(entity->flags, EF_NO_COLLIDE) && entity->velocity != Vec2<f32>{0.0f, 0.0f}) {
         Vec2<f32> centered_entity_p = entity->col.pos + Vec2<f32>{entity->col.w / 2.0f, entity->col.h / 2.0f};
         f32 best_t = 1.0f;
 
         for (u32 i = 1; i < Ichigo::Internal::entities.size; ++i) {
             Ichigo::Entity &other_entity = Ichigo::Internal::entities[i];
 
-            // Do not check against ourselves or dead entites.
-            if (other_entity.id == entity->id || other_entity.id.index == 0) {
+            // Do not check against ourselves, dead entites, or entities that do not send collision events.
+            if (other_entity.id == entity->id || other_entity.id.index == 0 || FLAG_IS_SET(other_entity.flags, EF_NO_COLLIDE)) {
                 continue;
             }
 

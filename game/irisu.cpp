@@ -9,11 +9,14 @@
 
 #include "irisu.hpp"
 #include "ichiaji.hpp"
+#include "particle_source.hpp"
 
 EMBED("assets/irisu.png", irisu_spritesheet_png)
 EMBED("assets/music/boo_womp441.mp3", boo_womp_mp3)
 EMBED("assets/music/jump.mp3", jump_sound_mp3)
 EMBED("assets/spell.png", spell_spritesheet_png)
+EMBED("assets/sparks.png", sparks_png)
+
 enum IrisuState {
     IDLE,
     IDLE_ATTACK,
@@ -48,6 +51,7 @@ static Ichigo::Animation irisu_get_up_slow = {};
 static Ichigo::EntityID irisu_id          = {};
 static Ichigo::TextureID irisu_texture_id = 0;
 static Ichigo::TextureID spell_texture_id = 0;
+static Ichigo::TextureID sparks_texture_id = 0;
 static Ichigo::AudioID boo_womp_id        = {};
 static Ichigo::AudioID jump_sound         = 0;
 
@@ -138,6 +142,7 @@ static void on_collide(Ichigo::Entity *irisu, Ichigo::Entity *other, Vec2<f32> n
 void Irisu::init() {
     irisu_texture_id  = Ichigo::load_texture(irisu_spritesheet_png, irisu_spritesheet_png_len);
     spell_texture_id  = Ichigo::load_texture(spell_spritesheet_png, spell_spritesheet_png_len);
+    sparks_texture_id = Ichigo::load_texture(sparks_png, sparks_png_len);
     boo_womp_id       = Ichigo::load_audio(boo_womp_mp3, boo_womp_mp3_len);
     jump_sound        = Ichigo::load_audio(jump_sound_mp3, jump_sound_mp3_len);
 
@@ -298,6 +303,20 @@ static void process_movement_keys(Ichigo::Entity *irisu) {
 
 // static Ichigo::EntityID spell_entity_id = {};
 
+static void make_sparks(Vec2<f32> pos) {
+    Ichigo::EntityDescriptor spark_particle_gen_descriptor = {
+        "DYN_SPARK_PARTICLES",
+        9999, // NOTE: Unused ID
+        pos,
+        1.0f,
+        1.0f,
+        0.0f,
+        0
+    };
+
+    ParticleSource::spawn(spark_particle_gen_descriptor, sparks_texture_id, 0.1f, 0.3f, 3.0f);
+}
+
 #define SPELL_MAX_VELOCITY 24.0f
 #define DEFAULT_SPELL_COOLDOWN 0.7f
 static void spell_update(Ichigo::Entity *spell) {
@@ -305,12 +324,14 @@ static void spell_update(Ichigo::Entity *spell) {
 
     Ichigo::EntityMoveResult move_result = Ichigo::move_entity_in_world(spell);
     if (move_result == Ichigo::HIT_WALL) {
+        make_sparks(spell->col.pos);
         Ichigo::kill_entity_deferred(spell);
     }
 }
 
 static void spell_collide(Ichigo::Entity *spell, [[maybe_unused]] Ichigo::Entity *other, [[maybe_unused]] Vec2<f32> normal, [[maybe_unused]] Vec2<f32> collision_normal, [[maybe_unused]] Vec2<f32> collision_pos) {
     if (other->user_type_id != ET_PLAYER) {
+        make_sparks(spell->col.pos);
         Ichigo::kill_entity_deferred(spell);
     }
 }
