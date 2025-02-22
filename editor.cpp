@@ -824,6 +824,12 @@ found:;
         Ichigo::render_rect_deferred(Ichigo::CoordinateSystem::WORLD, {entity_pos                        , 1.0f, 1.0f}, move_arrow_texture, rotation2d(270.0f), tint);
     }
 
+    if (selected_entity_descriptor_idx != -1 && Ichigo::Internal::keyboard_state[IK_LEFT_CONTROL].down && Ichigo::Internal::keyboard_state[IK_D].down_this_frame) {
+        auto copy = (*current_descriptors)[selected_entity_descriptor_idx];
+        current_descriptors->append(copy);
+        Ichigo::show_info("Duplicated entity");
+    }
+
     // Draw pulsing red selection region rectangle.
     if (tiles_selected) {
         Ichigo::DrawCommand c = {};
