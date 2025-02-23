@@ -134,7 +134,7 @@ static void on_collide(Ichigo::Entity *irisu, Ichigo::Entity *other, Vec2<f32> n
             level_to_enter = other->user_data_i64;
         }
 
-    } else if (other->user_type_id == ET_ENTRANCE_TRIGGER && normal.x == collision_normal.x && normal.y == collision_normal.y) {
+    } else if ((other->user_type_id == ET_ENTRANCE_TRIGGER || other->user_type_id == ET_ENTRANCE_TRIGGER_H) && !Ichiaji::input_disabled) {
         try_enter_entrance(other->user_data_i64);
     }
 }

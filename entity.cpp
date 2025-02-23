@@ -184,9 +184,12 @@ Ichigo::EntityMoveResult Ichigo::move_entity_in_world(Ichigo::Entity *entity) {
     }
 
     // Gravity.
-    if (!FLAG_IS_SET(entity->flags, Ichigo::EntityFlag::EF_ON_GROUND)) {
-        external_acceleration.y = entity->gravity;
-    }
+    // if (!FLAG_IS_SET(entity->flags, Ichigo::EntityFlag::EF_ON_GROUND)) {
+    //     external_acceleration.y = entity->gravity;
+    // }
+
+    // NOTE (Feb 22, 2025): I'm switching back to always applying gravity. This was done so that if an entrance takes a player to a position that is slightly above the ground, they will fall and hit the ground.
+    external_acceleration.y = entity->gravity;
 
     Vec2<f32> final_acceleration = {};
 
@@ -402,8 +405,11 @@ Ichigo::EntityMoveResult Ichigo::move_entity_in_world(Ichigo::Entity *entity) {
 
                     // NOTE: It should not be ever possible to collide with both the entity as a floor and as a wall. This shouldn't ever be invalid in the case where
                     //       we accept a move that doesn't actually have us standing on the entity.
-                    entity->standing_entity_id = other_entity->id;
-                    if (other_entity->stand_proc) other_entity->stand_proc(other_entity, entity, true);
+
+                    if (entity->standing_entity_id != other_entity->id) {
+                        entity->standing_entity_id = other_entity->id;
+                        if (other_entity->stand_proc) other_entity->stand_proc(other_entity, entity, true);
+                    }
                 }
             }
 

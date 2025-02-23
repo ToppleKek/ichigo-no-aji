@@ -17,6 +17,16 @@ static Ichiaji::BackgroundPngDescriptor background_descriptors[] = {
 };
 
 Vec2<f32> entrance_table[] = {
+    {91.0f, 43.9f},  // 0 Start room (1) RIGHT entrance (to 2)
+    {82.0f, 43.9f},  // 1 Room 2 LEFT entrance (to START)
+    {141.0f, 43.9f}, // 2 Room 2 RIGHT entrance (to 3)
+    {131.0f, 43.9f}, // 3 Room 3 LEFT entrance (to 2)
+    {131.0f, 43.9f}, // 4 Room 3 RIGHT entrance after key door (to 4)
+    {166.0f, 54.9f}, // 5 Room 3 BOTTOM entrance (to BOTTOM 2)
+    {0.0f, 0.9f}, // 6 Room 3 TOP entrance (to TOP 1)
+    {162.0f, 43.9f}, // 7 Room BOTTOM 2 TOP entrance (to 3)
+    {135.0f, 63.8f}, // 8 Room BOTTOM 2 LEFT entrance (to BOTTOM 1)
+    {151.0f, 63.8f}, // 9 Room BOTTOM 1 RIGHT entrance (to BOTTOM 2)
 };
 
 Ichiaji::Level level = {

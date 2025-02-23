@@ -232,17 +232,22 @@ static void spawn_level_entrance(Vec2<f32> pos, i64 level_id) {
     entrance->user_type_id                         = ET_LEVEL_ENTRANCE;
 }
 
-static Ichigo::EntityID spawn_entrance_trigger(Vec2<f32> pos, i64 entrance_id, f32 custom_width, f32 custom_height) {
+static Ichigo::EntityID spawn_entrance_trigger(const Ichigo::EntityDescriptor &descriptor) {
     Ichigo::Entity *entrance = Ichigo::spawn_entity();
 
-    std::strcpy(entrance->name, "entrtrg");
+    std::strcpy(entrance->name, "entrance_trigger");
 
-    entrance->col           = {pos, custom_width, custom_height};
-    entrance->user_data_i64 = entrance_id;
-    entrance->user_type_id  = ET_ENTRANCE_TRIGGER;
+    entrance->col           = {descriptor.pos, descriptor.custom_width, descriptor.custom_height};
+    entrance->user_data_i64 = descriptor.data;
+    entrance->user_type_id  = descriptor.type;
 
     SET_FLAG(entrance->flags, Ichigo::EF_INVISIBLE);
-    SET_FLAG(entrance->flags, Ichigo::EF_BLOCKS_CAMERA_X);
+
+    if (descriptor.type == ET_ENTRANCE_TRIGGER_H) {
+        SET_FLAG(entrance->flags, Ichigo::EF_BLOCKS_CAMERA_Y);
+    } else {
+        SET_FLAG(entrance->flags, Ichigo::EF_BLOCKS_CAMERA_X);
+    }
 
     return entrance->id;
 }
@@ -433,8 +438,9 @@ static void respawn_all_entities(const Bana::Array<Ichigo::EntityDescriptor> &de
                 spawn_level_entrance(d.pos, d.data);
             } break;
 
+            case ET_ENTRANCE_TRIGGER_H:
             case ET_ENTRANCE_TRIGGER: {
-                spawn_entrance_trigger(d.pos, d.data, d.custom_width, d.custom_height);
+                spawn_entrance_trigger(d);
             } break;
 
             case ET_MOVING_PLATFORM: {
