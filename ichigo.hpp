@@ -294,9 +294,13 @@ u16 tile_at(Vec2<i32> tile_coord);
 void push_draw_command(DrawCommand draw_command);
 void render_rect_deferred(CoordinateSystem coordinate_system, Rect<f32> rect, Vec4<f32> colour, Mat4<f32> transform = m4identity_f32);
 void render_rect_deferred(CoordinateSystem coordinate_system, Rect<f32> rect, TextureID texture_id, Mat4<f32> transform = m4identity_f32, Vec4<f32> tint = COLOUR_WHITE);
+
+// Call these in custom render procedures.
 void render_text(Vec2<f32> pos, const char *str, usize length, Ichigo::CoordinateSystem coordinate_system, Ichigo::TextStyle style);
 void world_render_solid_colour_rect(Rect<f32> rect, Vec4<f32> colour,  Mat4<f32> transform = m4identity_f32);
+void world_render_textured_rect(Rect<f32> rect, Ichigo::TextureID texture_id, Mat4<f32> transform = m4identity_f32, Vec4<f32> tint = COLOUR_WHITE);
 void world_render_rect_list(Vec2<f32> pos, const Bana::FixedArray<TexturedRect> &rects, TextureID texture_id, Mat4<f32> transform = m4identity_f32, Vec4<f32> tint = COLOUR_WHITE);
+
 // Show a popup message in the info log.
 void show_info(const char *str, u32 length);
 void show_info(const char *cstr);

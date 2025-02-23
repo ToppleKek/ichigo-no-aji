@@ -29,7 +29,7 @@ static void render(Ichigo::Entity *e) {
 
     MAKE_STACK_ARRAY(rects, TexturedRect, ARRAY_LEN(gen.particles));
 
-    for (i32 i = 0; i < ARRAY_LEN(gen.particles); ++i) {
+    for (usize i = 0; i < ARRAY_LEN(gen.particles); ++i) {
         if (gen.particles[i].t_left > 0.0f) {
             TexturedRect r = {
                 {gen.particles[i].pos, pixels_to_metres(tex.width), pixels_to_metres(tex.height)},
@@ -48,7 +48,7 @@ static void update(Ichigo::Entity *e) {
     ParticleGenerator &gen = particle_generators[bl];
 
     i32 spawn_idx = -1;
-    for (i32 i = 0; i < ARRAY_LEN(gen.particles); ++i) {
+    for (usize i = 0; i < ARRAY_LEN(gen.particles); ++i) {
         if (gen.particles[i].t_left <= 0.0f) {
             if (spawn_idx < 0) spawn_idx = i;
         } else {
@@ -86,12 +86,7 @@ static void on_kill(Ichigo::Entity *e) {
 }
 
 void ParticleSource::init() {
-    // nocheckin
     particle_generators = make_bucket_array<ParticleGenerator>(128, Ichigo::Internal::perm_allocator);
-    // particle_data_map = make_fixed_map<Ichigo::EntityID, ParticleGenerator>(MAX_PARTICLE_SOURCES, Ichigo::Internal::perm_allocator);
-    // for (isize i = 0; i < particle_data_map.capacity; ++i) {
-    //     particle_data_map.data[i].particles = make_fixed_array<Particle>(MAX_PARTICLE_DENSITY, Ichigo::Internal::perm_allocator);
-    // }
 }
 
 void ParticleSource::spawn(const Ichigo::EntityDescriptor &descriptor, Ichigo::TextureID texture_id, f32 t_between_spawns, f32 t_particle, f32 total_t) {

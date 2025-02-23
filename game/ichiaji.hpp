@@ -16,6 +16,8 @@ enum EntityType : u32 {
     ET_MOVING_PLATFORM,
     ET_SPELL,
     ET_DEATH_TRIGGER,
+    ET_LOCKED_DOOR,
+    ET_KEY,
 };
 
 namespace Ichiaji {
@@ -31,12 +33,18 @@ struct BackgroundPngDescriptor {
     Bana::FixedArray<Ichigo::Background> backgrounds;
 };
 
+using LevelInitProc   = void ();
+using LevelUpdateProc = void ();
+using LevelSpawnProc  = bool (const Ichigo::EntityDescriptor &);
 struct Level {
     u8 *tilemap_data;
     Vec4<f32> background_colour;
     Bana::FixedArray<Ichiaji::BackgroundPngDescriptor> background_descriptors;
     Bana::FixedArray<Ichigo::EntityDescriptor> entity_descriptors;
     Bana::FixedArray<Vec2<f32>> entrance_table; // A table indexed by entrance_id (stored in the user data of the entity) to exit position.
+    LevelInitProc *init_proc;
+    LevelUpdateProc *update_proc;
+    LevelSpawnProc *spawn_proc;
 };
 
 struct __attribute__((packed)) PlayerSaveData {
@@ -61,14 +69,21 @@ extern GameSaveData current_save_data;
 extern ProgramState program_state;
 extern bool input_disabled;
 // extern bool ai_disabled;
-extern const Level all_levels[];
+extern Level all_levels[];
 extern i64 current_level_id;
 
 using FullscreenTransitionCompleteCallback = void (uptr);
 void fullscreen_transition(Vec4<f32> from, Vec4<f32> to, f32 t, FullscreenTransitionCompleteCallback *on_complete, uptr callback_data);
 void try_change_level(i64 level_id);
-LevelSaveData current_level_save_data();
 bool save_game();
 bool load_game();
 void new_game();
+
+inline LevelSaveData &current_level_save_data() {
+    return current_save_data.level_data[current_level_id];
+}
+
+inline Level &current_level() {
+    return all_levels[current_level_id];
+}
 }

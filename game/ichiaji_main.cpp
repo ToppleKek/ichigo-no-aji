@@ -13,6 +13,7 @@
 #include "irisu.hpp"
 #include "moving_platform.hpp"
 #include "particle_source.hpp"
+#include "entrances.hpp"
 
 EMBED("assets/enemy.png", enemy_png)
 EMBED("assets/coin.png", coin_spritesheet_png)
@@ -29,7 +30,7 @@ EMBED("assets/overworld_tiles.png", tileset_png)
 #include "levels/cave_entrance.ichigolvl"
 #include "levels/first.ichigolvl"
 
-static const Ichiaji::Level Ichiaji::all_levels[] = {
+static Ichiaji::Level Ichiaji::all_levels[] = {
     Level0::level,
     Level1::level,
     CaveEntranceLevel::level,
@@ -374,6 +375,7 @@ void Ichigo::Game::init() {
     Irisu::init();
     MovingPlatform::init();
     ParticleSource::init();
+    Entrances::init();
 
     test_bg_texture_id    = Ichigo::load_texture(test_bg, test_bg_len);
     enemy_texture_id      = Ichigo::load_texture(enemy_png, enemy_png_len);
@@ -390,12 +392,19 @@ void Ichigo::Game::init() {
 
     tileset_sheet = { 32, 32, tileset_texture };
 
-    // == Load level backgrounds ==
-    for (u32 i = 0; i < Level1::level.background_descriptors.size; ++i) {
-        auto &descriptor = Level1::level.background_descriptors[i];
-        Ichigo::TextureID background_texture_id = Ichigo::load_texture(descriptor.png_data, descriptor.png_size);
-        for (u32 j = 0; j < descriptor.backgrounds.size; ++j) {
-            descriptor.backgrounds[j].texture_id = background_texture_id;
+    // == Load levels ==
+    for (u32 i = 0; i < ARRAY_LEN(Ichiaji::all_levels); ++i) {
+        auto &level = Ichiaji::all_levels[i];
+
+        if (level.init_proc) level.init_proc();
+
+        // == Load level backgrounds ==
+        for (u32 i = 0; i < level.background_descriptors.size; ++i) {
+            auto &descriptor = level.background_descriptors[i];
+            Ichigo::TextureID background_texture_id = Ichigo::load_texture(descriptor.png_data, descriptor.png_size);
+            for (u32 j = 0; j < descriptor.backgrounds.size; ++j) {
+                descriptor.backgrounds[j].texture_id = background_texture_id;
+            }
         }
     }
 
@@ -413,6 +422,10 @@ void Ichigo::Game::init() {
 static void respawn_all_entities(const Bana::Array<Ichigo::EntityDescriptor> &descriptors, bool load_player_data_from_save) {
     for (u32 i = 0; i < descriptors.size; ++i) {
         const auto &d = descriptors[i];
+
+        if (Ichiaji::all_levels[Ichiaji::current_level_id].spawn_proc) {
+            if (Ichiaji::all_levels[Ichiaji::current_level_id].spawn_proc(d)) continue;
+        }
 
         switch (d.type) {
             case ET_PLAYER: {
@@ -449,6 +462,10 @@ static void respawn_all_entities(const Bana::Array<Ichigo::EntityDescriptor> &de
 
             case ET_DEATH_TRIGGER: {
                 spawn_death_trigger(d);
+            } break;
+
+            case ET_KEY: {
+                Entrances::spawn_key(d);
             } break;
 
             default: {
@@ -642,6 +659,8 @@ void Ichigo::Game::frame_begin() {
 
 // Runs right before the engine begins to render
 void Ichigo::Game::update_and_render() {
+    if (Ichiaji::all_levels[Ichiaji::current_level_id].update_proc) Ichiaji::all_levels[Ichiaji::current_level_id].update_proc();
+
     if (Ichigo::Internal::keyboard_state[IK_F5].down_this_frame) {
         if (current_language == ENGLISH) current_language = JAPANESE;
         else                             current_language = ENGLISH;

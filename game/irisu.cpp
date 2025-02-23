@@ -10,6 +10,7 @@
 #include "irisu.hpp"
 #include "ichiaji.hpp"
 #include "particle_source.hpp"
+#include "entrances.hpp"
 
 EMBED("assets/irisu.png", irisu_spritesheet_png)
 EMBED("assets/music/boo_womp441.mp3", boo_womp_mp3)
@@ -61,10 +62,31 @@ static Ichigo::Sprite irisu_sprite;
 static f32 irisu_collider_width  = 0.3f;
 static f32 irisu_collider_height = 1.1f;
 
+// TODO: Change this such that all types of entrances store the entity ID and call Entrance::can_enter_entrance(EntityID) function or something.
 static i64 entrance_to_enter = -1;
 static i64 level_to_enter    = -1;
+static Ichigo::EntityID entrance_entity_to_enter = NULL_ENTITY_ID;
 
 static f32 invincibility_t = 0.0f;
+
+static void try_enter_entrance(Vec2<f32> exit_location) {
+    auto callback = [](uptr data) {
+        Vec2<f32> exit_position = *((Vec2<f32> *) &data);
+        auto enable_input = []([[maybe_unused]] uptr data) {
+            Ichiaji::input_disabled = false;
+        };
+
+        Ichiaji::fullscreen_transition({0.0f, 0.0f, 0.0f, 1.0f}, {0.0f, 0.0f, 0.0f, 0.0f}, 0.3f, enable_input, 0);
+        Ichigo::Camera::mode = Ichigo::Camera::Mode::FOLLOW;
+        auto *irisu          = Ichigo::get_entity(irisu_id);
+        Ichigo::teleport_entity_considering_colliders(irisu, exit_position);
+    };
+
+    Ichigo::Camera::mode               = Ichigo::Camera::Mode::MANUAL;
+    Ichigo::Camera::manual_focus_point = get_translation2d(Ichigo::Camera::transform) * -1.0f;
+    Ichiaji::input_disabled            = true;
+    Ichiaji::fullscreen_transition({0.0f, 0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 1.0f}, 0.3f, callback, *((uptr *) &exit_location));
+}
 
 static void try_enter_entrance(i64 entrance_id) {
     auto callback = [](uptr data) {
@@ -126,6 +148,12 @@ static void on_collide(Ichigo::Entity *irisu, Ichigo::Entity *other, Vec2<f32> n
             ICHIGO_INFO("Collide with entrance entity with collision normal %f,%f", collision_normal.x, collision_normal.y);
             entrance_to_enter = other->user_data_i64;
             // try_enter_entrance(other->user_data);
+        }
+    } else if (other->user_type_id == ET_LOCKED_DOOR) {
+        if (normal.x != collision_normal.x || normal.y != collision_normal.y) {
+            entrance_entity_to_enter = NULL_ENTITY_ID;
+        } else {
+            entrance_entity_to_enter = other->id;
         }
     } else if (other->user_type_id == ET_LEVEL_ENTRANCE) {
         if (normal.x != collision_normal.x || normal.y != collision_normal.y) {
@@ -418,6 +446,11 @@ void Irisu::update(Ichigo::Entity *irisu) {
                 try_enter_entrance(entrance_to_enter);
             } else if (up_button_down_this_frame && level_to_enter != -1) {
                 try_enter_new_level(level_to_enter);
+            } else if (up_button_down_this_frame && !Ichigo::entity_is_dead(entrance_entity_to_enter)) {
+                auto exit_location = Entrances::get_exit_location_if_possible(entrance_entity_to_enter);
+                if (exit_location.has_value) {
+                    try_enter_entrance(exit_location.value);
+                }
             }
 
             if (jump_button_down_this_frame) {

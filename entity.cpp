@@ -431,7 +431,6 @@ Ichigo::EntityMoveResult Ichigo::move_entity_in_world(Ichigo::Entity *entity) {
             }
         }
 
-
         if (wall_normal.x != 0.0f) {
             result = HIT_WALL;
         } else if (wall_normal.y == 1.0f) {

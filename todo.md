@@ -34,8 +34,9 @@
 - Design levels
 
 ### PROGRAMMING
+- Remove entrance table (store the entrance exit location in user data since it can hold a vec2 of floats)
 - Allow casting magic in more states (falling, jumping)
-- Particle system
+- ~~Particle system~~
 - ~~Save format~~
 - - Currency? For the shop and stuff
 - Cutscenes
@@ -45,7 +46,7 @@
 - Shop
 - ~~Implement health~~
 - Moving platform has weird physics
-- Camera guide entities (blockers)
+- ~~Camera guide entities (blockers)~~
 - Game has a entity data arena or something that allows entities to allocate addtional information that can just be reset if you go to the title menu or start a new game.
 - - This makes us not have to have a deinit() on any entity type (see MovingPlatform::deinit)
 - Add entity move/edits to undo stack

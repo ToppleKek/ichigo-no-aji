@@ -219,7 +219,7 @@ static void screen_render_textured_rect(Rect<f32> rect, Ichigo::TextureID textur
 }
 
 // Render a textured rectangle in worldspace.
-static void world_render_textured_rect(Rect<f32> rect, Ichigo::TextureID texture_id, Mat4<f32> transform = m4identity_f32, Vec4<f32> tint = COLOUR_WHITE) {
+void Ichigo::world_render_textured_rect(Rect<f32> rect, Ichigo::TextureID texture_id, Mat4<f32> transform, Vec4<f32> tint) {
     Vec2<f32> draw_pos = { rect.pos.x, rect.pos.y };
     transform = translate2d(draw_pos) * transform;
 
@@ -801,7 +801,7 @@ static void build_tile_draw_data(Vec2<i32> tile_pos, Bana::BufferBuilder<Texture
     if (tile == INVALID_TILE) {
         // TODO: This is still done per-tile. But this codepath will only ever get lit up in the level editor. So, who cares, right?
         if (program_mode == Ichigo::Internal::EDITOR) {
-            world_render_textured_rect({{(f32) tile_pos.x, (f32) tile_pos.y}, 1.0f, 1.0f}, invalid_tile_texture_id);
+            Ichigo::world_render_textured_rect({{(f32) tile_pos.x, (f32) tile_pos.y}, 1.0f, 1.0f}, invalid_tile_texture_id);
         }
 
         return;
@@ -995,14 +995,14 @@ static void frame_render() {
                 f32 y_of_first_texture                   = bg.start_position.y + camera_offset.y * (1.0f - bg.scroll_speed.y);
                 f32 end_of_first_texture_in_screen       = beginning_of_first_texture_in_screen + width_metres;
 
-                world_render_textured_rect(
+                Ichigo::world_render_textured_rect(
                     {
                         {beginning_of_first_texture_in_screen, bg.start_position.y + y_of_first_texture},
                         width_metres, pixels_to_metres(bg_texture.height)
                     },
                     bg.texture_id
                 );
-                world_render_textured_rect(
+                Ichigo::world_render_textured_rect(
                     {
                         {end_of_first_texture_in_screen, bg.start_position.y + y_of_first_texture},
                         width_metres, pixels_to_metres(bg_texture.height)
@@ -1010,7 +1010,7 @@ static void frame_render() {
                     bg.texture_id
                 );
             } else {
-                world_render_textured_rect(
+                Ichigo::world_render_textured_rect(
                     {
                         {bg.start_position.x, bg.start_position.y},
                         pixels_to_metres(bg_texture.width), pixels_to_metres(bg_texture.height)
@@ -1156,13 +1156,13 @@ static void frame_render() {
             case Ichigo::DrawCommandType::TEXTURED_RECT: {
                 switch (cmd.coordinate_system) {
                     case Ichigo::WORLD: {
-                        world_render_textured_rect(cmd.rect, cmd.texture_id, cmd.transform, cmd.texture_tint);
+                        Ichigo::world_render_textured_rect(cmd.rect, cmd.texture_id, cmd.transform, cmd.texture_tint);
                     } break;
 
                     case Ichigo::CAMERA: {
                         Rect<f32> draw_rect = cmd.rect;
                         draw_rect.pos = cmd.rect.pos - get_translation2d(Ichigo::Camera::transform);
-                        world_render_textured_rect(draw_rect, cmd.texture_id, cmd.transform, cmd.texture_tint);
+                        Ichigo::world_render_textured_rect(draw_rect, cmd.texture_id, cmd.transform, cmd.texture_tint);
                     } break;
 
                     case Ichigo::SCREEN: {
@@ -1176,7 +1176,7 @@ static void frame_render() {
 
                         Rect<f32> draw_rect = cmd.rect;
                         draw_rect.pos = cmd.rect.pos - get_translation2d(Ichigo::Camera::transform);
-                        world_render_textured_rect(draw_rect, cmd.texture_id, cmd.transform, cmd.texture_tint);
+                        Ichigo::world_render_textured_rect(draw_rect, cmd.texture_id, cmd.transform, cmd.texture_tint);
 
                         Ichigo::Internal::gl.glUniform2f(screen_dimension_uniform, (f32) Ichigo::Camera::screen_tile_dimensions.x, (f32) Ichigo::Camera::screen_tile_dimensions.y);
                     } break;

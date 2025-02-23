@@ -29,11 +29,27 @@ Vec2<f32> entrance_table[] = {
     {151.0f, 63.8f}, // 9 Room BOTTOM 1 RIGHT entrance (to BOTTOM 2)
 };
 
+static constexpr u64 LOCKED_DOOR_1_FLAGS = (1 << 0) | (1 << 1);
+
+static bool spawn_hook(const Ichigo::EntityDescriptor &descriptor) {
+    if (descriptor.type == ET_LOCKED_DOOR) {
+        if (descriptor.data == LOCKED_DOOR_1_FLAGS) {
+            Entrances::spawn_locked_door(descriptor, descriptor.data, {0.0f, 0.0f}, 2); // NOTE: Bit 2 is the flag that is set when the door is unlocked.
+            return true;
+        }
+    }
+
+    return false;
+}
+
 Ichiaji::Level level = {
     (u8 *) first_tilemap,
     {(30.0f / 255.0f), (28.0f / 255.0f), (21.0f / 255.0f), 1.0f},
     INLINE_INIT_OF_STATIC_ARRAY(background_descriptors),
     INLINE_INIT_OF_STATIC_ARRAY(entity_descriptors),
     INLINE_INIT_OF_STATIC_ARRAY(entrance_table),
+    nullptr,
+    nullptr,
+    spawn_hook,
 };
 }

@@ -26,5 +26,8 @@ Ichiaji::Level level = {
     INLINE_INIT_OF_STATIC_ARRAY(background_descriptors),
     INLINE_INIT_OF_STATIC_ARRAY(entity_descriptors),
     INLINE_INIT_OF_STATIC_ARRAY(entrance_table),
+    nullptr,
+    nullptr,
+    nullptr,
 };
 }
