@@ -18,6 +18,7 @@ enum EntityType : u32 {
     ET_DEATH_TRIGGER,
     ET_LOCKED_DOOR,
     ET_KEY,
+    ET_ELEVATOR,
 };
 
 namespace Ichiaji {

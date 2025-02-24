@@ -189,7 +189,7 @@ Ichigo::EntityMoveResult Ichigo::move_entity_in_world(Ichigo::Entity *entity) {
     // }
 
     // NOTE (Feb 22, 2025): I'm switching back to always applying gravity. This was done so that if an entrance takes a player to a position that is slightly above the ground, they will fall and hit the ground.
-    external_acceleration.y = entity->gravity;
+    external_acceleration.y += entity->gravity;
 
     Vec2<f32> final_acceleration = {};
 
@@ -250,6 +250,16 @@ Ichigo::EntityMoveResult Ichigo::move_entity_in_world(Ichigo::Entity *entity) {
 
     if (entity->velocity.x == 0.0f && entity->velocity.y == 0.0f) {
         return NO_MOVE;
+    }
+
+    if (!entity_is_dead(entity->standing_entity_id)) {
+        Entity *standing_entity = get_entity(entity->standing_entity_id);
+        Vec2<f32> saved_velocity = entity->velocity;
+        entity->standing_entity_id = NULL_ENTITY_ID;
+        entity->velocity = standing_entity->velocity;
+        move_entity_in_world(entity);
+        entity->standing_entity_id = standing_entity->id;
+        entity->velocity = saved_velocity;
     }
 
     MAKE_STACK_ARRAY(colliding_tangible_entities, Entity *, 32);

@@ -1,4 +1,5 @@
 #include "moving_platform.hpp"
+#include "ichiaji.hpp"
 
 #define MAX_PLATFORMS 64
 #define MAX_ENTITIES_ON_PLATFORM 64
@@ -26,23 +27,43 @@ static void render(Ichigo::Entity *platform) {
 }
 
 static void update(Ichigo::Entity *platform) {
-    platform->velocity.x = platform->movement_speed * signof(platform->velocity.x);
-    f32 velocity_before  = platform->velocity.x;
+    Vec2<f32> velocity_before = platform->velocity;
+    if (platform->user_type_id == ET_MOVING_PLATFORM) {
+        platform->velocity.x = platform->movement_speed * signof(platform->velocity.x);
 
-    [[maybe_unused]] Ichigo::EntityMoveResult move_result = Ichigo::move_entity_in_world(platform);
+        Ichigo::EntityMoveResult move_result = Ichigo::move_entity_in_world(platform);
 
-    if (move_result == Ichigo::HIT_WALL) {
-        platform->velocity.x = velocity_before * -1.0f;
-    }
+        if (move_result == Ichigo::HIT_WALL) {
+            platform->velocity.x = velocity_before.x * -1.0f;
+        }
 
-    if (MIN(platform->user_data_f32_1, platform->user_data_f32_2) >= platform->col.pos.x) {
-        platform->col.pos.x = MIN(platform->user_data_f32_1, platform->user_data_f32_2);
-        platform->velocity.x *= -1.0f;
-    }
+        if (MIN(platform->user_data_f32_1, platform->user_data_f32_2) >= platform->col.pos.x) {
+            platform->col.pos.x = MIN(platform->user_data_f32_1, platform->user_data_f32_2);
+            platform->velocity.x *= -1.0f;
+        }
 
-    if (MAX(platform->user_data_f32_1, platform->user_data_f32_2) <= platform->col.pos.x) {
-        platform->col.pos.x = MAX(platform->user_data_f32_1, platform->user_data_f32_2);
-        platform->velocity.x *= -1.0f;
+        if (MAX(platform->user_data_f32_1, platform->user_data_f32_2) <= platform->col.pos.x) {
+            platform->col.pos.x = MAX(platform->user_data_f32_1, platform->user_data_f32_2);
+            platform->velocity.x *= -1.0f;
+        }
+    } else { // Elevator.
+        platform->velocity.y = platform->movement_speed * signof(platform->velocity.y);
+
+        Ichigo::EntityMoveResult move_result = Ichigo::move_entity_in_world(platform);
+
+        if (move_result == Ichigo::HIT_GROUND || move_result == Ichigo::HIT_CEILING) {
+            platform->velocity.y = velocity_before.y * -1.0f;
+        } else {
+            if (MIN(platform->user_data_f32_1, platform->user_data_f32_2) >= platform->col.pos.y) {
+                platform->col.pos.y = MIN(platform->user_data_f32_1, platform->user_data_f32_2);
+                platform->velocity.y *= -1.0f;
+            }
+
+            if (MAX(platform->user_data_f32_1, platform->user_data_f32_2) <= platform->col.pos.y) {
+                platform->col.pos.y = MAX(platform->user_data_f32_1, platform->user_data_f32_2);
+                platform->velocity.y *= -1.0f;
+            }
+        }
     }
 
     auto list = platform_entity_lists.get(platform->id);
@@ -50,21 +71,21 @@ static void update(Ichigo::Entity *platform) {
     if (list.value->size == 0) return;
 
     // FIXME: HACK!!! This hack is here because when we move the entity that is standing on the platform, it considers friction which makes it slowly slide off the platform.
-    f32 saved_friction = platform->friction_when_tangible;
-    platform->friction_when_tangible = 0.0f;
-    for (i32 i = 0; i < list.value->capacity; ++i) {
-        if (!Ichigo::entity_is_dead(list.value->data[i])) {
-            Ichigo::Entity *e        = Ichigo::get_entity(list.value->data[i]);
-            Vec2<f32> saved_velocity = e->velocity;
-            e->velocity.x            = velocity_before;
+    // f32 saved_friction = platform->friction_when_tangible;
+    // platform->friction_when_tangible = 0.0f;
+    // for (i32 i = 0; i < list.value->capacity; ++i) {
+    //     if (!Ichigo::entity_is_dead(list.value->data[i])) {
+    //         Ichigo::Entity *e        = Ichigo::get_entity(list.value->data[i]);
+    //         Vec2<f32> saved_velocity = e->velocity;
+    //         e->velocity              = velocity_before;
 
-            Ichigo::move_entity_in_world(e);
+    //         Ichigo::move_entity_in_world(e);
 
-            e->velocity = saved_velocity;
-        }
-    }
+    //         e->velocity = saved_velocity;
+    //     }
+    // }
 
-    platform->friction_when_tangible = saved_friction;
+    // platform->friction_when_tangible = saved_friction;
 }
 
 static void on_stand(Ichigo::Entity *platform, Ichigo::Entity *other_entity, bool standing) {
@@ -117,6 +138,7 @@ void MovingPlatform::spawn(const Ichigo::EntityDescriptor &descriptor) {
 
     platform->col                                  = {descriptor.pos, descriptor.custom_width, descriptor.custom_height};
     platform->movement_speed                       = descriptor.movement_speed;
+    platform->max_velocity                         = {9999.0f, 9999.0f};
     platform->friction_when_tangible               = 8.0f; // TODO: Custom friction?
     platform->sprite.width                         = 0.0f; // TODO: Sprite for platforms, requires a custom render proc!!
     platform->sprite.height                        = 0.0f;
@@ -127,6 +149,7 @@ void MovingPlatform::spawn(const Ichigo::EntityDescriptor &descriptor) {
     platform->kill_proc                            = on_kill;
     platform->user_data_f32_1                      = *((f32 *) &descriptor.data);
     platform->user_data_f32_2                      = *((f32 *) ((u8 *) (&descriptor.data) + sizeof(f32)));
+    platform->user_type_id                         = descriptor.type;
     platform->sprite.sheet.cell_width              = 32;
     platform->sprite.sheet.cell_height             = 32;
     platform->sprite.animation.cell_of_first_frame = 0;

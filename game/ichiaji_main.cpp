@@ -456,6 +456,7 @@ static void respawn_all_entities(const Bana::Array<Ichigo::EntityDescriptor> &de
                 spawn_entrance_trigger(d);
             } break;
 
+            case ET_ELEVATOR:
             case ET_MOVING_PLATFORM: {
                 MovingPlatform::spawn(d);
             } break;
@@ -465,7 +466,9 @@ static void respawn_all_entities(const Bana::Array<Ichigo::EntityDescriptor> &de
             } break;
 
             case ET_KEY: {
-                Entrances::spawn_key(d);
+                if (!FLAG_IS_SET(Ichiaji::current_level_save_data().progress_flags, d.data)) {
+                    Entrances::spawn_key(d);
+                }
             } break;
 
             default: {
