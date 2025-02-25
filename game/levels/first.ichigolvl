@@ -23,10 +23,13 @@ Vec2<f32> entrance_table[] = {
     {131.0f, 43.9f}, // 3 Room 3 LEFT entrance (to 2)
     {131.0f, 43.9f}, // 4 Room 3 RIGHT entrance after key door (to 4)
     {166.0f, 54.9f}, // 5 Room 3 BOTTOM entrance (to BOTTOM 2)
-    {0.0f, 0.9f}, // 6 Room 3 TOP entrance (to TOP 1)
+    {166.0f, 19.9f}, // 6 Room 3 TOP entrance (to TOP 1)
     {162.0f, 43.9f}, // 7 Room BOTTOM 2 TOP entrance (to 3)
     {135.0f, 63.8f}, // 8 Room BOTTOM 2 LEFT entrance (to BOTTOM 1)
     {151.0f, 63.8f}, // 9 Room BOTTOM 1 RIGHT entrance (to BOTTOM 2)
+    {163.0f, 33.8f}, // 10 Room TOP 1 BOTTOM entrance (to 3)
+    {224.0f, 17.8f}, // 11 Room TOP 1 RIGHT entrance (to TOP 2)
+    {197.0f, 17.8f}, // 12 Room TOP 2 LEFT entrance (to TOP 1)
 };
 
 static constexpr u64 LOCKED_DOOR_1_FLAGS = (1 << 0) | (1 << 1);

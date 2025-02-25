@@ -15,7 +15,7 @@
 EMBED("assets/editor-move-arrow.png", move_arrow_png)
 
 #define MAX_CAMERA_ZOOM 4.0f
-#define MIN_CAMERA_ZOOM 0.3f
+#define MIN_CAMERA_ZOOM 0.1f
 
 enum ActionType {
     FILL,

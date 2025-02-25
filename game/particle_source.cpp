@@ -54,7 +54,7 @@ static void update(Ichigo::Entity *e) {
         } else {
             gen.particles[i].pos = 0.5f * gen.particles[i].acceleration * (Ichigo::Internal::dt * Ichigo::Internal::dt) + gen.particles[i].velocity * Ichigo::Internal::dt + gen.particles[i].pos;
             // TODO: drag? gravity?
-            gen.particles[i].velocity = gen.particles[i].acceleration * Ichigo::Internal::dt * gen.particles[i].velocity;
+            gen.particles[i].velocity = gen.particles[i].acceleration * Ichigo::Internal::dt + gen.particles[i].velocity;
             gen.particles[i].t_left -= Ichigo::Internal::dt;
         }
     }
@@ -63,12 +63,12 @@ static void update(Ichigo::Entity *e) {
 
     // FIXME: @fpsdep
     if (gen.t_to_next_spawn <= 0.0f && spawn_idx >= 0) {
-        gen.particles[spawn_idx].pos.x = rand_range_f32(0.5f, 1.5f); // TODO: Consider particle gen width/height.
-        gen.particles[spawn_idx].pos.y = rand_range_f32(0.5f, 1.5f);
-        gen.particles[spawn_idx].velocity.x = rand_range_f32(2.0f, 4.0f);
-        gen.particles[spawn_idx].velocity.y = rand_range_f32(2.0f, 4.0f);
-        gen.particles[spawn_idx].acceleration = {};
-        gen.particles[spawn_idx].t_left = gen.t_particle;
+        gen.particles[spawn_idx].pos.x        = rand_range_f32(-0.5f, 0.5f); // TODO: Consider particle gen width/height.
+        gen.particles[spawn_idx].pos.y        = rand_range_f32(-0.5f, 0.5f);
+        gen.particles[spawn_idx].velocity.x   = rand_range_f32(-4.0f, 4.0f);
+        gen.particles[spawn_idx].velocity.y   = rand_range_f32(-2.0f, -4.0f);
+        gen.particles[spawn_idx].acceleration = {0.0f, 9.8f};
+        gen.particles[spawn_idx].t_left       = gen.t_particle;
 
         gen.t_to_next_spawn = gen.t_between_spawns;
     }

@@ -800,9 +800,9 @@ static void build_tile_draw_data(Vec2<i32> tile_pos, Bana::BufferBuilder<Texture
 
     if (tile == INVALID_TILE) {
         // TODO: This is still done per-tile. But this codepath will only ever get lit up in the level editor. So, who cares, right?
-        if (program_mode == Ichigo::Internal::EDITOR) {
-            Ichigo::world_render_textured_rect({{(f32) tile_pos.x, (f32) tile_pos.y}, 1.0f, 1.0f}, invalid_tile_texture_id);
-        }
+        // if (program_mode == Ichigo::Internal::EDITOR) {
+        //     Ichigo::world_render_textured_rect({{(f32) tile_pos.x, (f32) tile_pos.y}, 1.0f, 1.0f}, invalid_tile_texture_id);
+        // }
 
         return;
     }
@@ -1023,19 +1023,20 @@ static void frame_render() {
     // == End background ==
 
     // == Tilemap ==
-    i64 row_count = (i32) std::ceilf(Ichigo::Camera::screen_tile_dimensions.y) + 1;
-    i64 col_count = (i32) std::ceilf(Ichigo::Camera::screen_tile_dimensions.x) + 1;
-
-    TexturedVertex *vertex_buffer = PUSH_ARRAY(Ichigo::game_state.transient_storage_arena, TexturedVertex, (row_count * col_count) * 4);
-    u32            *index_buffer  = PUSH_ARRAY(Ichigo::game_state.transient_storage_arena, u32, (row_count * col_count) * 6);
+    i64             row_count          = (i32) std::ceilf(Ichigo::Camera::screen_tile_dimensions.y) + 1;
+    i64             col_count          = (i32) std::ceilf(Ichigo::Camera::screen_tile_dimensions.x) + 1;
+    i64             vertex_buffer_size = (row_count * col_count) * 4;
+    i64             index_buffer_size  = (row_count * col_count) * 6;
+    TexturedVertex *vertex_buffer      = PUSH_ARRAY(Ichigo::game_state.transient_storage_arena, TexturedVertex, vertex_buffer_size);
+    u32            *index_buffer       = PUSH_ARRAY(Ichigo::game_state.transient_storage_arena, u32, index_buffer_size);
 
 #ifdef ICHIGO_DEBUG
     u32 *overrun_flag = PUSH_ARRAY(Ichigo::game_state.transient_storage_arena, u32, 1);
     *overrun_flag = 0;
 #endif
 
-    Bana::BufferBuilder<TexturedVertex> vertices(vertex_buffer, MAX_TEXT_STRING_LENGTH * 4);
-    Bana::BufferBuilder<u32>            indices(index_buffer, MAX_TEXT_STRING_LENGTH * 6);
+    Bana::BufferBuilder<TexturedVertex> vertices(vertex_buffer, vertex_buffer_size);
+    Bana::BufferBuilder<u32>            indices(index_buffer, index_buffer_size);
 
     i64 DEBUG_COUNT = 0;
     // Build the tilemap draw data.
@@ -1089,6 +1090,26 @@ static void frame_render() {
             {
                 {Ichigo::Camera::offset.x < 0.0f ? 0.0f : Ichigo::Camera::offset.x, Ichigo::Camera::offset.y},
                 Ichigo::Camera::screen_tile_dimensions.x, std::fabsf(Ichigo::Camera::offset.y)
+            },
+            {0.0f, 0.0f, 0.0f, 0.5f}
+        );
+    }
+
+    if (Ichigo::Camera::offset.x + Ichigo::Camera::screen_tile_dimensions.x > Ichigo::Internal::current_tilemap.width) {
+        Ichigo::world_render_solid_colour_rect(
+            {
+                {(f32) Ichigo::Internal::current_tilemap.width, Ichigo::Camera::offset.y},
+                (Ichigo::Camera::offset.x + Ichigo::Camera::screen_tile_dimensions.x) - Ichigo::Internal::current_tilemap.width, Ichigo::Camera::screen_tile_dimensions.y
+            },
+            {0.0f, 0.0f, 0.0f, 0.5f}
+        );
+    }
+
+    if (Ichigo::Camera::offset.y + Ichigo::Camera::screen_tile_dimensions.y > Ichigo::Internal::current_tilemap.height) {
+        Ichigo::world_render_solid_colour_rect(
+            {
+                {Ichigo::Camera::offset.x, (f32) Ichigo::Internal::current_tilemap.height},
+                Ichigo::Camera::screen_tile_dimensions.x, (Ichigo::Camera::offset.y + Ichigo::Camera::screen_tile_dimensions.y) - Ichigo::Internal::current_tilemap.height
             },
             {0.0f, 0.0f, 0.0f, 0.5f}
         );
