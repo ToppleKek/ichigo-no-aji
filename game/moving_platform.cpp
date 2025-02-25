@@ -28,6 +28,8 @@ static void render(Ichigo::Entity *platform) {
 
 static void update(Ichigo::Entity *platform) {
     Vec2<f32> velocity_before = platform->velocity;
+    Vec2<f32> p               = platform->col.pos;
+
     if (platform->user_type_id == ET_MOVING_PLATFORM) {
         platform->velocity.x = platform->movement_speed * signof(platform->velocity.x);
 
@@ -66,26 +68,19 @@ static void update(Ichigo::Entity *platform) {
         }
     }
 
+    Vec2<f32> dp = platform->col.pos - p;
+
     auto list = platform_entity_lists.get(platform->id);
     if (!list.has_value)       return;
     if (list.value->size == 0) return;
 
     // FIXME: HACK!!! This hack is here because when we move the entity that is standing on the platform, it considers friction which makes it slowly slide off the platform.
-    // f32 saved_friction = platform->friction_when_tangible;
-    // platform->friction_when_tangible = 0.0f;
-    // for (i32 i = 0; i < list.value->capacity; ++i) {
-    //     if (!Ichigo::entity_is_dead(list.value->data[i])) {
-    //         Ichigo::Entity *e        = Ichigo::get_entity(list.value->data[i]);
-    //         Vec2<f32> saved_velocity = e->velocity;
-    //         e->velocity              = velocity_before;
-
-    //         Ichigo::move_entity_in_world(e);
-
-    //         e->velocity = saved_velocity;
-    //     }
-    // }
-
-    // platform->friction_when_tangible = saved_friction;
+    for (i32 i = 0; i < list.value->capacity; ++i) {
+        if (!Ichigo::entity_is_dead(list.value->data[i])) {
+            Ichigo::Entity *e = Ichigo::get_entity(list.value->data[i]);
+            Ichigo::teleport_entity_considering_colliders(e, e->col.pos + dp);
+        }
+    }
 }
 
 static void on_stand(Ichigo::Entity *platform, Ichigo::Entity *other_entity, bool standing) {
