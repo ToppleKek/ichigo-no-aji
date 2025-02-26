@@ -574,6 +574,15 @@ static LRESULT window_proc(HWND window, u32 msg, WPARAM wparam, LPARAM lparam) {
     case WM_KEYUP: {
 #ifdef ICHIGO_DEBUG
         if (ImGui::GetIO().WantCaptureKeyboard) {
+            for (u32 i = 0; i < Ichigo::IK_ENUM_COUNT; ++i) {
+                Ichigo::Internal::keyboard_state[i] = {
+                    false,
+                    false,
+                    false,
+                    true
+                };
+            }
+
             return 0;
         }
 #endif
