@@ -191,80 +191,6 @@ static void spawn_gert(Vec2<f32> pos) {
     return coin->id;
 }
 
-static Ichigo::EntityID spawn_entrance(Vec2<f32> pos, i64 entrance_id) {
-    Ichigo::Entity *entrance = Ichigo::spawn_entity();
-
-    std::strcpy(entrance->name, "entr");
-
-    entrance->col                                  = {pos, 1.0f, 1.0f};
-    entrance->sprite.width                         = 1.0f;
-    entrance->sprite.height                        = 1.0f;
-    entrance->sprite.sheet.texture                 = coin_texture_id;
-    entrance->sprite.sheet.cell_width              = 32;
-    entrance->sprite.sheet.cell_height             = 32;
-    entrance->sprite.animation.cell_of_first_frame = 0;
-    entrance->sprite.animation.cell_of_last_frame  = 7;
-    entrance->sprite.animation.cell_of_loop_start  = 0;
-    entrance->sprite.animation.cell_of_loop_end    = 7;
-    entrance->sprite.animation.seconds_per_frame   = 0.12f;
-    entrance->user_data_i64                        = entrance_id;
-    entrance->user_type_id                         = ET_ENTRANCE;
-
-    return entrance->id;
-}
-
-static void spawn_level_entrance(Vec2<f32> pos, i64 level_id) {
-    Ichigo::Entity *entrance = Ichigo::spawn_entity();
-
-    std::strcpy(entrance->name, "lvlentr");
-
-    entrance->col                                  = {pos, 1.0f, 1.0f};
-    entrance->sprite.width                         = 1.0f;
-    entrance->sprite.height                        = 1.0f;
-    entrance->sprite.sheet.texture                 = coin_texture_id;
-    entrance->sprite.sheet.cell_width              = 32;
-    entrance->sprite.sheet.cell_height             = 32;
-    entrance->sprite.animation.cell_of_first_frame = 0;
-    entrance->sprite.animation.cell_of_last_frame  = 7;
-    entrance->sprite.animation.cell_of_loop_start  = 0;
-    entrance->sprite.animation.cell_of_loop_end    = 7;
-    entrance->sprite.animation.seconds_per_frame   = 0.12f;
-    entrance->user_data_i64                        = level_id;
-    entrance->user_type_id                         = ET_LEVEL_ENTRANCE;
-}
-
-static Ichigo::EntityID spawn_entrance_trigger(const Ichigo::EntityDescriptor &descriptor) {
-    Ichigo::Entity *entrance = Ichigo::spawn_entity();
-
-    std::strcpy(entrance->name, "entrance_trigger");
-
-    entrance->col           = {descriptor.pos, descriptor.custom_width, descriptor.custom_height};
-    entrance->user_data_i64 = descriptor.data;
-    entrance->user_type_id  = descriptor.type;
-
-    SET_FLAG(entrance->flags, Ichigo::EF_INVISIBLE);
-
-    if (descriptor.type == ET_ENTRANCE_TRIGGER_H) {
-        SET_FLAG(entrance->flags, Ichigo::EF_BLOCKS_CAMERA_Y);
-    } else {
-        SET_FLAG(entrance->flags, Ichigo::EF_BLOCKS_CAMERA_X);
-    }
-
-    return entrance->id;
-}
-
-static void spawn_death_trigger(const Ichigo::EntityDescriptor &descriptor) {
-    Ichigo::Entity *death_trigger = Ichigo::spawn_entity();
-
-    std::strcpy(death_trigger->name, "death_trigger");
-
-    death_trigger->col           = {descriptor.pos, descriptor.custom_width, descriptor.custom_height};
-    death_trigger->user_type_id  = ET_DEATH_TRIGGER;
-
-    SET_FLAG(death_trigger->flags, Ichigo::EF_INVISIBLE);
-    SET_FLAG(death_trigger->flags, Ichigo::EF_BLOCKS_CAMERA_Y);
-}
-
 bool Ichiaji::save_game() {
     Ichigo::Internal::PlatformFile *save_file = Ichigo::Internal::platform_open_file_write(Bana::temp_string("./default.save"));
 
@@ -443,17 +369,14 @@ static void respawn_all_entities(const Bana::Array<Ichigo::EntityDescriptor> &de
 
             } break;
 
-            case ET_ENTRANCE: {
-                spawn_entrance(d.pos, d.data);
-            } break;
-
+            case ET_ENTRANCE:
             case ET_LEVEL_ENTRANCE: {
-                spawn_level_entrance(d.pos, d.data);
+                Entrances::spawn_entrance(d);
             } break;
 
             case ET_ENTRANCE_TRIGGER_H:
             case ET_ENTRANCE_TRIGGER: {
-                spawn_entrance_trigger(d);
+                Entrances::spawn_entrance_trigger(d);
             } break;
 
             case ET_ELEVATOR:
@@ -462,7 +385,7 @@ static void respawn_all_entities(const Bana::Array<Ichigo::EntityDescriptor> &de
             } break;
 
             case ET_DEATH_TRIGGER: {
-                spawn_death_trigger(d);
+                Entrances::spawn_death_trigger(d);
             } break;
 
             case ET_KEY: {
