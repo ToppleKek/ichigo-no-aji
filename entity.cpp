@@ -359,7 +359,7 @@ Ichigo::EntityMoveResult Ichigo::move_entity_in_world(Ichigo::Entity *entity) {
             for (i32 tile_x = min_tile_x; tile_x <= max_tile_x; ++tile_x) {
                 const TileInfo &tile_info = Internal::current_tilemap.tile_info[Ichigo::tile_at({tile_x, tile_y})];
 
-                if (FLAG_IS_SET(tile_info.flags, TileFlag::TANGIBLE)) {
+                if (FLAG_IS_SET(tile_info.flags, TileFlag::TF_TANGIBLE)) {
                     Vec2<f32> min_corner = {tile_x - entity->col.w / 2.0f, tile_y - entity->col.h / 2.0f};
                     Vec2<f32> max_corner = {tile_x + 1 + entity->col.w / 2.0f, tile_y + 1 + entity->col.h / 2.0f};
 
@@ -576,11 +576,11 @@ void Ichigo::EntityControllers::patrol_controller(Entity *entity) {
 
     const TileInfo &left_info  = Internal::current_tilemap.tile_info[Ichigo::tile_at(projected_left_standing_tile)];
     const TileInfo &right_info = Internal::current_tilemap.tile_info[Ichigo::tile_at(projected_right_standing_tile)];
-    if (!FLAG_IS_SET(left_info.flags, TANGIBLE)) {
+    if (!FLAG_IS_SET(left_info.flags, TF_TANGIBLE)) {
         SET_FLAG(entity->flags, EF_FLIP_H);
         entity->acceleration.x = entity->movement_speed;
         entity->velocity.x = 0.0f;
-    } else if (!FLAG_IS_SET(right_info.flags, TANGIBLE)) {
+    } else if (!FLAG_IS_SET(right_info.flags, TF_TANGIBLE)) {
         CLEAR_FLAG(entity->flags, EF_FLIP_H);
         entity->acceleration.x = -entity->movement_speed;
         entity->velocity.x = 0.0f;

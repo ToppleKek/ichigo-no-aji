@@ -786,19 +786,23 @@ void Ichigo::set_tilemap(u8 *ichigo_tilemap_memory, Ichigo::SpriteSheet tileset_
 //     set_tilemap(&tilemap);
 // }
 
-#define INVALID_TILE UINT16_MAX
 Ichigo::TileID Ichigo::tile_at(Vec2<i32> tile_coord) {
     if (!Internal::current_tilemap.tiles || tile_coord.x >= (i32) Internal::current_tilemap.width || tile_coord.x < 0 || tile_coord.y >= (i32) Internal::current_tilemap.height || tile_coord.y < 0)
-        return INVALID_TILE;
+        return ICHIGO_INVALID_TILE;
 
     return Internal::current_tilemap.tiles[tile_coord.y * Internal::current_tilemap.width + tile_coord.x];
+}
+
+Ichigo::TileInfo Ichigo::get_tile_info(TileID tile_id) {
+    assert(tile_id < Internal::current_tilemap.tile_info_count);
+    return Internal::current_tilemap.tile_info[tile_id];
 }
 
 // Build the vertex and index buffers for drawing one tile in the tilemap.
 static void build_tile_draw_data(Vec2<i32> tile_pos, Bana::BufferBuilder<TexturedVertex> &vertices, Bana::BufferBuilder<u32> &indices) {
     Ichigo::TileID tile = Ichigo::tile_at(tile_pos);
 
-    if (tile == INVALID_TILE) {
+    if (tile == ICHIGO_INVALID_TILE) {
         // TODO: This is still done per-tile. But this codepath will only ever get lit up in the level editor. So, who cares, right?
         // if (program_mode == Ichigo::Internal::EDITOR) {
         //     Ichigo::world_render_textured_rect({{(f32) tile_pos.x, (f32) tile_pos.y}, 1.0f, 1.0f}, invalid_tile_texture_id);

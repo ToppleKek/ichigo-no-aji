@@ -29,7 +29,8 @@ enum IrisuState {
     LAY_DOWN,
     GET_UP_SLOW,
     DIVE_BOOST,
-    CUTSCENE
+    CUTSCENE,
+    RESPAWNING
 };
 
 #define IRISU_DEFAULT_GRAVITY 14.0f
@@ -38,6 +39,8 @@ enum IrisuState {
 #define DIVE_X_VELOCITY 2.0f
 #define DIVE_Y_VELOCITY 4.0f
 #define IRISU_DEFAULT_JUMP_ACCELERATION 6.0f
+#define RESPAWN_COOLDOWN_T 0.75f
+#define RESPAWN_DAMAGE 2.0f
 
 static IrisuState irisu_state = IrisuState::IDLE;
 static Ichigo::Animation irisu_idle        = {};
@@ -63,11 +66,13 @@ static f32 irisu_collider_width  = 0.3f;
 static f32 irisu_collider_height = 1.1f;
 
 // TODO: Change this such that all types of entrances store the entity ID and call Entrance::can_enter_entrance(EntityID) function or something.
-static i64 entrance_to_enter = -1;
-static i64 level_to_enter    = -1;
+static i64 entrance_to_enter                     = -1;
+static i64 level_to_enter                        = -1;
 static Ichigo::EntityID entrance_entity_to_enter = NULL_ENTITY_ID;
+static Vec2<f32> last_entrance_position          = {};
 
 static f32 invincibility_t = 0.0f;
+static f32 respawn_t       = 0.0f;
 
 static void try_enter_entrance(Vec2<f32> exit_location) {
     auto callback = [](uptr data) {
@@ -77,8 +82,9 @@ static void try_enter_entrance(Vec2<f32> exit_location) {
         };
 
         Ichiaji::fullscreen_transition({0.0f, 0.0f, 0.0f, 1.0f}, {0.0f, 0.0f, 0.0f, 0.0f}, 0.3f, enable_input, 0);
-        Ichigo::Camera::mode = Ichigo::Camera::Mode::FOLLOW;
-        auto *irisu          = Ichigo::get_entity(irisu_id);
+        Ichigo::Camera::mode   = Ichigo::Camera::Mode::FOLLOW;
+        auto *irisu            = Ichigo::get_entity(irisu_id);
+        last_entrance_position = exit_position;
         Ichigo::teleport_entity_considering_colliders(irisu, exit_position);
     };
 
@@ -96,8 +102,10 @@ static void try_enter_entrance(i64 entrance_id) {
         };
 
         Ichiaji::fullscreen_transition({0.0f, 0.0f, 0.0f, 1.0f}, {0.0f, 0.0f, 0.0f, 0.0f}, 0.3f, enable_input, 0);
-        Ichigo::Camera::mode = Ichigo::Camera::Mode::FOLLOW;
-        auto *irisu          = Ichigo::get_entity(irisu_id);
+        Ichigo::Camera::mode   = Ichigo::Camera::Mode::FOLLOW;
+        auto *irisu            = Ichigo::get_entity(irisu_id);
+        last_entrance_position = exit_position;
+
         Ichigo::teleport_entity_considering_colliders(irisu, exit_position);
     };
 
@@ -252,11 +260,12 @@ void Irisu::init() {
 void Irisu::spawn(Ichigo::Entity *entity, Vec2<f32> pos) {
     Ichigo::change_entity_draw_layer(entity, 16);
 
-    invincibility_t   = 0.0f;
-    irisu_state       = IDLE;
-    entrance_to_enter = -1;
-
-    irisu_id          = entity->id;
+    invincibility_t        = 0.0f;
+    respawn_t              = 0.0f;
+    irisu_state            = IDLE;
+    entrance_to_enter      = -1;
+    last_entrance_position = pos; // FIXME: When you save the game, you will end up wherever you saved if you are respawned. Should we save the last entrance position as well?
+    irisu_id               = entity->id;
 
     std::strcpy(entity->name, "player");
     entity->col               = {pos, 0.3f, 1.1f};
@@ -600,6 +609,28 @@ void Irisu::update(Ichigo::Entity *irisu) {
             maybe_enter_animation(irisu, irisu_jump);
             if (FLAG_IS_SET(irisu->flags, Ichigo::EF_ON_GROUND)) irisu_state = WALK;
         } break;
+
+        case RESPAWNING: {
+            maybe_enter_animation(irisu, irisu_hurt);
+            respawn_t -= Ichigo::Internal::dt;
+
+            if (respawn_t <= 0.0f) {
+                auto callback = [](uptr data) {
+                    Ichiaji::fullscreen_transition({0.0f, 0.0f, 0.0f, 1.0f}, {0.0f, 0.0f, 0.0f, 0.0f}, 0.3f, nullptr, 0);
+                    auto irisu = Ichigo::get_entity(BIT_CAST(Ichigo::EntityID, data));
+
+                    if (irisu) {
+                        Ichigo::teleport_entity_considering_colliders(irisu, last_entrance_position);
+                    }
+
+                    irisu_state = IDLE;
+                    maybe_enter_animation(irisu, irisu_idle);
+                };
+
+                Ichiaji::fullscreen_transition({0.0f, 0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 1.0f}, 0.3f, callback, BIT_CAST(uptr, irisu->id));
+                respawn_t = 999.0f; // FIXME: @hack lol. Just so the transition can complete.
+            }
+        } break;
     }
 
     Ichigo::EntityMoveResult move_result = Ichigo::move_entity_in_world(irisu);
@@ -612,6 +643,25 @@ void Irisu::update(Ichigo::Entity *irisu) {
     if (move_result == Ichigo::HIT_WALL && irisu_state == WALK) {
         irisu_state = IDLE;
         maybe_enter_animation(irisu, irisu_idle);
+    }
+
+    Ichigo::TileID left_tile_id  = Ichigo::tile_at(irisu->left_standing_tile);
+    Ichigo::TileID right_tile_id = Ichigo::tile_at(irisu->right_standing_tile);
+
+    if (left_tile_id != ICHIGO_INVALID_TILE && right_tile_id != ICHIGO_INVALID_TILE) {
+        Ichigo::TileInfo left_tile_info  = Ichigo::get_tile_info(left_tile_id);
+        Ichigo::TileInfo right_tile_info = Ichigo::get_tile_info(right_tile_id);
+
+        if (irisu_state != RESPAWNING && FLAG_IS_SET(irisu->flags, Ichigo::EF_ON_GROUND) && (FLAG_IS_SET(left_tile_info.flags, Ichigo::TF_LETHAL) || FLAG_IS_SET(right_tile_info.flags, Ichigo::TF_LETHAL))) {
+            respawn_t           = RESPAWN_COOLDOWN_T;
+            irisu_state         = RESPAWNING;
+            irisu->velocity     = {0.0f, 0.0f};
+            irisu->acceleration = {0.0f, 0.0f};
+
+            Ichiaji::current_save_data.player_data.health -= RESPAWN_DAMAGE;
+
+            maybe_enter_animation(irisu, irisu_hurt);
+        }
     }
 
     Ichiaji::current_save_data.player_data.position = irisu->col.pos;

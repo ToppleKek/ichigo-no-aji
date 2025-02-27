@@ -242,7 +242,8 @@ struct Background {
 using TileFlags = u32;
 
 enum TileFlag {
-    TANGIBLE = 1 << 0, // Whether or not entities collide with this tile.
+    TF_TANGIBLE = 1 << 0, // Whether or not entities collide with this tile.
+    TF_LETHAL   = 1 << 1, // This tile causes entities to die when touched (used by games).
 };
 
 struct TileInfo {
@@ -252,6 +253,7 @@ struct TileInfo {
     f32 friction;
 };
 
+#define ICHIGO_INVALID_TILE UINT16_MAX
 using TileID = u16;
 
 struct Tilemap {
@@ -288,7 +290,8 @@ void set_tilemap(Tilemap *tilemap);
 void set_tilemap(u8 *ichigo_tilemap_memory, SpriteSheet tileset_sheet);
 
 // Get the tile at the specified tile coordinate. Returns INVALID_TILE if the coordinate is out of range.
-u16 tile_at(Vec2<i32> tile_coord);
+TileID tile_at(Vec2<i32> tile_coord);
+TileInfo get_tile_info(TileID tile_id);
 
 // Push a draw command into the draw command buffer.
 void push_draw_command(DrawCommand draw_command);

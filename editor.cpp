@@ -466,17 +466,21 @@ void Ichigo::Editor::render_ui() {
                 f32 f32_one = 1.0f;
 
                 // FLAGS
-                bool tangible = FLAG_IS_SET(current_tile_info.flags, TileFlag::TANGIBLE);
+                bool tangible = FLAG_IS_SET(current_tile_info.flags, TileFlag::TF_TANGIBLE);
+                bool lethal   = FLAG_IS_SET(current_tile_info.flags, TileFlag::TF_LETHAL);
 
-                ImGui::InputText("Name", current_tile_info.name, ARRAY_LEN(current_tile_info.name));
-                ImGui::InputScalar("Friction", ImGuiDataType_Float, &current_tile_info.friction, &f32_one, nullptr, "%f");
-                ImGui::Checkbox("FLAG Tangible", &tangible);
+                ImGui::InputText("Name",            current_tile_info.name, ARRAY_LEN(current_tile_info.name));
+                ImGui::InputScalar("Friction",      ImGuiDataType_Float, &current_tile_info.friction, &f32_one, nullptr, "%f");
+                ImGui::Checkbox("FLAG Tangible",    &tangible);
+                ImGui::Checkbox("FLAG Lethal",      &lethal);
                 ImGui::InputScalar("Cell in sheet", ImGuiDataType_S32, &current_tile_info.cell, &i32_one, nullptr, "%d");
-                ImGui::Text("Tile ID: %u", tile);
+                ImGui::Text("Tile ID: %u",          tile);
 
-                if (!tangible) CLEAR_FLAG(current_tile_info.flags, TileFlag::TANGIBLE);
-                else           SET_FLAG(current_tile_info.flags, TileFlag::TANGIBLE);
+                if (!tangible) CLEAR_FLAG(current_tile_info.flags, TileFlag::TF_TANGIBLE);
+                else           SET_FLAG(current_tile_info.flags, TileFlag::TF_TANGIBLE);
 
+                if (!lethal)   CLEAR_FLAG(current_tile_info.flags, TileFlag::TF_LETHAL);
+                else           SET_FLAG(current_tile_info.flags, TileFlag::TF_LETHAL);
             }
         } else {
             if (ImGui::CollapsingHeader("Selected Tiles", ImGuiTreeNodeFlags_DefaultOpen)) {
@@ -557,16 +561,21 @@ void Ichigo::Editor::render_ui() {
         f32 f32_one = 1.0f;
 
         // FLAGS
-        bool tangible = FLAG_IS_SET(current_tile_info.flags, TileFlag::TANGIBLE);
+        bool tangible = FLAG_IS_SET(current_tile_info.flags, TileFlag::TF_TANGIBLE);
+        bool lethal   = FLAG_IS_SET(current_tile_info.flags, TileFlag::TF_LETHAL);
 
         ImGui::InputText("Name",            current_tile_info.name, ARRAY_LEN(current_tile_info.name));
         ImGui::InputScalar("Friction",      ImGuiDataType_Float, &current_tile_info.friction, &f32_one, nullptr, "%f");
         ImGui::Checkbox("FLAG Tangible",    &tangible);
+        ImGui::Checkbox("FLAG Lethal",      &lethal);
         ImGui::InputScalar("Cell in sheet", ImGuiDataType_S32, &current_tile_info.cell, &i32_one, nullptr, "%d");
         ImGui::Text("Tile ID: %u",          tile_being_edited);
 
-        if (!tangible) CLEAR_FLAG(current_tile_info.flags, TileFlag::TANGIBLE);
-        else           SET_FLAG(current_tile_info.flags, TileFlag::TANGIBLE);
+        if (!tangible) CLEAR_FLAG(current_tile_info.flags, TileFlag::TF_TANGIBLE);
+        else           SET_FLAG(current_tile_info.flags, TileFlag::TF_TANGIBLE);
+
+        if (!lethal)   CLEAR_FLAG(current_tile_info.flags, TileFlag::TF_LETHAL);
+        else           SET_FLAG(current_tile_info.flags, TileFlag::TF_LETHAL);
 
         ImGui::EndChild();
 
