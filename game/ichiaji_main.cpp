@@ -14,6 +14,7 @@
 #include "moving_platform.hpp"
 #include "particle_source.hpp"
 #include "entrances.hpp"
+#include "rabbit_enemy.hpp"
 
 EMBED("assets/enemy.png", enemy_png)
 EMBED("assets/coin.png", coin_spritesheet_png)
@@ -101,26 +102,12 @@ struct Coin {
     Ichigo::EntityID id;
 };
 
-Ichiaji::ProgramState Ichiaji::program_state     = Ichiaji::MAIN_MENU;
-i64 Ichiaji::current_level_id                    = 0;
-bool Ichiaji::input_disabled                     = false;
-Language current_language                        = ENGLISH;
+Language              current_language           = ENGLISH;
 Ichiaji::GameSaveData Ichiaji::current_save_data = {};
-static Coin coins[3] = {};
-
-static void on_coin_collide(Ichigo::Entity *coin, Ichigo::Entity *other, [[maybe_unused]] Vec2<f32> normal, [[maybe_unused]] Vec2<f32> collision_normal, [[maybe_unused]] Vec2<f32> collision_pos) {
-    if (std::strcmp(other->name, "player") == 0) {
-        for (u32 i = 0; i < ARRAY_LEN(coins); ++i) {
-            if (coin->id == coins[i].id) {
-                coins[i].collected = true;
-                Ichigo::Mixer::play_audio_oneshot(coin_sound, 1.0f, 1.0f, 1.0f);
-                break;
-            }
-        }
-
-        Ichigo::kill_entity_deferred(coin->id);
-    }
-}
+Ichiaji::ProgramState Ichiaji::program_state     = Ichiaji::MAIN_MENU;
+bool                  Ichiaji::input_disabled    = false;
+i64                   Ichiaji::current_level_id  = 0;
+Ichigo::EntityID      Ichiaji::player_entity_id  = NULL_ENTITY_ID;
 
 static void gert_update(Ichigo::Entity *gert) {
     if (Ichiaji::program_state != Ichiaji::GAME) {
@@ -168,27 +155,6 @@ static void spawn_gert(Vec2<f32> pos) {
     gert_sprite.animation         = gert_idle;
 
     enemy->sprite = gert_sprite;
-}
-
-[[maybe_unused]] static Ichigo::EntityID spawn_coin(Vec2<f32> pos) {
-    Ichigo::Entity *coin = Ichigo::spawn_entity();
-
-    std::strcpy(coin->name, "coin");
-
-    coin->col                                  = {pos, 1.0f, 1.0f};
-    coin->sprite.width                         = 1.0f;
-    coin->sprite.height                        = 1.0f;
-    coin->sprite.sheet.texture                 = coin_texture_id;
-    coin->collide_proc                         = on_coin_collide;
-    coin->sprite.sheet.cell_width              = 32;
-    coin->sprite.sheet.cell_height             = 32;
-    coin->sprite.animation.cell_of_first_frame = 0;
-    coin->sprite.animation.cell_of_last_frame  = 7;
-    coin->sprite.animation.cell_of_loop_start  = 0;
-    coin->sprite.animation.cell_of_loop_end    = 7;
-    coin->sprite.animation.seconds_per_frame   = 0.12f;
-
-    return coin->id;
 }
 
 bool Ichiaji::save_game() {
@@ -302,6 +268,7 @@ void Ichigo::Game::init() {
     MovingPlatform::init();
     ParticleSource::init();
     Entrances::init();
+    RabbitEnemy::init();
 
     test_bg_texture_id    = Ichigo::load_texture(test_bg, test_bg_len);
     enemy_texture_id      = Ichigo::load_texture(enemy_png, enemy_png_len);
@@ -357,6 +324,7 @@ static void respawn_all_entities(const Bana::Array<Ichigo::EntityDescriptor> &de
             case ET_PLAYER: {
                 Ichigo::Entity *player = Ichigo::spawn_entity();
                 Irisu::spawn(player, load_player_data_from_save ? Ichiaji::current_save_data.player_data.position : d.pos);
+                Ichiaji::player_entity_id = player->id;
                 Ichigo::Camera::mode = Ichigo::Camera::Mode::FOLLOW;
                 Ichigo::Camera::follow(player->id);
             } break;
@@ -392,6 +360,10 @@ static void respawn_all_entities(const Bana::Array<Ichigo::EntityDescriptor> &de
                 if (!FLAG_IS_SET(Ichiaji::current_level_save_data().progress_flags, d.data)) {
                     Entrances::spawn_key(d);
                 }
+            } break;
+
+            case ET_RABBIT: {
+                RabbitEnemy::spawn(d);
             } break;
 
             default: {
@@ -455,8 +427,6 @@ static void init_game() {
 static void deinit_game() {
     Ichigo::Camera::mode = Ichigo::Camera::Mode::MANUAL;
     Ichigo::Mixer::cancel_audio(game_bgm);
-
-    std::memset(coins, 0, sizeof(coins));
 
     change_level(0, false);
 }

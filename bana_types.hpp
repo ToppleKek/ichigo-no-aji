@@ -1,5 +1,7 @@
 /*
-    Banalib
+    Libbana
+
+    Commonly used STL replacements.
 */
 
 #pragma once

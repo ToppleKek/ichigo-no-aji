@@ -1,9 +1,12 @@
 /*
-    Banalib
+    Libbana
+
+    Commonly used STL replacements.
 */
 
 #pragma once
 
+#define _CRT_SECURE_NO_WARNINGS
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -117,6 +120,7 @@ void string_strip_whitespace(String &str);
 #define MAKE_STACK_STRING(NAME, CAPACITY) Bana::String NAME = { (char *) platform_alloca(CAPACITY), 0, CAPACITY }
 
 u32 parse_hex_u32(String str);
+u32 parse_dec_u32(String str);
 
 template<typename T>
 struct Optional {
@@ -251,6 +255,16 @@ struct FixedArray {
         size += count;
     }
 
+    T remove(isize i) {
+        assert(i >= 0 && i < size);
+        if (i == size - 1) return data[--size];
+
+        T ret = data[i];
+        std::memmove(&data[i], &data[i + 1], (size - i - 1) * sizeof(T));
+        --size;
+        return ret;
+    }
+
     T &operator[](isize i) {
         assert(i < size);
         return data[i];
@@ -262,6 +276,31 @@ struct FixedArray {
     }
 };
 
+template<typename T>
+FixedArray<T> make_fixed_array(isize capacity, Allocator allocator = heap_allocator) {
+    Bana::FixedArray<T> ret;
+
+    ret.size     = 0;
+    ret.capacity = capacity;
+    ret.data     = (T *) allocator.alloc(capacity * sizeof(T));
+
+    return ret;
+}
+
+template<typename T>
+void free_fixed_array(FixedArray<T> *a, Allocator allocator = heap_allocator) {
+    allocator.free(a->data);
+    a->data     = nullptr;
+    a->size     = 0;
+    a->capacity = 0;
+}
+
+template<typename T>
+void fixed_array_copy(FixedArray<T> &dst, FixedArray<T> &src) {
+    assert(dst.capacity >= src.size);
+    std::memcpy(dst.data, src.data, src.size * sizeof(T));
+    dst.size = src.size;
+}
 
 // J Blow "Bucket Array"
 template<typename T>
@@ -291,8 +330,8 @@ struct BucketArray {
         if (unfull_buckets.size == 0) {
             Bucket<T> b;
             b.filled_count   = 0;
-            b.items          = make_fixed_array<T>(bucket_capacity, allocator);
-            b.occupancy_list = make_fixed_array<bool>(bucket_capacity, allocator);
+            b.items          = Bana::make_fixed_array<T>(bucket_capacity, allocator);
+            b.occupancy_list = Bana::make_fixed_array<bool>(bucket_capacity, allocator);
 
             std::memset(b.occupancy_list.data, 0, bucket_capacity * sizeof(bool));
 
@@ -462,32 +501,6 @@ template<typename Key, typename Value>
 void free_fixed_map(FixedMap<Key, Value> *map, Allocator allocator = heap_allocator) {
     allocator.free(map->data);
     std::memset(map, 0, sizeof(FixedMap<Key, Value>));
-}
-
-template<typename T>
-FixedArray<T> make_fixed_array(isize capacity, Allocator allocator = heap_allocator) {
-    Bana::FixedArray<T> ret;
-
-    ret.size     = 0;
-    ret.capacity = capacity;
-    ret.data     = (T *) allocator.alloc(capacity * sizeof(T));
-
-    return ret;
-}
-
-template<typename T>
-void free_fixed_array(FixedArray<T> *a, Allocator allocator = heap_allocator) {
-    allocator.free(a->data);
-    a->data     = nullptr;
-    a->size     = 0;
-    a->capacity = 0;
-}
-
-template<typename T>
-void fixed_array_copy(FixedArray<T> &dst, FixedArray<T> &src) {
-    assert(dst.capacity >= src.size);
-    std::memcpy(dst.data, src.data, src.size * sizeof(T));
-    dst.size = src.size;
 }
 
 #define MAKE_STACK_ARRAY(NAME, TYPE, CAPACITY) Bana::FixedArray<TYPE> NAME = { (TYPE *) platform_alloca(CAPACITY * sizeof(TYPE)), CAPACITY, 0 }

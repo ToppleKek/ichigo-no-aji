@@ -19,6 +19,15 @@ enum EntityType : u32 {
     ET_LOCKED_DOOR,
     ET_KEY,
     ET_ELEVATOR,
+    ET_RABBIT
+};
+
+enum TileType : u16 {
+    TT_AIR,
+    TT_CB_TL,
+    TT_CB_TR,
+    TT_CB_TM,
+    TT_SPIKE,
 };
 
 namespace Ichiaji {
@@ -72,6 +81,7 @@ extern bool input_disabled;
 // extern bool ai_disabled;
 extern Level all_levels[];
 extern i64 current_level_id;
+extern Ichigo::EntityID player_entity_id;
 
 using FullscreenTransitionCompleteCallback = void (uptr);
 void fullscreen_transition(Vec4<f32> from, Vec4<f32> to, f32 t, FullscreenTransitionCompleteCallback *on_complete, uptr callback_data);

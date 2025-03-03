@@ -87,8 +87,8 @@ struct Animation {
 
 struct Sprite {
     Vec2<f32> pos_offset;
-    f32 width;
-    f32 height;
+    f32 width;  // NOTE: In metres
+    f32 height; // NOTE: In metres
     SpriteSheet sheet;
     Animation animation;
     u32 current_animation_frame;
