@@ -155,6 +155,7 @@ void kill_entity(Entity *entity);
 void kill_entity_deferred(EntityID id);
 void kill_entity_deferred(Entity *entity);
 void kill_all_entities();
+Vec2<f32> calculate_projected_next_position(Ichigo::Entity *entity);
 EntityMoveResult move_entity_in_world(Entity *entity);
 void teleport_entity_considering_colliders(Entity *entity, Vec2<f32> pos);
 namespace Internal {

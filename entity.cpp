@@ -144,7 +144,7 @@ static bool test_wall(f32 x, f32 x0, f32 dx, f32 py, f32 dy, f32 ty0, f32 ty1, f
     return false;
 }
 
-static inline Vec2<f32> calculate_projected_next_position(Ichigo::Entity *entity) {
+Vec2<f32> Ichigo::calculate_projected_next_position(Ichigo::Entity *entity) {
     // FIXME: maybe this should consider friction...?
     Vec2<f32> entity_delta = 0.5f * entity->acceleration * (Ichigo::Internal::dt * Ichigo::Internal::dt) + entity->velocity * Ichigo::Internal::dt;
     return entity_delta + entity->col.pos;
@@ -567,7 +567,7 @@ void Ichigo::EntityControllers::player_controller(Ichigo::Entity *player_entity)
 
 // A simple entity that walks in a straight line. It turns around when it reaches a cliff or runs into a wall.
 void Ichigo::EntityControllers::patrol_controller(Entity *entity) {
-    entity->acceleration = {entity->movement_speed * signof(entity->acceleration.x), 0.0f};
+    entity->acceleration = {entity->movement_speed * (FLAG_IS_SET(entity->flags, EF_FLIP_H) ? 1.0f : -1.0f), 0.0f};
 
     Vec2<f32> projected_next_pos = calculate_projected_next_position(entity);
 

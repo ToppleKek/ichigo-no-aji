@@ -6,12 +6,15 @@ EMBED("assets/rabbit.png", rabbit_sheet_png)
 enum RabbitState {
     RS_IDLE,
     RS_WANDER,
+    RS_WALK,
     RS_JUMP,
     RS_ALERT,
+    RS_CHASE,
 };
 
 struct Rabbit {
     RabbitState state;
+    f32 cooldown_t;
 };
 
 static Ichigo::TextureID rabbit_texture_id;
@@ -37,6 +40,12 @@ void RabbitEnemy::init() {
     rabbit_sprite.animation  = {};
 }
 
+#define RABBIT_WANDER_STILL_TIME_MIN 1.0f
+#define RABBIT_WANDER_STILL_TIME_MAX 3.0f
+#define RABBIT_WANDER_WALK_TIME_MIN 0.3f
+#define RABBIT_WANDER_WALK_TIME_MAX 0.6f
+#define RABBIT_JUMP_CHARGE_TIME 0.4f
+#define RABBIT_CHASE_JUMP_FREQ 0.5f
 void update(Ichigo::Entity *self) {
     Rabbit &rabbit = rabbit_data[BIT_CAST(Bana::BucketLocator, self->user_data_i64)];
     auto *player   = Ichigo::get_entity(Ichiaji::player_entity_id);
@@ -44,23 +53,94 @@ void update(Ichigo::Entity *self) {
 
     switch (rabbit.state) {
         case RS_IDLE: {
-            if (distance.length() < 2.0f) {
-                rabbit.state     = RS_ALERT;
-                self->velocity.y = -3.0f;
+            if (distance.length() < 12.0f) {
+                rabbit.state      = RS_WANDER;
+                rabbit.cooldown_t = rand_range_f32(RABBIT_WANDER_STILL_TIME_MIN, RABBIT_WANDER_STILL_TIME_MAX);
             }
         } break;
 
         case RS_WANDER: {
+            if (distance.length() < 2.0f) {
+                // TODO: Play a sound effect here.
+                rabbit.state     = RS_ALERT;
+                self->velocity.y = -3.0f;
+            } else if (distance.length() > 13.0f) {
+                rabbit.state = RS_IDLE;
+            } else {
+                rabbit.cooldown_t -= Ichigo::Internal::dt;
+                // FIXME: @fpsdep
+                if (rabbit.cooldown_t <= 0.0f) {
+                    rabbit.state      = RS_WALK;
+                    rabbit.cooldown_t = rand_range_f32(RABBIT_WANDER_WALK_TIME_MIN, RABBIT_WANDER_WALK_TIME_MAX);
 
+                    if (rand_01_f32() < 0.5f) SET_FLAG(self->flags, Ichigo::EF_FLIP_H);
+                    else                      CLEAR_FLAG(self->flags, Ichigo::EF_FLIP_H);
+                }
+            }
+        } break;
+
+        case RS_WALK: {
+            rabbit.cooldown_t -= Ichigo::Internal::dt;
+            // FIXME: @fpsdep
+            if (rabbit.cooldown_t <= 0.0f) {
+                rabbit.state       = RS_WANDER;
+                rabbit.cooldown_t  = rand_range_f32(RABBIT_WANDER_STILL_TIME_MIN, RABBIT_WANDER_STILL_TIME_MAX);
+                self->acceleration = {};
+            } else {
+                f32 saved_speed = self->movement_speed;
+                self->movement_speed /= 2.0f;
+                Ichigo::EntityControllers::patrol_controller(self);
+                self->movement_speed = saved_speed;
+
+                // FIXME: We return here because the patrol controller also calls move_entity_in_world. Maybe we should just rewrite the patrol code here?
+                return;
+            }
         } break;
 
         case RS_JUMP: {
-
+            rabbit.cooldown_t -= Ichigo::Internal::dt;
+            if (rabbit.cooldown_t <= 0.0f) {
+                // NOTE: We resue RS_ALERT because it just places us back in chase mode when we land on the ground.
+                rabbit.state      = RS_ALERT;
+                rabbit.cooldown_t = 0.0f;
+                self->velocity.y  = -6.0f;
+                self->velocity.x  = FLAG_IS_SET(self->flags, Ichigo::EF_FLIP_H) ? 4.0f : -4.0f;
+                // TODO: Play a sound effect here.
+            }
         } break;
 
         case RS_ALERT: {
-            if (distance.length() > 6.0f) {
-                rabbit.state = RS_IDLE;
+            if (FLAG_IS_SET(self->flags, Ichigo::EF_ON_GROUND)) {
+                rabbit.state      = RS_CHASE;
+                rabbit.cooldown_t = RABBIT_CHASE_JUMP_FREQ;
+            }
+        } break;
+
+        case RS_CHASE: {
+
+            if (distance.length() > 8.0f) {
+                rabbit.state       = RS_WANDER;
+                self->acceleration = {};
+            } else {
+                rabbit.cooldown_t -= Ichigo::Internal::dt;
+
+                if (rabbit.cooldown_t <= 0.0f) {
+                    rabbit.cooldown_t = RABBIT_CHASE_JUMP_FREQ;
+
+                    if (rand_01_f32() < 0.75f) {
+                        rabbit.cooldown_t  = RABBIT_JUMP_CHARGE_TIME;
+                        rabbit.state       = RS_JUMP;
+                        self->acceleration = {};
+                    }
+                }
+
+                self->acceleration.x = self->movement_speed * -signof(distance.x);
+
+                if (self->acceleration.x > 0.0f) {
+                    SET_FLAG(self->flags, Ichigo::EF_FLIP_H);
+                } else {
+                    CLEAR_FLAG(self->flags, Ichigo::EF_FLIP_H);
+                }
             }
         } break;
     }
@@ -81,13 +161,14 @@ void RabbitEnemy::spawn(const Ichigo::EntityDescriptor &descriptor) {
     Ichigo::Entity *e = Ichigo::spawn_entity();
     Ichigo::change_entity_draw_layer(e, 8);
 
-    Rabbit r = { RS_IDLE };
+    Rabbit r = {};
+    r.state  = RS_IDLE;
     auto bl  = rabbit_data.insert(r);
 
     std::strcpy(e->name, "rabbit");
     e->col            = {descriptor.pos, pixels_to_metres(tex_width_px), pixels_to_metres(tex_height_px)};
-    e->max_velocity   = {6.0f, 12.0f};
-    e->movement_speed = 14.0f;
+    e->max_velocity   = {4.0f, 12.0f};
+    e->movement_speed = 6.0f;
     e->gravity        = 9.8f;
     e->update_proc    = update;
     e->collide_proc   = on_collide;
