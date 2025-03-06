@@ -3,6 +3,8 @@
 
 EMBED("assets/rabbit.png", rabbit_sheet_png)
 
+#define RABBIT_BASE_HEALTH 3.0f
+
 enum RabbitState {
     RS_IDLE,
     RS_WANDER,
@@ -15,6 +17,7 @@ enum RabbitState {
 struct Rabbit {
     RabbitState state;
     f32 cooldown_t;
+    f32 health;
 };
 
 static Ichigo::TextureID rabbit_texture_id;
@@ -47,8 +50,8 @@ void RabbitEnemy::init() {
 #define RABBIT_JUMP_CHARGE_TIME 0.4f
 #define RABBIT_CHASE_JUMP_FREQ 0.5f
 void update(Ichigo::Entity *self) {
-    Rabbit &rabbit = rabbit_data[BIT_CAST(Bana::BucketLocator, self->user_data_i64)];
-    auto *player   = Ichigo::get_entity(Ichiaji::player_entity_id);
+    Rabbit &rabbit     = rabbit_data[BIT_CAST(Bana::BucketLocator, self->user_data_i64)];
+    auto *player       = Ichigo::get_entity(Ichiaji::player_entity_id);
     Vec2<f32> distance = self->col.pos - player->col.pos;
 
     switch (rabbit.state) {
@@ -117,7 +120,6 @@ void update(Ichigo::Entity *self) {
         } break;
 
         case RS_CHASE: {
-
             if (distance.length() > 8.0f) {
                 rabbit.state       = RS_WANDER;
                 self->acceleration = {};
@@ -148,8 +150,17 @@ void update(Ichigo::Entity *self) {
     Ichigo::move_entity_in_world(self);
 }
 
+#define SPELL_DAMAGE 1.0f
 void on_collide(Ichigo::Entity *self, Ichigo::Entity *other, Vec2<f32> normal, [[maybe_unused]] Vec2<f32> collision_normal, [[maybe_unused]] Vec2<f32> collision_pos) {
+    if (other->user_type_id == ET_SPELL) {
+        Rabbit &rabbit = rabbit_data[BIT_CAST(Bana::BucketLocator, self->user_data_i64)];
 
+        // TODO: Enter hurt state?
+        rabbit.health -= SPELL_DAMAGE;
+        if (rabbit.health <= 0.0f) {
+            Ichigo::kill_entity_deferred(self);
+        }
+    }
 }
 
 void on_kill(Ichigo::Entity *self) {
@@ -163,6 +174,7 @@ void RabbitEnemy::spawn(const Ichigo::EntityDescriptor &descriptor) {
 
     Rabbit r = {};
     r.state  = RS_IDLE;
+    r.health = RABBIT_BASE_HEALTH;
     auto bl  = rabbit_data.insert(r);
 
     std::strcpy(e->name, "rabbit");

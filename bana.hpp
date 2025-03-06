@@ -22,7 +22,7 @@
 #define ARRAY_LEN(a) (sizeof(a) / sizeof(a[0]))
 #define KILOBYTES(N) (N * 1024)
 #define MEGABYTES(N) (N * KILOBYTES(1024))
-#define BIT_CAST(TYPE, VALUE) (*((TYPE *) &VALUE))
+#define BIT_CAST(TYPE, VALUE) (*((TYPE *) &VALUE)) // FIXME: This is UB I guess.
 
 #define PFBS(BANA_STRING) (i32) BANA_STRING.length, BANA_STRING.data
 #define ICHIGO_INFO(fmt, ...) std::printf("(info) %s:%d: " fmt "\n", __FILE__, __LINE__ __VA_OPT__(, ) __VA_ARGS__)
