@@ -1476,7 +1476,7 @@ void Ichigo::Internal::do_frame() {
     }
 #else // NOTE: We completely skip the "program_mode" logic when we are not in debug mode. This is just a copy of the code above that runs in "game mode"
     for (u32 i = 1; i < Ichigo::Internal::entities.size; ++i) {
-        Ichigo::Entity &entity = Ichigo::Internal::entities.at(i);
+        Ichigo::Entity &entity = Ichigo::Internal::entities[i];
         if (entity.id.index != 0 && entity.update_proc) {
             entity.update_proc(&entity);
         }
