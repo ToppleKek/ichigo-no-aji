@@ -63,7 +63,7 @@ fi
 if [ "${1}" = "build" ]; then
     rm -f build/objects/*.o
     if [ "$OS" = "win32" ]; then
-        ./thirdparty/tools/ctime.exe -begin ./build/timings.ctm
+        type ./thirdparty/tools/ctime.exe && ./thirdparty/tools/ctime.exe -begin ./build/timings.ctm
         if [ "$MODE" = "debug" ]; then
             files_in_flight=0
             for file in ${CXX_FILES[*]}; do
@@ -95,7 +95,7 @@ if [ "${1}" = "build" ]; then
             wait $(jobs -p)
             clang++ ${CXX_FLAGS} ${CXX_FLAGS_GAME_RELEASE} -l ${LIBS} build/objects/*.o -o build/${EXE_NAME}
         fi
-        ./thirdparty/tools/ctime.exe -end ./build/timings.ctm
+        type ./thirdparty/tools/ctime.exe && ./thirdparty/tools/ctime.exe -end ./build/timings.ctm
     else
         if [ "$MODE" = "debug" ]; then
             files_in_flight=0
