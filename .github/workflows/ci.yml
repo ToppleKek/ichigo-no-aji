@@ -1,0 +1,47 @@
+name: CI
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        build_type: ["debug", "release"]
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Install SDL2
+      run: sudo apt-get install -y libsdl2-dev
+
+    - name: Build Dear ImGui
+      run: ./build.sh imgui
+
+    - name: Build Game
+      run: ./build.sh build linux ${{ matrix.build_type }} 2
+
+  build-windows:
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        build_type: ["debug", "release"]
+
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+    - uses: actions/checkout@v4
+    - name: 'Setup MSYS2'
+      uses: msys2/setup-msys2@v2
+      with:
+        msystem: clang64
+        update: true
+    - name: Build Dear ImGui
+      run: PATH="$PATH:/c/Program Files/LLVM/bin" ./build.sh imgui
+
+    - name: Build Game
+      run: PATH="$PATH:/c/Program Files/LLVM/bin" ./build.sh build win32 ${{ matrix.build_type }} 2
