@@ -8,7 +8,7 @@ THREADS=${4}
 CXX_FLAGS="-std=c++20 -Wall -Wextra -fno-exceptions -Wno-deprecated-declarations -Wno-missing-braces"
 CXX_FLAGS_GAME_DEBUG="-g -march=x86-64-v2 -DICHIGO_DEBUG"
 CXX_FLAGS_GAME_RELEASE="-O3 -march=x86-64-v2"
-CXX_FLAGS_IMGUI="-g"
+CXX_FLAGS_IMGUI="-O3"
 CXX_FILES_WIN32=(win32_ichigo.cpp)
 CXX_FILES_LINUX=(linux_ichigo.cpp)
 CXX_FILES_ENGINE_DEBUG=(main.cpp util.cpp entity.cpp camera.cpp asset.cpp mixer.cpp editor.cpp bana.cpp)

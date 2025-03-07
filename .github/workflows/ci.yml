@@ -19,7 +19,7 @@ jobs:
       run: sudo apt-get install -y libsdl2-dev
 
     - name: Build Dear ImGui
-      run: ./build.sh imgui
+      run: ./build.sh imgui linux ${{ matrix.build_type }} 2
 
     - name: Build Game
       run: ./build.sh build linux ${{ matrix.build_type }} 2
@@ -41,7 +41,7 @@ jobs:
         msystem: clang64
         update: true
     - name: Build Dear ImGui
-      run: PATH="$PATH:/c/Program Files/LLVM/bin" ./build.sh imgui
+      run: PATH="$PATH:/c/Program Files/LLVM/bin" ./build.sh imgui win32 ${{ matrix.build_type }} 2
 
     - name: Build Game
       run: PATH="$PATH:/c/Program Files/LLVM/bin" ./build.sh build win32 ${{ matrix.build_type }} 2
