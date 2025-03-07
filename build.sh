@@ -22,7 +22,7 @@ EXE_NAME="game.exe"
 IMGUI_OBJECT_FILES_DIRECTORY="build/imgui"
 INCLUDE="thirdparty/include"
 
-mkdir -p build
+mkdir -p build/objects
 mkdir -p $IMGUI_OBJECT_FILES_DIRECTORY
 
 LIBS=""
