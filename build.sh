@@ -1,13 +1,13 @@
 set -e
 
-OS="win32"
-MODE="debug"
-THREADS=16
+OS=${2}
+MODE=${3}
+THREADS=${4}
 
 #-Wall -Wextra -Wpedantic -Wconversion
 CXX_FLAGS="-std=c++20 -Wall -Wextra -fno-exceptions -Wno-deprecated-declarations -Wno-missing-braces"
 CXX_FLAGS_GAME_DEBUG="-g -march=x86-64-v2 -DICHIGO_DEBUG"
-CXX_FLAGS_GAME_RELEASE="-O3 -march=x86-64-v2 -Wl,/SUBSYSTEM:WINDOWS"
+CXX_FLAGS_GAME_RELEASE="-O3 -march=x86-64-v2"
 CXX_FLAGS_IMGUI="-g"
 CXX_FILES_WIN32=(win32_ichigo.cpp)
 CXX_FILES_LINUX=(linux_ichigo.cpp)
@@ -23,6 +23,7 @@ IMGUI_OBJECT_FILES_DIRECTORY="build/imgui"
 INCLUDE="thirdparty/include"
 
 mkdir -p build
+mkdir -p $IMGUI_OBJECT_FILES_DIRECTORY
 
 LIBS=""
 CXX_FILES=("${CXX_FILES_GAME[@]}")
