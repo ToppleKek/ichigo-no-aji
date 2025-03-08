@@ -56,7 +56,7 @@
 #ifdef _WIN32
 #define platform_alloca _alloca
 #endif
-#ifdef unix
+#ifdef __unix__
 #define platform_alloca alloca
 #endif
 
@@ -111,7 +111,7 @@ String make_string(usize capacity, Allocator allocator = heap_allocator);
 void free_string(String *str, Allocator allocator = heap_allocator);
 String temp_string(const char *bytes, usize length);
 String temp_string(const char *cstr);
-void string_concat(String &dst, String &src);
+void string_concat(String &dst, const String &src);
 void string_concat(String &dst, char c);
 void string_concat(String &dst, const char *cstr);
 void string_format(String &dst, const char *fmt, ...);

@@ -94,7 +94,7 @@ void Bana::free_string(String *str, Allocator allocator) {
     std::memset(str, 0, sizeof(String));
 }
 
-void Bana::string_concat(String &dst, String &src) {
+void Bana::string_concat(String &dst, const String &src) {
     assert(dst.capacity >= dst.length + src.length);
     std::memcpy(&dst.data[dst.length], src.data, src.length);
     dst.length += src.length;

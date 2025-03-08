@@ -10,7 +10,6 @@
 #include "common.hpp"
 #include "ichigo.hpp"
 
-
 #include "thirdparty/imgui/imgui_impl_sdl2.h"
 
 u32 Ichigo::Internal::window_width = 1600;
@@ -32,8 +31,12 @@ struct Ichigo::Internal::PlatformFile {
 
 static Ichigo::Internal::PlatformFile open_files[32] = {};
 
-Ichigo::Internal::PlatformFile *Ichigo::Internal::platform_open_file_write(const char *path) {
-    std::FILE *fd = std::fopen(path, "wb");
+Ichigo::Internal::PlatformFile *Ichigo::Internal::platform_open_file_write(const Bana::String path) {
+    MAKE_STACK_STRING(path_cstr, path.length + 1);
+    string_concat(path_cstr, path);
+    string_concat(path_cstr, '\0');
+
+    std::FILE *fd = std::fopen(path_cstr.data, "wb");
 
     if (!fd) {
         ICHIGO_ERROR("Failed to open file for writing!");
@@ -68,6 +71,36 @@ void Ichigo::Internal::platform_append_file_sync(Ichigo::Internal::PlatformFile 
 
 void Ichigo::Internal::platform_close_file(Ichigo::Internal::PlatformFile *file) {
     std::fclose(file->file_fd);
+    file->file_fd = nullptr;
+}
+
+Bana::Optional<Bana::FixedArray<u8>> Ichigo::Internal::platform_read_entire_file_sync(const Bana::String path, Bana::Allocator allocator) {
+    MAKE_STACK_STRING(path_cstr, path.length + 1);
+    string_concat(path_cstr, path);
+    string_concat(path_cstr, '\0');
+
+    std::FILE *fd = std::fopen(path_cstr.data, "rb");
+
+    if (!fd) {
+        ICHIGO_ERROR("Failed to open file for reading!");
+        return {};
+    }
+
+    std::fseek(fd, 0, SEEK_END);
+    usize file_size = std::ftell(fd);
+    std::fseek(fd, 0, SEEK_SET);
+
+    Bana::FixedArray<u8> ret = make_fixed_array<u8>(file_size, allocator);
+    ret.size                 = file_size;
+
+    std::fread(ret.data, 1, file_size, fd);
+    std::fclose(fd);
+
+    return ret;
+}
+
+bool Ichigo::Internal::platform_file_exists(const char *path) {
+    return access(path, F_OK) == 0;
 }
 
 void Ichigo::Internal::platform_sleep(f64 t) {
@@ -184,7 +217,7 @@ i32 main() {
     GET_ADDR_OF_OPENGL_FUNCTION(glUniformMatrix4x2fv);
     GET_ADDR_OF_OPENGL_FUNCTION(glUniformMatrix3x4fv);
     GET_ADDR_OF_OPENGL_FUNCTION(glUniformMatrix4x3fv);
-
+    GET_ADDR_OF_OPENGL_FUNCTION(glFinish);
 
     Ichigo::Internal::init();
     ImGui_ImplSDL2_InitForOpenGL(window, gl_context);

@@ -31,7 +31,7 @@ EMBED("assets/overworld_tiles.png", tileset_png)
 #include "levels/cave_entrance.ichigolvl"
 #include "levels/first.ichigolvl"
 
-static Ichiaji::Level Ichiaji::all_levels[] = {
+Ichiaji::Level Ichiaji::all_levels[] = {
     Level0::level,
     Level1::level,
     CaveEntranceLevel::level,
