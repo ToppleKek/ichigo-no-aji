@@ -8,6 +8,7 @@
 */
 
 #include <cassert>
+#include <cstddef>
 
 #include "camera.hpp"
 #include "common.hpp"

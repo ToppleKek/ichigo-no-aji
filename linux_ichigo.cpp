@@ -10,7 +10,9 @@
 #include "common.hpp"
 #include "ichigo.hpp"
 
+#ifdef ICHIGO_DEBUG
 #include "thirdparty/imgui/imgui_impl_sdl2.h"
+#endif
 
 u32 Ichigo::Internal::window_width = 1600;
 u32 Ichigo::Internal::window_height = 900;
@@ -220,7 +222,11 @@ i32 main() {
     GET_ADDR_OF_OPENGL_FUNCTION(glFinish);
 
     Ichigo::Internal::init();
+
+#ifdef ICHIGO_DEBUG
     ImGui_ImplSDL2_InitForOpenGL(window, gl_context);
+#endif
+
     init_completed = true;
 
     static f64 last_tick_time = 0.0;
@@ -229,7 +235,9 @@ i32 main() {
 
         SDL_Event event;
         while (SDL_PollEvent(&event)) {
+#ifdef ICHIGO_DEBUG
             ImGui_ImplSDL2_ProcessEvent(&event);
+#endif
             if (event.type == SDL_QUIT) {
                 std::printf("deinit() now\n");
                 Ichigo::Internal::deinit();
@@ -242,8 +250,9 @@ i32 main() {
             }
         }
 
+#ifdef ICHIGO_DEBUG
         ImGui_ImplSDL2_NewFrame();
-
+#endif
         // SDL_PumpEvents();
         u32 mouse_button_state = SDL_GetMouseState(&Ichigo::Internal::mouse.pos.x, &Ichigo::Internal::mouse.pos.y);
 
@@ -255,7 +264,11 @@ i32 main() {
             Ichigo::Internal::mouse.MOUSE_BUTTON.up_this_frame   = !(mouse_button_state & SDL_BUTTON(SDL_BUTTON_CODE)) && Ichigo::Internal::mouse.MOUSE_BUTTON.down;   \
         } while (0)
 
+#ifdef ICHIGO_DEBUG
         if (!ImGui::GetIO().WantCaptureMouse) {
+#else
+        {
+#endif
             SET_MOUSE_BTN_STATE(left_button, 1);
             SET_MOUSE_BTN_STATE(middle_button, 2);
             SET_MOUSE_BTN_STATE(right_button, 3);
@@ -267,7 +280,12 @@ i32 main() {
 
 
 #define SET_KEY_STATE(IK_KEY) Ichigo::Internal::keyboard_state[IK_KEY].down_this_frame = Ichigo::Internal::keyboard_state[IK_KEY].up && keystate[i] ? 1 : 0; Ichigo::Internal::keyboard_state[IK_KEY].down = keystate[i] == 1; Ichigo::Internal::keyboard_state[IK_KEY].up = keystate[i] == 0
+
+#ifdef ICHIGO_DEBUG
         if (!ImGui::GetIO().WantCaptureKeyboard) {
+#else
+        {
+#endif
             for (i32 i = 0; i < sdl_keycount; ++i) {
                 if (i >= SDL_SCANCODE_A && i <= SDL_SCANCODE_Z) {
                     SET_KEY_STATE(i + Ichigo::IK_A - SDL_SCANCODE_A);
