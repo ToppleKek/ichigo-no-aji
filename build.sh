@@ -140,13 +140,23 @@ fi
 
 if [ "${1}" = "imgui" ]; then
     rm -f ${IMGUI_OBJECT_FILES_DIRECTORY}/*.o
-    for file in ${IMGUI_CXX_FILES[*]}; do
-        echo $file
-        clang++ ${file} ${CXX_FLAGS} ${CXX_FLAGS_IMGUI} -I ${INCLUDE} -c -o ${IMGUI_OBJECT_FILES_DIRECTORY}/$(basename ${file}).o &
-    done;
+    if [ "$OS" = "linux" ]; then
+        for file in ${IMGUI_LINUX_CXX_FILES[*]}; do
+            echo $file
+            clang++ ${file} ${CXX_FLAGS} ${CXX_FLAGS_IMGUI} -I ${INCLUDE} -c -o ${IMGUI_OBJECT_FILES_DIRECTORY}/$(basename ${file}).o &
+        done;
 
-    wait $(jobs -p)
-    exit 0
+        wait $(jobs -p)
+        exit 0
+    elif [ "$OS" = "win32" ]; then
+        for file in ${IMGUI_CXX_FILES[*]}; do
+            echo $file
+            clang++ ${file} ${CXX_FLAGS} ${CXX_FLAGS_IMGUI} -I ${INCLUDE} -c -o ${IMGUI_OBJECT_FILES_DIRECTORY}/$(basename ${file}).o &
+        done;
+
+        wait $(jobs -p)
+        exit 0
+    fi
 fi
 
 echo Nothing to do
