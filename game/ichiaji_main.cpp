@@ -117,8 +117,11 @@ static void gert_update(Ichigo::Entity *gert) {
     Ichigo::EntityControllers::patrol_controller(gert);
 }
 
+#define GERT_KILL_REWARD 10
 static void gert_collide(Ichigo::Entity *gert, Ichigo::Entity *other, [[maybe_unused]] Vec2<f32> normal, [[maybe_unused]] Vec2<f32> collision_normal, [[maybe_unused]] Vec2<f32> collision_pos) {
     if (other->user_type_id == ET_SPELL) {
+        // TODO: Show some coin particle effect when you kill enemies?
+        Ichiaji::current_save_data.player_data.money += GERT_KILL_REWARD;
         Ichigo::kill_entity_deferred(gert->id);
     }
 }
@@ -164,7 +167,7 @@ bool Ichiaji::save_game() {
         return false;
     }
 
-    static const u16 SAVE_FILE_VERSION_NUMBER = 1;
+    static const u16 SAVE_FILE_VERSION_NUMBER = 2;
 
     Ichigo::Internal::platform_append_file_sync(save_file, (u8 *) &SAVE_FILE_VERSION_NUMBER, sizeof(SAVE_FILE_VERSION_NUMBER));
     Ichigo::Internal::platform_append_file_sync(save_file, (u8 *) &Ichiaji::current_save_data.player_data, sizeof(Ichiaji::PlayerSaveData));
@@ -197,43 +200,87 @@ bool Ichiaji::load_game() {
 
     u16 version_number = 0;
     ASSIGN_OR_FAIL(version_number, br.read16());
-    if (version_number != 1) {
-        ICHIGO_ERROR("Unsupported save version");
-        return false;
+
+    // TODO: This is something isn't it.
+    ICHIGO_INFO("Loading save V%d\n", version_number);
+    switch (version_number) {
+        case 1: {
+            Ichiaji::PlayerSaveDataV1 *p = nullptr;
+
+            ASSIGN_OR_FAIL(p, br.read_bytes(sizeof(Ichiaji::PlayerSaveDataV1)));
+
+            Ichiaji::current_save_data.player_data.health          = p->health;
+            Ichiaji::current_save_data.player_data.money           = 0;
+            Ichiaji::current_save_data.player_data.level_id        = p->level_id;
+            Ichiaji::current_save_data.player_data.position        = p->position;
+            Ichiaji::current_save_data.player_data.inventory_flags = p->inventory_flags;
+            Ichiaji::current_save_data.player_data.story_flags     = p->story_flags;
+
+            isize file_num_levels = 0;
+            ASSIGN_OR_FAIL(file_num_levels, br.read64());
+            isize game_num_levels = ARRAY_LEN(all_levels);
+
+            if (file_num_levels != game_num_levels) {
+                ICHIGO_ERROR("The number of levels in this save file does not equal the number of levels registered in the game! Reading the maximum possible number of levels.");
+            }
+
+            if (Ichiaji::current_save_data.level_data.data == nullptr) {
+                Ichiaji::current_save_data.level_data = Bana::make_fixed_array<Ichiaji::LevelSaveData>(game_num_levels, Ichigo::Internal::perm_allocator);
+            }
+
+            assert(game_num_levels == Ichiaji::current_save_data.level_data.capacity);
+
+            usize level_data_bytes_to_read = MIN(Ichiaji::current_save_data.level_data.capacity, file_num_levels) * sizeof(Ichiaji::LevelSaveData);
+            if (br.cursor + level_data_bytes_to_read > br.size) return false;
+
+            std::memcpy(Ichiaji::current_save_data.level_data.data, br.current_ptr(), level_data_bytes_to_read);
+            Ichiaji::current_save_data.level_data.size = game_num_levels;
+
+            return true;
+        } break;
+
+        case 2: {
+            Ichiaji::PlayerSaveData *p = nullptr;
+
+            ASSIGN_OR_FAIL(p, br.read_bytes(sizeof(Ichiaji::PlayerSaveData)));
+
+            Ichiaji::current_save_data.player_data = *p;
+
+            isize file_num_levels = 0;
+            ASSIGN_OR_FAIL(file_num_levels, br.read64());
+            isize game_num_levels = ARRAY_LEN(all_levels);
+
+            if (file_num_levels != game_num_levels) {
+                ICHIGO_ERROR("The number of levels in this save file does not equal the number of levels registered in the game! Reading the maximum possible number of levels.");
+            }
+
+            if (Ichiaji::current_save_data.level_data.data == nullptr) {
+                Ichiaji::current_save_data.level_data = Bana::make_fixed_array<Ichiaji::LevelSaveData>(game_num_levels, Ichigo::Internal::perm_allocator);
+            }
+
+            assert(game_num_levels == Ichiaji::current_save_data.level_data.capacity);
+
+            usize level_data_bytes_to_read = MIN(Ichiaji::current_save_data.level_data.capacity, file_num_levels) * sizeof(Ichiaji::LevelSaveData);
+            if (br.cursor + level_data_bytes_to_read > br.size) return false;
+
+            std::memcpy(Ichiaji::current_save_data.level_data.data, br.current_ptr(), level_data_bytes_to_read);
+            Ichiaji::current_save_data.level_data.size = game_num_levels;
+
+            return true;
+        } break;
+
+        default: {
+            ICHIGO_ERROR("Unsupported save version");
+            return false;
+        } break;
     }
 
-    Ichiaji::PlayerSaveData *p = nullptr;
-
-    ASSIGN_OR_FAIL(p, br.read_bytes(sizeof(Ichiaji::PlayerSaveData)));
-
-    Ichiaji::current_save_data.player_data = *p;
-
-    isize file_num_levels = 0;
-    ASSIGN_OR_FAIL(file_num_levels, br.read64());
-    isize game_num_levels = ARRAY_LEN(all_levels);
-
-    if (file_num_levels != game_num_levels) {
-        ICHIGO_ERROR("The number of levels in this save file does not equal the number of levels registered in the game! Reading the maximum possible number of levels.");
-    }
-
-    if (Ichiaji::current_save_data.level_data.data == nullptr) {
-        Ichiaji::current_save_data.level_data = Bana::make_fixed_array<Ichiaji::LevelSaveData>(game_num_levels, Ichigo::Internal::perm_allocator);
-    }
-
-    assert(game_num_levels == Ichiaji::current_save_data.level_data.capacity);
-
-    usize level_data_bytes_to_read = MIN(Ichiaji::current_save_data.level_data.capacity, file_num_levels) * sizeof(Ichiaji::LevelSaveData);
-    if (br.cursor + level_data_bytes_to_read > br.size) return false;
-
-    std::memcpy(Ichiaji::current_save_data.level_data.data, br.current_ptr(), level_data_bytes_to_read);
-    Ichiaji::current_save_data.level_data.size = game_num_levels;
 #undef ASSIGN_OR_FAIL
-
-    return true;
 }
 
 void Ichiaji::new_game() {
     Ichiaji::current_save_data.player_data.health          = PLAYER_STARTING_HEALTH;
+    Ichiaji::current_save_data.player_data.money           = 0;
     Ichiaji::current_save_data.player_data.level_id        = -1; // NOTE: This is set to signify that it is a new file
     Ichiaji::current_save_data.player_data.position        = {};
     Ichiaji::current_save_data.player_data.inventory_flags = 0;
@@ -439,7 +486,7 @@ static void draw_game_ui() {
         .line_spacing = 100.0f
     };
 
-    static constexpr Rect<f32> health_ui_rect  = {{0.2f, 0.2f}, 3.0f, 1.0f};
+    static constexpr Rect<f32> health_ui_rect  = {{0.2f, 0.2f}, 3.0f, 1.3f};
     static constexpr Vec2<f32> health_text_pos = {health_ui_rect.pos.x + health_ui_rect.w / 2.0f, health_ui_rect.pos.y + health_ui_rect.h / 2.0f};
     static Ichigo::DrawCommand health_text_background_cmd = {
         .type              = Ichigo::DrawCommandType::SOLID_COLOUR_RECT,
@@ -454,6 +501,9 @@ static void draw_game_ui() {
     Bana::String health_string = Bana::make_string(64, Ichigo::Internal::temp_allocator);
     Bana::string_format(health_string, "%s %.1f", TL_STR(HEALTH_UI), Ichiaji::current_save_data.player_data.health);
 
+    Bana::String money_string = Bana::make_string(64, Ichigo::Internal::temp_allocator);
+    Bana::string_format(money_string, "%s %u", TL_STR(MONEY_UI), Ichiaji::current_save_data.player_data.money);
+
     Ichigo::DrawCommand health_text_cmd = {
         .type              = Ichigo::DrawCommandType::TEXT,
         .coordinate_system = Ichigo::CoordinateSystem::SCREEN_ASPECT_FIX,
@@ -464,7 +514,18 @@ static void draw_game_ui() {
         .text_style        = ui_style
     };
 
+    Ichigo::DrawCommand money_text_cmd = {
+        .type              = Ichigo::DrawCommandType::TEXT,
+        .coordinate_system = Ichigo::CoordinateSystem::SCREEN_ASPECT_FIX,
+        .transform         = m4identity_f32,
+        .string            = money_string.data,
+        .string_length     = money_string.length,
+        .string_pos        = health_text_pos + Vec2<f32>{0.0f, 0.5f},
+        .text_style        = ui_style
+    };
+
     Ichigo::push_draw_command(health_text_cmd);
+    Ichigo::push_draw_command(money_text_cmd);
 }
 
 ////////////////////////////

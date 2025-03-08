@@ -59,13 +59,22 @@ struct Level {
 
 struct __attribute__((packed)) PlayerSaveData {
     f32 health;
+    u32 money;
     i64 level_id;
     Vec2<f32> position;
     u64 inventory_flags;
     u64 story_flags;
 };
 
-struct LevelSaveData {
+struct __attribute__((packed)) PlayerSaveDataV1 {
+    f32 health;
+    i64 level_id;
+    Vec2<f32> position;
+    u64 inventory_flags;
+    u64 story_flags;
+};
+
+struct __attribute__((packed)) LevelSaveData {
     u64 progress_flags;
     u64 item_flags;
 };
