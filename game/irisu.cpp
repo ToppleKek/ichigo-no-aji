@@ -357,6 +357,10 @@ static void make_sparks(Vec2<f32> pos) {
 #define SPELL_MAX_VELOCITY 24.0f
 #define DEFAULT_SPELL_COOLDOWN 0.7f
 static void spell_update(Ichigo::Entity *spell) {
+    if (Ichiaji::program_state != Ichiaji::GAME) {
+        return;
+    }
+
     spell->velocity = {spell->velocity.x < 0.0f ? -SPELL_MAX_VELOCITY : SPELL_MAX_VELOCITY, 0.0f};
 
     Ichigo::EntityMoveResult move_result = Ichigo::move_entity_in_world(spell);
@@ -453,8 +457,10 @@ void Irisu::update(Ichigo::Entity *irisu) {
 
             if (up_button_down_this_frame && entrance_to_enter != -1) {
                 try_enter_entrance(entrance_to_enter);
+                entrance_to_enter = -1;
             } else if (up_button_down_this_frame && level_to_enter != -1) {
                 try_enter_new_level(level_to_enter);
+                level_to_enter = -1;
             } else if (up_button_down_this_frame && !Ichigo::entity_is_dead(entrance_entity_to_enter)) {
                 auto exit_location = Entrances::get_exit_location_if_possible(entrance_entity_to_enter);
                 if (exit_location.has_value) {

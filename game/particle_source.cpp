@@ -1,4 +1,5 @@
 #include "particle_source.hpp"
+#include "ichiaji.hpp"
 
 #define MAX_PARTICLE_SOURCES 512
 #define MAX_PARTICLE_DENSITY 128
@@ -44,6 +45,10 @@ static void render(Ichigo::Entity *e) {
 }
 
 static void update(Ichigo::Entity *e) {
+    if (Ichiaji::program_state != Ichiaji::GAME) {
+        return;
+    }
+
     Bana::BucketLocator bl = *((Bana::BucketLocator *) (&e->user_data_i64));
     ParticleGenerator &gen = particle_generators[bl];
 

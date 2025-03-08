@@ -27,6 +27,10 @@ static void render(Ichigo::Entity *platform) {
 }
 
 static void update(Ichigo::Entity *platform) {
+    if (Ichiaji::program_state != Ichiaji::GAME) {
+        return;
+    }
+
     Vec2<f32> velocity_before = platform->velocity;
     Vec2<f32> p               = platform->col.pos;
 

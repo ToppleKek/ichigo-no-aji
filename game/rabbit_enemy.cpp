@@ -50,6 +50,10 @@ void RabbitEnemy::init() {
 #define RABBIT_JUMP_CHARGE_TIME 0.4f
 #define RABBIT_CHASE_JUMP_FREQ 0.5f
 void update(Ichigo::Entity *self) {
+    if (Ichiaji::program_state != Ichiaji::GAME) {
+        return;
+    }
+
     Rabbit &rabbit     = rabbit_data[BIT_CAST(Bana::BucketLocator, self->user_data_i64)];
     auto *player       = Ichigo::get_entity(Ichiaji::player_entity_id);
     Vec2<f32> distance = self->col.pos - player->col.pos;
