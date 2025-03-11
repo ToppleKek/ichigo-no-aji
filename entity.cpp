@@ -150,6 +150,18 @@ Vec2<f32> Ichigo::calculate_projected_next_position(Ichigo::Entity *entity) {
     return entity_delta + entity->col.pos;
 }
 
+Bana::Optional<Vec2<f32>> Ichigo::nearest_tangible_ground_tile(Ichigo::Entity *entity) {
+    for (i32 tile_y = (i32) entity->col.pos.y; tile_y < Internal::current_tilemap.height; ++tile_y) {
+        Vec2<i32> tile_pos = {(i32) entity->col.pos.x, tile_y};
+        const TileInfo &info = Internal::current_tilemap.tile_info[tile_at(tile_pos)];
+        if (FLAG_IS_SET(info.flags, TF_TANGIBLE)) {
+            return vector_cast<f32>(tile_pos);
+        }
+    }
+
+    return {};
+}
+
 // Move the entity in the world, considering all external forces (gravity, friction) and performing all collision detection (other entities and tilemap).
 Ichigo::EntityMoveResult Ichigo::move_entity_in_world(Ichigo::Entity *entity) {
     EntityMoveResult result = NOTHING_SPECIAL;
@@ -184,12 +196,14 @@ Ichigo::EntityMoveResult Ichigo::move_entity_in_world(Ichigo::Entity *entity) {
     }
 
     // Gravity.
-    // if (!FLAG_IS_SET(entity->flags, Ichigo::EntityFlag::EF_ON_GROUND)) {
-    //     external_acceleration.y = entity->gravity;
-    // }
+    // NOTE (Mar 11, 2025): I'm again switching back to only applying gravity when the entity is airborne. This is due to multiple problems with the collision detection system
+    // causing entities to "fall" in the error gap. See the detailed note on this below. This could be solved at some point!
+    if (!FLAG_IS_SET(entity->flags, Ichigo::EntityFlag::EF_ON_GROUND)) {
+        external_acceleration.y = entity->gravity;
+    }
 
     // NOTE (Feb 22, 2025): I'm switching back to always applying gravity. This was done so that if an entrance takes a player to a position that is slightly above the ground, they will fall and hit the ground.
-    external_acceleration.y += entity->gravity;
+    // external_acceleration.y += entity->gravity;
 
     Vec2<f32> final_acceleration = {};
 

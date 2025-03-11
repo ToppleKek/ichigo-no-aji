@@ -74,6 +74,25 @@ static Vec2<f32> last_entrance_position          = {};
 static f32 invincibility_t = 0.0f;
 static f32 respawn_t       = 0.0f;
 
+static void snap_to_floor_or_fall(Ichigo::Entity *irisu) {
+   auto tg = Ichigo::nearest_tangible_ground_tile(irisu);
+    if (tg.has_value) {
+        auto ground = tg.value;
+        if (DISTANCE(ground.y, irisu->col.pos.y + irisu->col.h) < 1.0f) {
+            // FIXME: Hack...
+            auto saved_v      = irisu->velocity;
+            irisu->velocity.y = 9999.0f;
+            irisu->velocity.x = 0.0f;
+            Ichigo::move_entity_in_world(irisu);
+            irisu->velocity   = saved_v;
+        } else {
+            CLEAR_FLAG(irisu->flags, Ichigo::EF_ON_GROUND);
+        }
+    } else {
+        CLEAR_FLAG(irisu->flags, Ichigo::EF_ON_GROUND);
+    }
+}
+
 static void try_enter_entrance(Vec2<f32> exit_location) {
     auto callback = [](uptr data) {
         Vec2<f32> exit_position = *((Vec2<f32> *) &data);
@@ -86,6 +105,9 @@ static void try_enter_entrance(Vec2<f32> exit_location) {
         auto *irisu            = Ichigo::get_entity(irisu_id);
         last_entrance_position = exit_position;
         Ichigo::teleport_entity_considering_colliders(irisu, exit_position);
+
+        // Snap to the ground if we are close enough. If not, start falling.
+        snap_to_floor_or_fall(irisu);
     };
 
     Ichigo::Camera::mode               = Ichigo::Camera::Mode::MANUAL;
@@ -107,6 +129,9 @@ static void try_enter_entrance(i64 entrance_id) {
         last_entrance_position = exit_position;
 
         Ichigo::teleport_entity_considering_colliders(irisu, exit_position);
+
+        // Snap to the ground if we are close enough. If not, start falling.
+        snap_to_floor_or_fall(irisu);
     };
 
     Ichigo::Camera::mode               = Ichigo::Camera::Mode::MANUAL;
