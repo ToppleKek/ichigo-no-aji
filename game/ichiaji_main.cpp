@@ -202,7 +202,7 @@ bool Ichiaji::load_game() {
     ASSIGN_OR_FAIL(version_number, br.read16());
 
     // TODO: This is something isn't it.
-    ICHIGO_INFO("Loading save V%d\n", version_number);
+    ICHIGO_INFO("Loading save V%d", version_number);
     switch (version_number) {
         case 1: {
             Ichiaji::PlayerSaveDataV1 *p = nullptr;

@@ -131,7 +131,7 @@ static bool test_wall(f32 x, f32 x0, f32 dx, f32 py, f32 dy, f32 ty0, f32 ty1, f
 
 // TODO: Is this ok?
 #define T_EPSILON 0.00999f
-    if (t >= 0 && t < *best_t) {
+    if (t >= 0.0f && t < *best_t) {
         if ((y > ty0 && y < ty1)) {
             *best_t = MAX(0.0f, t - T_EPSILON);
 #undef T_EPSILON
@@ -454,7 +454,6 @@ Ichigo::EntityMoveResult Ichigo::move_entity_in_world(Ichigo::Entity *entity) {
             // 3: Epsilon error correction
         }
 
-        Vec2<f32> final_delta{};
 #define D_EPSILON 0.0001
         // Snap to the floor/wall that was hit.
         // TODO: kind of a hack?
@@ -467,9 +466,20 @@ Ichigo::EntityMoveResult Ichigo::move_entity_in_world(Ichigo::Entity *entity) {
         } else if (wall_normal.y == -1.0f) {
             entity->col.pos.y = wall_position.y - entity->col.h - D_EPSILON;
         } else {
+            Vec2<f32> final_delta = entity_delta * best_t;
+
             // Otherwise, move to the correct position.
-            final_delta.x = std::fabsf(entity_delta.x * best_t) < D_EPSILON ? 0.0f : entity_delta.x * best_t;
-            final_delta.y = std::fabsf(entity_delta.y * best_t) < D_EPSILON ? 0.0f : entity_delta.y * best_t;
+            // FIXME: It's late, but maybe we don't even need to cancel the movement here?
+            if (std::fabsf(final_delta.x) < D_EPSILON) {
+                final_delta.x      = 0.0f;
+                // entity->velocity.x = 0.0f;
+            }
+
+            if (std::fabsf(final_delta.y) < D_EPSILON) {
+                final_delta.y      = 0.0f;
+                // entity->velocity.y = 0.0f;
+            }
+
             entity->col.pos += final_delta;
 #undef  D_EPSILON
         }
@@ -499,19 +509,30 @@ Ichigo::EntityMoveResult Ichigo::move_entity_in_world(Ichigo::Entity *entity) {
     }
 
     // If an entity becomes airborne on its own (eg. jumping)
-    if (entity->velocity.y != 0.0f && FLAG_IS_SET(entity->flags, Ichigo::EntityFlag::EF_ON_GROUND)) {
+    // FIXME: It is getting late and this is a solution. The problem is that we place the entity slightly apart from the tile when it hits (by D_EPSILON amount above).
+    // At high fps, the movement due to gravity in one frame is so small that the entity "falls" in this gap. So, with the old logic because the velocity is not zero, the entity becomes airborne.
+    // We cannot remove this check because for some reason, the rabbit entity doesn't seem to be moving immediately after jumping, which means that the check below
+    // for the standing tiles sees that it is still standing on the ground even though it has a large upwards y velocity. Look into this. For now, this restores the old functionality of
+    // marking all entities that have some upwards y velocity as being airborne. This needs to be FIXED!!!
+    // =====
+    // IDEALLY we want to completely cancel the velocity and the gravity movement if we are standing on the ground. Right now, at high fps, we build up y velocity until we have enough to "collide" with
+    // the floor. This also results in the entity moving by veerrrrry small amounts every frame. This does not seem to be a real problem right now, but it really sucks. We probably do some check after the
+    // supported by a tangible tile check! Please fix me ASAP!!!
+    if (entity->velocity.y < 0.0f && FLAG_IS_SET(entity->flags, Ichigo::EntityFlag::EF_ON_GROUND)) {
         result = BECAME_AIRBORNE;
         CLEAR_FLAG(entity->flags, Ichigo::EntityFlag::EF_ON_GROUND);
     }
 
     // Check if the entity is standing on anything. If it isn't anymore, mark it as airborne.
-    if (FLAG_IS_SET(entity->flags, Ichigo::EntityFlag::EF_ON_GROUND)) {
-        entity->left_standing_tile  = { (i32) entity->col.pos.x, (i32) (entity->col.pos.y + entity->col.h) + 1 };
-        entity->right_standing_tile = { (i32) (entity->col.pos.x + entity->col.w), (i32) (entity->col.pos.y + entity->col.h) + 1 };
-        if (entity_is_dead(entity->standing_entity_id) && Ichigo::tile_at(entity->left_standing_tile) == ICHIGO_AIR_TILE && Ichigo::tile_at(entity->right_standing_tile) == ICHIGO_AIR_TILE) {
-            result = BECAME_AIRBORNE;
-            CLEAR_FLAG(entity->flags, Ichigo::EntityFlag::EF_ON_GROUND);
-        }
+    entity->left_standing_tile  = { (i32) entity->col.pos.x, (i32) std::floorf(entity->col.pos.y + entity->col.h + 0.1f) };
+    entity->right_standing_tile = { (i32) (entity->col.pos.x + entity->col.w), (i32) std::floorf(entity->col.pos.y + entity->col.h + 0.1f) };
+
+    const TileInfo &left_info  = Internal::current_tilemap.tile_info[Ichigo::tile_at(entity->left_standing_tile)];
+    const TileInfo &right_info = Internal::current_tilemap.tile_info[Ichigo::tile_at(entity->right_standing_tile)];
+
+    if (FLAG_IS_SET(entity->flags, Ichigo::EntityFlag::EF_ON_GROUND) && entity_is_dead(entity->standing_entity_id) && !FLAG_IS_SET(left_info.flags, TF_TANGIBLE) && !FLAG_IS_SET(left_info.flags, TF_TANGIBLE)) {
+        result = BECAME_AIRBORNE;
+        CLEAR_FLAG(entity->flags, Ichigo::EntityFlag::EF_ON_GROUND);
     }
 
     return result;

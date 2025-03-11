@@ -62,7 +62,7 @@ enum EntityFlag {
 
 // What happened as a result of moving an entity in the world?
 enum EntityMoveResult {
-    NO_MOVE,
+    NO_MOVE, // TODO: Is this any different from NOTHING_SPECIAL??
     NOTHING_SPECIAL,
     HIT_GROUND,
     HIT_WALL,
