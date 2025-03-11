@@ -358,7 +358,8 @@ Ichigo::EntityMoveResult Ichigo::move_entity_in_world(Ichigo::Entity *entity) {
             Vec2<f32> max_corner = {other_entity->col.pos.x + other_entity->col.w + entity->col.w / 2.0f, other_entity->col.pos.y + other_entity->col.h + entity->col.h / 2.0f};
 
             f32 floating_check_t = 1.0f;
-            if (!test_wall(min_corner.y, centered_entity_p.y, entity->gravity * Ichigo::Internal::dt, centered_entity_p.x, entity->col.pos.x, min_corner.x, max_corner.x, &floating_check_t)) {
+            // NOTE: We give a "movement delta" of 2 metres here just to check if the platform is still below us within 2 metres.
+            if (!test_wall(min_corner.y, centered_entity_p.y, 2.0f, centered_entity_p.x, entity->col.pos.x, min_corner.x, max_corner.x, &floating_check_t)) {
                 ICHIGO_INFO("Entity (%s) is no longer standing on other entity (%s)", entity->name, other_entity->name);
                 entity->standing_entity_id = NULL_ENTITY_ID;
                 CLEAR_FLAG(entity->flags, EF_ON_GROUND);
