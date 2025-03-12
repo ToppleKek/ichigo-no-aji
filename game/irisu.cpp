@@ -646,6 +646,7 @@ void Irisu::update(Ichigo::Entity *irisu) {
 
                     if (irisu) {
                         Ichigo::teleport_entity_considering_colliders(irisu, last_entrance_position);
+                        snap_to_floor_or_fall(irisu);
                     }
 
                     irisu_state = IDLE;
