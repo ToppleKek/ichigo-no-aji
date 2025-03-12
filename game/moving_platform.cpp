@@ -78,7 +78,6 @@ static void update(Ichigo::Entity *platform) {
     if (!list.has_value)       return;
     if (list.value->size == 0) return;
 
-    // FIXME: HACK!!! This hack is here because when we move the entity that is standing on the platform, it considers friction which makes it slowly slide off the platform.
     for (i32 i = 0; i < list.value->capacity; ++i) {
         if (!Ichigo::entity_is_dead(list.value->data[i])) {
             Ichigo::Entity *e = Ichigo::get_entity(list.value->data[i]);

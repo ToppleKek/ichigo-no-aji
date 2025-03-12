@@ -4,7 +4,7 @@
     Entity functions.
 
     Author:      Braeden Hong
-    Last edited: 2024/11/30
+    Last edited: 2025/03/12
 */
 
 #include "entity.hpp"
@@ -317,13 +317,33 @@ Ichigo::EntityMoveResult Ichigo::move_entity_in_world(Ichigo::Entity *entity) {
             }
 
             if (collider_normal.x != 0.0f || collider_normal.y != 0.0f) {
-                // We guarantee that the first entity parameter is can always be considered the "self" entity.
+                // We guarantee that the first entity parameter can always be considered the "self" entity.
                 if (entity->collide_proc) {
                     entity->collide_proc(entity, &other_entity, collider_normal, collision_normal, entity->col.pos + entity_delta * best_t);
                 }
 
                 if (other_entity.collide_proc) {
                     other_entity.collide_proc(&other_entity, entity, collider_normal * Vec2<f32>{-1.0f, -1.0f}, collision_normal, entity->col.pos + entity_delta * best_t);
+                }
+
+                // If we are tangible and we collide with some other entity, we probably want to move it out of the way.
+                // TODO: Have some sort of move_entity_in_world() like function that lets us directly specify the entity delta. That way we could do this while considering the tilemap.
+                if (!FLAG_IS_SET(other_entity.flags, EF_STATIC)) {
+                    if (FLAG_IS_SET(entity->flags, EF_TANGIBLE) && collider_normal.x != 0.0f) {
+                        other_entity.col.pos.x -= entity_delta.x * collider_normal.x;
+                    } else if ((FLAG_IS_SET(entity->flags, EF_TANGIBLE) || FLAG_IS_SET(entity->flags, EF_TANGIBLE_ON_TOP)) && collider_normal.y != 0.0f) {
+                        if (collider_normal.y > 0.0f) {
+                            // FIXME @supporting_entity: This is a game specific hack... Since the elevator entity moves the entity up and down, this breaks it bad...
+                            // other_entity.col.pos.y += entity_delta.y;
+
+                            if (other_entity.standing_entity_id != entity->id) {
+                                other_entity.standing_entity_id = entity->id;
+                                entity->stand_proc(entity, &other_entity, true);
+                            }
+                        } else if (FLAG_IS_SET(entity->flags, EF_TANGIBLE) && collider_normal.y < 0.0f) {
+                            other_entity.col.pos.y -= entity_delta.y;
+                        }
+                    }
                 }
 
                 // NOTE: Even though we just calculated the best_t and stuff for this entity, we will check again in the wall collision code. The reason we do this is to make the logic simpler
@@ -422,6 +442,7 @@ Ichigo::EntityMoveResult Ichigo::move_entity_in_world(Ichigo::Entity *entity) {
                     //       we accept a move that doesn't actually have us standing on the entity.
 
                     if (entity->standing_entity_id != other_entity->id) {
+                        ICHIGO_INFO("Entity (%s) is now standing on other entity (%s)", entity->name, other_entity->name);
                         entity->standing_entity_id = other_entity->id;
                         if (other_entity->stand_proc) other_entity->stand_proc(other_entity, entity, true);
                     }

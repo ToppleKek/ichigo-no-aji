@@ -47,17 +47,18 @@ inline bool operator==(const Ichigo::EntityID &lhs, const Ichigo::EntityID &rhs)
 // NOTE 2:     Yes! This does sound useful for being able to check if an animation has fully played out. Maybe it should
 //             be in some separate "animation flags" or something, but it can live here for now.
 enum EntityFlag {
-    EF_MARKED_FOR_DEATH = 1 << 0, // This entity will be killed at the end of the frame
-    EF_ON_GROUND        = 1 << 1, // This entity is on the ground
-    EF_FLIP_H           = 1 << 2, // This entity renders with its u coordinates reversed (ie. it is horizontally flipped).
-    EF_INVISIBLE        = 1 << 3, // This entity will not render its sprite. However, animation frames still advance.
-    EF_TANGIBLE         = 1 << 4, // This entity acts as a wall/floor/ceiling. Other entities can stand on it.
-    EF_TANGIBLE_ON_TOP  = 1 << 5, // This entity acts only as a floor. Other entities can stand on it, but do not collide with it as a wall or ceiling.
-    EF_ANIM_LOOPING     = 1 << 6, // This entity has played its animation fully once and is now looping.
+    EF_MARKED_FOR_DEATH = 1 << 0,  // This entity will be killed at the end of the frame.
+    EF_ON_GROUND        = 1 << 1,  // This entity is on the ground.
+    EF_FLIP_H           = 1 << 2,  // This entity renders with its u coordinates reversed (ie. it is horizontally flipped).
+    EF_INVISIBLE        = 1 << 3,  // This entity will not render its sprite. However, animation frames still advance.
+    EF_TANGIBLE         = 1 << 4,  // This entity acts as a wall/floor/ceiling. Other entities can stand on it.
+    EF_TANGIBLE_ON_TOP  = 1 << 5,  // This entity acts only as a floor. Other entities can stand on it, but do not collide with it as a wall or ceiling.
+    EF_ANIM_LOOPING     = 1 << 6,  // This entity has played its animation fully once and is now looping.
     // FIXME: Probably not needed? Maybe with smarter camera intersection logic we can make this one flag again?
-    EF_BLOCKS_CAMERA_X  = 1 << 7, // This entity blocks the camera in the x axis from passing over it.
-    EF_BLOCKS_CAMERA_Y  = 1 << 8, // This entity blocks the camera in the y axis from passing over it.
-    EF_NO_COLLIDE       = 1 << 9, // Collision checks are skipped with this entity.
+    EF_BLOCKS_CAMERA_X  = 1 << 7,  // This entity blocks the camera in the x axis from passing over it.
+    EF_BLOCKS_CAMERA_Y  = 1 << 8,  // This entity blocks the camera in the y axis from passing over it.
+    EF_NO_COLLIDE       = 1 << 9,  // Collision checks are skipped with this entity.
+    EF_STATIC           = 1 << 10, // This entity does not move, and should never be moved by other entities.
 };
 
 // What happened as a result of moving an entity in the world?

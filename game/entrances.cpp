@@ -70,6 +70,8 @@ void Entrances::spawn_entrance(const Ichigo::EntityDescriptor &descriptor) {
     entrance->sprite.animation                     = {};
     entrance->user_data_i64                        = descriptor.data;
     entrance->user_type_id                         = descriptor.type; // NOTE: Could be an ET_ENTRANCE or an ET_LEVEL_ENTRANCE.
+
+    SET_FLAG(entrance->flags, Ichigo::EF_STATIC);
 }
 
 void Entrances::spawn_entrance_trigger(const Ichigo::EntityDescriptor &descriptor) {
@@ -82,6 +84,7 @@ void Entrances::spawn_entrance_trigger(const Ichigo::EntityDescriptor &descripto
     entrance->user_type_id  = descriptor.type;
 
     SET_FLAG(entrance->flags, Ichigo::EF_INVISIBLE);
+    SET_FLAG(entrance->flags, Ichigo::EF_STATIC);
 
     if (descriptor.type == ET_ENTRANCE_TRIGGER_H) {
         SET_FLAG(entrance->flags, Ichigo::EF_BLOCKS_CAMERA_Y);
@@ -100,6 +103,7 @@ void Entrances::spawn_death_trigger(const Ichigo::EntityDescriptor &descriptor) 
 
     SET_FLAG(death_trigger->flags, Ichigo::EF_INVISIBLE);
     SET_FLAG(death_trigger->flags, Ichigo::EF_BLOCKS_CAMERA_Y);
+    SET_FLAG(death_trigger->flags, Ichigo::EF_STATIC);
 }
 
 
@@ -116,6 +120,8 @@ void Entrances::spawn_locked_door(const Ichigo::EntityDescriptor &descriptor, u6
     e->kill_proc     = kill_locked_door;
     e->user_data_i64 = *((i64 *) &bl);
     e->user_type_id  = ET_LOCKED_DOOR;
+
+    SET_FLAG(e->flags, Ichigo::EF_STATIC);
 }
 
 void Entrances::spawn_key(const Ichigo::EntityDescriptor &descriptor) {
@@ -143,6 +149,8 @@ void Entrances::spawn_key(const Ichigo::EntityDescriptor &descriptor) {
     e->collide_proc  = on_key_collide;
     e->user_data_i64 = descriptor.data;
     e->user_type_id  = ET_KEY;
+
+    SET_FLAG(e->flags, Ichigo::EF_STATIC);
 }
 
 Bana::Optional<Vec2<f32>> Entrances::get_exit_location_if_possible(Ichigo::EntityID eid) {

@@ -157,8 +157,6 @@ static void try_enter_new_level(i64 level_index) {
 
 #define GERT_DAMAGE 1.0f
 static void on_collide(Ichigo::Entity *irisu, Ichigo::Entity *other, Vec2<f32> normal, [[maybe_unused]] Vec2<f32> collision_normal, [[maybe_unused]] Vec2<f32> collision_pos) {
-    ICHIGO_INFO("IRISU collide with %s: normal=%f,%f pos=%f,%f", other->name, normal.x, normal.y, collision_pos.x, collision_pos.y);
-
     if (other->user_type_id == ET_GERT && irisu_state != HURT) {
         if (normal.y == -1.0f && collision_normal.y == -1.0f) {
             irisu->velocity.y -= 15.0f;
@@ -174,13 +172,9 @@ static void on_collide(Ichigo::Entity *irisu, Ichigo::Entity *other, Vec2<f32> n
         }
     } else if (other->user_type_id == ET_ENTRANCE) {
         if (normal.x != collision_normal.x || normal.y != collision_normal.y) {
-            Ichigo::show_info("exit");
             entrance_to_enter = -1;
         } else {
-            Ichigo::show_info("enter");
-            ICHIGO_INFO("Collide with entrance entity with collision normal %f,%f", collision_normal.x, collision_normal.y);
             entrance_to_enter = other->user_data_i64;
-            // try_enter_entrance(other->user_data);
         }
     } else if (other->user_type_id == ET_LOCKED_DOOR) {
         if (normal.x != collision_normal.x || normal.y != collision_normal.y) {
