@@ -153,6 +153,33 @@ void Entrances::spawn_key(const Ichigo::EntityDescriptor &descriptor) {
     SET_FLAG(e->flags, Ichigo::EF_STATIC);
 }
 
+void Entrances::spawn_shop_entrance(const Ichigo::EntityDescriptor &descriptor) {
+    Ichigo::Texture &tex   = Ichigo::Internal::textures[entrance_texture];
+    Ichigo::Entity *e      = Ichigo::spawn_entity();
+
+    static const Ichigo::Sprite shop_entrance_sprite = {
+        .pos_offset = {},
+        .width      = pixels_to_metres(tex.width),
+        .height     = pixels_to_metres(tex.height),
+        .sheet      = {
+            .cell_width  = tex.width,
+            .cell_height = tex.height,
+            .texture     = entrance_texture,
+        },
+        .animation                    = {},
+        .current_animation_frame      = 0,
+        .elapsed_animation_frame_time = 0.0f
+    };
+
+    std::strcpy(e->name, "shop_entrance");
+
+    e->col           = {descriptor.pos, pixels_to_metres(tex.width), pixels_to_metres(tex.height)};
+    e->sprite        = shop_entrance_sprite;
+    e->user_type_id  = ET_SHOP_ENTRANCE;
+
+    SET_FLAG(e->flags, Ichigo::EF_STATIC);
+}
+
 Bana::Optional<Vec2<f32>> Entrances::get_exit_location_if_possible(Ichigo::EntityID eid) {
     Ichigo::Entity *e = Ichigo::get_entity(eid);
     if (!e) return {};

@@ -344,6 +344,94 @@ void Ichigo::world_render_rect_list(Vec2<f32> pos, const Bana::FixedArray<Textur
     END_TEMP_MEMORY(Ichigo::game_state.transient_storage_arena, temp_ptr);
 }
 
+void Ichigo::render_sprite_and_advance_animation(CoordinateSystem coordinate_system, Vec2<f32> pos, Sprite *sprite, bool flip_h, bool actually_render, Mat4<f32> transform, Vec4<f32> tint) {
+    const Ichigo::Texture &texture = Ichigo::Internal::textures[sprite->sheet.texture];
+
+    Ichigo::Internal::gl.glUseProgram(texture_shader_program);
+    Ichigo::Internal::gl.glBindBuffer(GL_ARRAY_BUFFER, draw_data_textured.vertex_buffer_id);
+    Ichigo::Internal::gl.glBindVertexArray(draw_data_textured.vertex_array_id);
+    Ichigo::Internal::gl.glBindTexture(GL_TEXTURE_2D, texture.id);
+
+    // Calculate the current animation frame cell and stuff.
+    u32 current_cell  = sprite->animation.cell_of_first_frame + sprite->current_animation_frame;
+    u32 cells_per_row = texture.width / sprite->sheet.cell_width;
+    u32 row_of_cell   = current_cell  / cells_per_row;
+    u32 col_of_cell   = current_cell  % cells_per_row;
+    u32 cell_x_px     = col_of_cell   * sprite->sheet.cell_width;
+    u32 cell_y_px     = row_of_cell   * sprite->sheet.cell_height;
+
+    // UV coordinates.
+    f32 u0 = (f32) cell_x_px / (f32) texture.width;
+    f32 v0 = (f32) (texture.height - cell_y_px) / (f32) texture.height;
+    f32 u1 = u0 + ((f32) sprite->sheet.cell_width  / (f32) texture.width);
+    f32 v1 = v0 - ((f32) sprite->sheet.cell_height / (f32) texture.height);
+
+    if (flip_h) {
+        f32 temp = u0;
+        u0       = u1;
+        u1       = temp;
+    }
+
+    // Advance the animation.
+    Ichigo::Animation &anim = sprite->animation;
+
+    if (anim.cell_of_first_frame != anim.cell_of_last_frame) {
+        sprite->elapsed_animation_frame_time += Ichigo::Internal::dt;
+    }
+
+    // Skip animation frames if we are running too slow.
+    // FIXME: If we skip the final animation frame, then gameplay code that depends on the ending frame being hit will break. Maybe there should be a "ANIM_PLAYED_ONCE" flag or something.
+    u32 frames_advanced = (u32) safe_ratio_0(sprite->elapsed_animation_frame_time, anim.seconds_per_frame);
+
+    if (frames_advanced > 0) {
+        sprite->elapsed_animation_frame_time -= (frames_advanced * anim.seconds_per_frame);
+        u32 anim_duration = anim.cell_of_last_frame - anim.cell_of_first_frame + 1;
+
+        if (sprite->current_animation_frame + frames_advanced >= anim_duration) {
+            sprite->current_animation_frame = anim.cell_of_loop_start - anim.cell_of_first_frame;
+        } else {
+            sprite->current_animation_frame += frames_advanced;
+        }
+    }
+
+    // NOTE: This is here so that if an entity is marked as invisible it can still advance animation frames.
+    if (!actually_render) return;
+
+    i32 screen_dimension_uniform = Ichigo::Internal::gl.glGetUniformLocation(text_shader_program, "screen_tile_dimensions");
+    i32 texture_uniform          = Ichigo::Internal::gl.glGetUniformLocation(texture_shader_program, "entity_texture");
+    i32 object_uniform           = Ichigo::Internal::gl.glGetUniformLocation(texture_shader_program, "object_transform");
+    i32 tint_uniform             = Ichigo::Internal::gl.glGetUniformLocation(texture_shader_program, "colour_tint");
+
+    Vec2<f32> translation;
+
+    if (coordinate_system == Ichigo::CoordinateSystem::CAMERA) {
+        translation = pos - get_translation2d(Ichigo::Camera::transform);
+    } else if (coordinate_system == Ichigo::CoordinateSystem::SCREEN_ASPECT_FIX) {
+        translation = pos - get_translation2d(Ichigo::Camera::transform);
+        Ichigo::Internal::gl.glUniform2f(screen_dimension_uniform, (f32) SCREEN_ASPECT_FIX_WIDTH, (f32) SCREEN_ASPECT_FIX_HEIGHT);
+    } else {
+        translation = pos + sprite->pos_offset;
+    }
+
+    transform = translate2d(translation) * transform;
+
+    TexturedVertex vertices[] = {
+        {{0.0f, 0.0f, 0.0f},                    {u0, v0}}, // top left
+        {{sprite->width, 0.0f, 0.0f},           {u1, v0}}, // top right
+        {{0.0f, sprite->height, 0.0f},          {u0, v1}}, // bottom left
+        {{sprite->width, sprite->height, 0.0f}, {u1, v1}}, // bottom right
+    };
+
+    Ichigo::Internal::gl.glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+    Ichigo::Internal::gl.glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(rectangle_indices), rectangle_indices, GL_STATIC_DRAW);
+
+    Ichigo::Internal::gl.glUniform4fv(tint_uniform, 4, (GLfloat *) &tint);
+    Ichigo::Internal::gl.glUniform1i(texture_uniform, 0);
+    Ichigo::Internal::gl.glUniformMatrix4fv(object_uniform, 1, GL_TRUE, (GLfloat *) &transform);
+
+    Ichigo::Internal::gl.glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+}
+
 f32 Ichigo::get_text_width(const char *str, usize length, Ichigo::TextStyle style) {
     f32 width = 0.0f;
     const u8 *unsigned_str = (const u8 *) str;
@@ -617,89 +705,26 @@ void default_entity_render_proc(Ichigo::Entity *entity) {
     if (entity->sprite.width <= 0.0f || entity->sprite.height <= 0.0f) return;
 #endif
 
+#ifdef ICHIGO_DEBUG
     // FIXME: This does not advance animation frames. Games that depend on the animation ending to change state break with this option on. Just throw it in the same place as the INVISIBLE flag.
-#ifdef ICHIGO_DEBUG
     if (!DEBUG_hide_entity_sprites) {
-#endif
-        const Ichigo::Texture &texture = Ichigo::Internal::textures[entity->sprite.sheet.texture];
-
-        Ichigo::Internal::gl.glUseProgram(texture_shader_program);
-        Ichigo::Internal::gl.glBindBuffer(GL_ARRAY_BUFFER, draw_data_textured.vertex_buffer_id);
-        Ichigo::Internal::gl.glBindVertexArray(draw_data_textured.vertex_array_id);
-        Ichigo::Internal::gl.glBindTexture(GL_TEXTURE_2D, texture.id);
-
-        // Calculate the current animation frame cell and stuff.
-        u32 current_cell  = entity->sprite.animation.cell_of_first_frame + entity->sprite.current_animation_frame;
-        u32 cells_per_row = texture.width / entity->sprite.sheet.cell_width;
-        u32 row_of_cell   = current_cell  / cells_per_row;
-        u32 col_of_cell   = current_cell  % cells_per_row;
-        u32 cell_x_px     = col_of_cell   * entity->sprite.sheet.cell_width;
-        u32 cell_y_px     = row_of_cell   * entity->sprite.sheet.cell_height;
-
-        // UV coordinates.
-        f32 u0 = (f32) cell_x_px / (f32) texture.width;
-        f32 v0 = (f32) (texture.height - cell_y_px) / (f32) texture.height;
-        f32 u1 = u0 + ((f32) entity->sprite.sheet.cell_width  / (f32) texture.width);
-        f32 v1 = v0 - ((f32) entity->sprite.sheet.cell_height / (f32) texture.height);
-
-        if (FLAG_IS_SET(entity->flags, Ichigo::EF_FLIP_H)) {
-            f32 temp = u0;
-            u0       = u1;
-            u1       = temp;
-        }
-
-        // Advance the animation.
-        Ichigo::Animation &anim = entity->sprite.animation;
-
-        if (anim.cell_of_first_frame != anim.cell_of_last_frame) {
-            entity->sprite.elapsed_animation_frame_time += Ichigo::Internal::dt;
-        }
-
-        // Skip animation frames if we are running too slow.
-        // FIXME: If we skip the final animation frame, then gameplay code that depends on the ending frame being hit will break. Maybe there should be a "ANIM_PLAYED_ONCE" flag or something.
-        u32 frames_advanced = (u32) safe_ratio_0(entity->sprite.elapsed_animation_frame_time, anim.seconds_per_frame);
-
-        if (frames_advanced > 0) {
-            entity->sprite.elapsed_animation_frame_time -= (frames_advanced * anim.seconds_per_frame);
-            u32 anim_duration = anim.cell_of_last_frame - anim.cell_of_first_frame + 1;
-
-            if (entity->sprite.current_animation_frame + frames_advanced >= anim_duration) {
-                entity->sprite.current_animation_frame = anim.cell_of_loop_start - anim.cell_of_first_frame;
-            } else {
-                entity->sprite.current_animation_frame += frames_advanced;
-            }
-        }
-
-        if (FLAG_IS_SET(entity->flags, Ichigo::EF_INVISIBLE)) {
-#ifdef ICHIGO_DEBUG
-            goto skip_sprite_draw;
-#else
-            return;
-#endif
-        }
-
-        Vec2<f32> draw_pos = { entity->col.pos.x + entity->sprite.pos_offset.x, entity->col.pos.y + entity->sprite.pos_offset.y };
-        TexturedVertex vertices[] = {
-            {{draw_pos.x, draw_pos.y, 0.0f},                                                {u0, v0}}, // top left
-            {{draw_pos.x + entity->sprite.width, draw_pos.y, 0.0f},                         {u1, v0}}, // top right
-            {{draw_pos.x, draw_pos.y + entity->sprite.height, 0.0f},                        {u0, v1}}, // bottom left
-            {{draw_pos.x + entity->sprite.width, draw_pos.y + entity->sprite.height, 0.0f}, {u1, v1}}, // bottom right
-        };
-
-        Ichigo::Internal::gl.glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-        Ichigo::Internal::gl.glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(rectangle_indices), rectangle_indices, GL_STATIC_DRAW);
-
-        i32 texture_uniform = Ichigo::Internal::gl.glGetUniformLocation(texture_shader_program, "entity_texture");
-        i32 object_uniform  = Ichigo::Internal::gl.glGetUniformLocation(texture_shader_program, "object_transform");
-        i32 tint_uniform    = Ichigo::Internal::gl.glGetUniformLocation(texture_shader_program, "colour_tint");
-
-        Ichigo::Internal::gl.glUniform4f(tint_uniform, 1.0f, 1.0f, 1.0f, 1.0f);
-        Ichigo::Internal::gl.glUniform1i(texture_uniform, 0);
-        Ichigo::Internal::gl.glUniformMatrix4fv(object_uniform, 1, GL_TRUE, (GLfloat *) &identity_mat4);
-
-        Ichigo::Internal::gl.glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-#ifdef ICHIGO_DEBUG
+        render_sprite_and_advance_animation(
+            Ichigo::CoordinateSystem::WORLD,
+            entity->col.pos,
+            &entity->sprite,
+            FLAG_IS_SET(entity->flags, Ichigo::EF_FLIP_H),
+            !FLAG_IS_SET(entity->flags, Ichigo::EF_INVISIBLE)
+        );
     }
+#else
+        render_sprite_and_advance_animation(
+            Ichigo::CoordinateSystem::WORLD,
+            entity->col.pos,
+            &entity->sprite,
+            FLAG_IS_SET(entity->flags, Ichigo::EF_FLIP_H),
+            !FLAG_IS_SET(entity->flags, Ichigo::EF_INVISIBLE)
+        );
+#endif
 
 skip_sprite_draw:
     if (DEBUG_draw_colliders) {
@@ -716,7 +741,6 @@ skip_sprite_draw:
         Ichigo::world_render_solid_colour_rect({pos + Vec2<f32>{0.0f, -0.15f}, text_width, 0.2f}, {0.0f, 0.0f, 0.0f, 0.8f});
         render_text(pos, entity->name, name_len, Ichigo::CoordinateSystem::WORLD, style);
     }
-#endif
 }
 
 void Ichigo::set_tilemap(Tilemap *tilemap) {
@@ -880,6 +904,22 @@ void Ichigo::render_rect_deferred(CoordinateSystem coordinate_system, Rect<f32> 
 
     Ichigo::push_draw_command(c);
 }
+
+void Ichigo::render_sprite_and_advance_animation_deferred(CoordinateSystem coordinate_system, Vec2<f32> pos, Sprite *sprite, bool flip_h, bool actually_render, Mat4<f32> transform, Vec4<f32> tint) {
+    Ichigo::DrawCommand c = {
+        .type                   = SPRITE,
+        .coordinate_system      = coordinate_system,
+        .transform              = transform,
+        .sprite                 = sprite,
+        .sprite_tint            = tint,
+        .sprite_pos             = pos,
+        .sprite_flip_h          = flip_h,
+        .actually_render_sprite = actually_render
+    };
+
+    Ichigo::push_draw_command(c);
+}
+
 
 static InfoLogMessage *info_log;
 static char *info_log_string_data;
@@ -1215,6 +1255,10 @@ static void frame_render() {
 
             case Ichigo::DrawCommandType::TEXT: {
                 render_text(cmd.string_pos, cmd.string, cmd.string_length, cmd.coordinate_system, cmd.text_style);
+            } break;
+
+            case Ichigo::DrawCommandType::SPRITE: {
+                render_sprite_and_advance_animation(cmd.coordinate_system, cmd.sprite_pos, cmd.sprite, cmd.sprite_flip_h, cmd.actually_render_sprite, cmd.transform, cmd.sprite_tint);
             } break;
 
             default: {

@@ -27,7 +27,7 @@ static void render(Ichigo::Entity *platform) {
 }
 
 static void update(Ichigo::Entity *platform) {
-    if (Ichiaji::program_state != Ichiaji::GAME) {
+    if (Ichiaji::program_state != Ichiaji::PS_GAME) {
         return;
     }
 

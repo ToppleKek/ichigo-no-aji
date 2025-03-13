@@ -25,6 +25,8 @@ enum Strings {
     SAVE_GAME,
     HEALTH_UI,
     MONEY_UI,
+    SHOP_HEADER,
+    SHOPKEEP_WELCOME,
     STRING_COUNT
 };
 
@@ -74,6 +76,8 @@ static const char *STRINGS[STRING_COUNT][LANGUAGE_COUNT] = {
     {"Save", "セーブ"},
     {"Health:", "Health:"},
     {"Money:", "お金:"},
+    {"Shop", "コンビニ"},
+    {"Text", "いらっしゃいませー"},
 };
 
 extern Language current_language;

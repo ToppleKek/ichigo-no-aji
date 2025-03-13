@@ -4,13 +4,14 @@
     Game logic for player character.
 
     Author: Braeden Hong
-    Date:   2024/11/24
+    Date:   2025/03/12
 */
 
 #include "irisu.hpp"
 #include "ichiaji.hpp"
 #include "particle_source.hpp"
 #include "entrances.hpp"
+#include "ui.hpp"
 
 EMBED("assets/irisu.png", irisu_spritesheet_png)
 EMBED("assets/music/boo_womp441.mp3", boo_womp_mp3)
@@ -68,6 +69,7 @@ static f32 irisu_collider_height = 1.1f;
 // TODO: Change this such that all types of entrances store the entity ID and call Entrance::can_enter_entrance(EntityID) function or something.
 static i64 entrance_to_enter                     = -1;
 static i64 level_to_enter                        = -1;
+static bool in_front_of_shop                     = false;
 static Ichigo::EntityID entrance_entity_to_enter = NULL_ENTITY_ID;
 static Vec2<f32> last_entrance_position          = {};
 
@@ -188,9 +190,14 @@ static void on_collide(Ichigo::Entity *irisu, Ichigo::Entity *other, Vec2<f32> n
         } else {
             level_to_enter = other->user_data_i64;
         }
-
     } else if ((other->user_type_id == ET_ENTRANCE_TRIGGER || other->user_type_id == ET_ENTRANCE_TRIGGER_H) && !Ichiaji::input_disabled) {
         try_enter_entrance(other->user_data_i64);
+    } else if (other->user_type_id == ET_SHOP_ENTRANCE) {
+        if (normal.x != collision_normal.x || normal.y != collision_normal.y) {
+            in_front_of_shop = false;
+        } else {
+            in_front_of_shop = true;
+        }
     }
 }
 
@@ -376,7 +383,7 @@ static void make_sparks(Vec2<f32> pos) {
 #define SPELL_MAX_VELOCITY 24.0f
 #define DEFAULT_SPELL_COOLDOWN 0.7f
 static void spell_update(Ichigo::Entity *spell) {
-    if (Ichiaji::program_state != Ichiaji::GAME) {
+    if (Ichiaji::program_state != Ichiaji::PS_GAME) {
         return;
     }
 
@@ -420,7 +427,7 @@ static void cast_spell(Ichigo::Entity *irisu) {
 }
 
 void Irisu::update(Ichigo::Entity *irisu) {
-    if (Ichiaji::program_state != Ichiaji::GAME) {
+    if (Ichiaji::program_state != Ichiaji::PS_GAME) {
         return;
     }
 
@@ -474,16 +481,20 @@ void Irisu::update(Ichigo::Entity *irisu) {
             else if (irisu->velocity.x != 0.0f)                        irisu_state = WALK;
             process_movement_keys(irisu);
 
-            if (up_button_down_this_frame && entrance_to_enter != -1) {
-                try_enter_entrance(entrance_to_enter);
-                entrance_to_enter = -1;
-            } else if (up_button_down_this_frame && level_to_enter != -1) {
-                try_enter_new_level(level_to_enter);
-                level_to_enter = -1;
-            } else if (up_button_down_this_frame && !Ichigo::entity_is_dead(entrance_entity_to_enter)) {
-                auto exit_location = Entrances::get_exit_location_if_possible(entrance_entity_to_enter);
-                if (exit_location.has_value) {
-                    try_enter_entrance(exit_location.value);
+            if (up_button_down_this_frame) {
+                if (in_front_of_shop) {
+                    Ui::open_shop_ui();
+                } else if (entrance_to_enter != -1) {
+                    try_enter_entrance(entrance_to_enter);
+                    entrance_to_enter = -1;
+                } else if (level_to_enter != -1) {
+                    try_enter_new_level(level_to_enter);
+                    level_to_enter = -1;
+                } else if (!Ichigo::entity_is_dead(entrance_entity_to_enter)) {
+                    auto exit_location = Entrances::get_exit_location_if_possible(entrance_entity_to_enter);
+                    if (exit_location.has_value) {
+                        try_enter_entrance(exit_location.value);
+                    }
                 }
             }
 

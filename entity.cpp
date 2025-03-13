@@ -151,7 +151,7 @@ Vec2<f32> Ichigo::calculate_projected_next_position(Ichigo::Entity *entity) {
 }
 
 Bana::Optional<Vec2<f32>> Ichigo::nearest_tangible_ground_tile(Ichigo::Entity *entity) {
-    for (i32 tile_y = (i32) entity->col.pos.y; tile_y < Internal::current_tilemap.height; ++tile_y) {
+    for (i32 tile_y = (i32) entity->col.pos.y; tile_y < (i32) Internal::current_tilemap.height; ++tile_y) {
         Vec2<i32> tile_pos = {(i32) entity->col.pos.x, tile_y};
         const TileInfo &info = Internal::current_tilemap.tile_info[tile_at(tile_pos)];
         if (FLAG_IS_SET(info.flags, TF_TANGIBLE)) {
@@ -566,7 +566,7 @@ Ichigo::EntityMoveResult Ichigo::move_entity_in_world(Ichigo::Entity *entity) {
     const TileInfo &left_info  = Internal::current_tilemap.tile_info[Ichigo::tile_at(entity->left_standing_tile)];
     const TileInfo &right_info = Internal::current_tilemap.tile_info[Ichigo::tile_at(entity->right_standing_tile)];
 
-    if (FLAG_IS_SET(entity->flags, Ichigo::EntityFlag::EF_ON_GROUND) && entity_is_dead(entity->standing_entity_id) && !FLAG_IS_SET(left_info.flags, TF_TANGIBLE) && !FLAG_IS_SET(left_info.flags, TF_TANGIBLE)) {
+    if (FLAG_IS_SET(entity->flags, Ichigo::EntityFlag::EF_ON_GROUND) && entity_is_dead(entity->standing_entity_id) && !FLAG_IS_SET(left_info.flags, TF_TANGIBLE) && !FLAG_IS_SET(right_info.flags, TF_TANGIBLE)) {
         result = BECAME_AIRBORNE;
         CLEAR_FLAG(entity->flags, Ichigo::EntityFlag::EF_ON_GROUND);
     }

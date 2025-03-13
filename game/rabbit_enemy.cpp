@@ -50,7 +50,7 @@ void RabbitEnemy::init() {
 #define RABBIT_JUMP_CHARGE_TIME 0.4f
 #define RABBIT_CHASE_JUMP_FREQ 0.5f
 void update(Ichigo::Entity *self) {
-    if (Ichiaji::program_state != Ichiaji::GAME) {
+    if (Ichiaji::program_state != Ichiaji::PS_GAME) {
         return;
     }
 
@@ -155,7 +155,7 @@ void update(Ichigo::Entity *self) {
 }
 
 #define SPELL_DAMAGE 1.0f
-void on_collide(Ichigo::Entity *self, Ichigo::Entity *other, Vec2<f32> normal, [[maybe_unused]] Vec2<f32> collision_normal, [[maybe_unused]] Vec2<f32> collision_pos) {
+void on_collide(Ichigo::Entity *self, Ichigo::Entity *other, [[maybe_unused]] Vec2<f32> normal, [[maybe_unused]] Vec2<f32> collision_normal, [[maybe_unused]] Vec2<f32> collision_pos) {
     if (other->user_type_id == ET_SPELL) {
         Rabbit &rabbit = rabbit_data[BIT_CAST(Bana::BucketLocator, self->user_data_i64)];
 

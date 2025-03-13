@@ -19,7 +19,8 @@ enum EntityType : u32 {
     ET_LOCKED_DOOR,
     ET_KEY,
     ET_ELEVATOR,
-    ET_RABBIT
+    ET_RABBIT,
+    ET_SHOP_ENTRANCE
 };
 
 enum TileType : u16 {
@@ -32,9 +33,10 @@ enum TileType : u16 {
 
 namespace Ichiaji {
 enum ProgramState {
-    MAIN_MENU,
-    GAME,
-    PAUSE,
+    PS_MAIN_MENU,
+    PS_GAME,
+    PS_UI_MENU,
+    PS_PAUSE,
 };
 
 struct BackgroundPngDescriptor {
@@ -82,6 +84,12 @@ struct __attribute__((packed)) LevelSaveData {
 struct GameSaveData {
     PlayerSaveData player_data;
     Bana::FixedArray<LevelSaveData> level_data;
+};
+
+enum InventoryItems {
+    INV_SHOP_HEALTH_UPGRADE       = 1 << 0,
+    INV_SHOP_ATTACK_SPEED_UPGRADE = 1 << 1,
+    INV_SHOP_ATTACK_POWER_UPGRADE = 1 << 2,
 };
 
 extern GameSaveData current_save_data;

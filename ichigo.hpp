@@ -163,7 +163,8 @@ struct Mouse {
 enum DrawCommandType {
     SOLID_COLOUR_RECT,
     TEXTURED_RECT,
-    TEXT
+    TEXT,
+    SPRITE
 };
 
 #define SCREEN_ASPECT_FIX_WIDTH 16
@@ -215,6 +216,15 @@ struct DrawCommand {
             usize string_length;
             Vec2<f32> string_pos;
             TextStyle text_style;
+        };
+
+        // SPRITE
+        struct {
+            Sprite *sprite;
+            Vec4<f32> sprite_tint;
+            Vec2<f32> sprite_pos;
+            bool sprite_flip_h;
+            bool actually_render_sprite;
         };
     };
 };
@@ -297,13 +307,14 @@ TileInfo get_tile_info(TileID tile_id);
 void push_draw_command(DrawCommand draw_command);
 void render_rect_deferred(CoordinateSystem coordinate_system, Rect<f32> rect, Vec4<f32> colour, Mat4<f32> transform = m4identity_f32);
 void render_rect_deferred(CoordinateSystem coordinate_system, Rect<f32> rect, TextureID texture_id, Mat4<f32> transform = m4identity_f32, Vec4<f32> tint = COLOUR_WHITE);
+void render_sprite_and_advance_animation_deferred(CoordinateSystem coordinate_system, Vec2<f32> pos, Sprite *sprite, bool flip_h, bool actually_render, Mat4<f32> transform = m4identity_f32, Vec4<f32> tint = COLOUR_WHITE);
 
 // Call these in custom render procedures.
 void render_text(Vec2<f32> pos, const char *str, usize length, Ichigo::CoordinateSystem coordinate_system, Ichigo::TextStyle style);
+void render_sprite_and_advance_animation(CoordinateSystem coordinate_system, Vec2<f32> pos, Sprite *sprite, bool flip_h, bool actually_render, Mat4<f32> transform = m4identity_f32, Vec4<f32> tint = COLOUR_WHITE);
 void world_render_solid_colour_rect(Rect<f32> rect, Vec4<f32> colour,  Mat4<f32> transform = m4identity_f32);
 void world_render_textured_rect(Rect<f32> rect, Ichigo::TextureID texture_id, Mat4<f32> transform = m4identity_f32, Vec4<f32> tint = COLOUR_WHITE);
 void world_render_rect_list(Vec2<f32> pos, const Bana::FixedArray<TexturedRect> &rects, TextureID texture_id, Mat4<f32> transform = m4identity_f32, Vec4<f32> tint = COLOUR_WHITE);
-
 // Show a popup message in the info log.
 void show_info(const char *str, u32 length);
 void show_info(const char *cstr);

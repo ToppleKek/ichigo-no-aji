@@ -4,7 +4,7 @@
     Game init and logic.
 
     Author: Braeden Hong
-    Date:   2024/11/28
+    Date:   2025/03/12
 */
 
 #include "../ichigo.hpp"
@@ -15,9 +15,10 @@
 #include "particle_source.hpp"
 #include "entrances.hpp"
 #include "rabbit_enemy.hpp"
+#include "ui.hpp"
+#include "asset_catalog.hpp"
 
 EMBED("assets/enemy.png", enemy_png)
-EMBED("assets/coin.png", coin_spritesheet_png)
 EMBED("assets/bg.png", test_bg)
 EMBED("assets/music/song.mp3", test_song)
 EMBED("assets/music/coin.mp3", coin_sound_mp3)
@@ -77,7 +78,6 @@ static Ichigo::TextStyle credit_style = {
 
 static Ichigo::TextureID tileset_texture    = 0;
 static Ichigo::TextureID enemy_texture_id   = 0;
-static Ichigo::TextureID coin_texture_id    = 0;
 static Ichigo::TextureID test_bg_texture_id = 0;
 static Ichigo::AudioID   test_music_id      = 0;
 static Ichigo::AudioID   coin_sound         = 0;
@@ -104,13 +104,13 @@ struct Coin {
 
 Language              current_language           = ENGLISH;
 Ichiaji::GameSaveData Ichiaji::current_save_data = {};
-Ichiaji::ProgramState Ichiaji::program_state     = Ichiaji::MAIN_MENU;
+Ichiaji::ProgramState Ichiaji::program_state     = Ichiaji::PS_MAIN_MENU;
 bool                  Ichiaji::input_disabled    = false;
 i64                   Ichiaji::current_level_id  = 0;
 Ichigo::EntityID      Ichiaji::player_entity_id  = NULL_ENTITY_ID;
 
 static void gert_update(Ichigo::Entity *gert) {
-    if (Ichiaji::program_state != Ichiaji::GAME) {
+    if (Ichiaji::program_state != Ichiaji::PS_GAME) {
         return;
     }
 
@@ -311,6 +311,7 @@ void Ichigo::Game::init() {
     }
 
     // == Load assets ==
+    Assets::load_assets();
     Irisu::init();
     MovingPlatform::init();
     ParticleSource::init();
@@ -319,7 +320,6 @@ void Ichigo::Game::init() {
 
     test_bg_texture_id    = Ichigo::load_texture(test_bg, test_bg_len);
     enemy_texture_id      = Ichigo::load_texture(enemy_png, enemy_png_len);
-    coin_texture_id       = Ichigo::load_texture(coin_spritesheet_png, coin_spritesheet_png_len);
     tileset_texture       = Ichigo::load_texture(tileset_png, tileset_png_len);
     test_music_id         = Ichigo::load_audio(test_song, test_song_len);
     coin_sound            = Ichigo::load_audio(coin_sound_mp3, coin_sound_mp3_len);
@@ -411,6 +411,10 @@ static void respawn_all_entities(const Bana::Array<Ichigo::EntityDescriptor> &de
 
             case ET_RABBIT: {
                 RabbitEnemy::spawn(d);
+            } break;
+
+            case ET_SHOP_ENTRANCE: {
+                Entrances::spawn_shop_entrance(d);
             } break;
 
             default: {
@@ -584,25 +588,25 @@ void Ichiaji::fullscreen_transition(Vec4<f32> from, Vec4<f32> to, f32 t, Fullscr
 static void enter_game_state([[maybe_unused]] uptr data) {
     Ichiaji::fullscreen_transition({0.0f, 0.0f, 0.0f, 1.0f}, {0.0f, 0.0f, 0.0f, 0.0f}, 0.3f, nullptr, 0);
     init_game();
-    Ichiaji::program_state = Ichiaji::GAME;
+    Ichiaji::program_state = Ichiaji::PS_GAME;
 }
 
 static void enter_main_menu_state([[maybe_unused]] uptr data) {
     deinit_game();
-    Ichiaji::program_state = Ichiaji::MAIN_MENU;
+    Ichiaji::program_state = Ichiaji::PS_MAIN_MENU;
 }
 
 static void enter_new_program_state(Ichiaji::ProgramState state) {
     switch (state) {
-        case Ichiaji::MAIN_MENU: {
+        case Ichiaji::PS_MAIN_MENU: {
             Ichiaji::fullscreen_transition({0.0f, 0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 1.0f}, 0.3f, enter_main_menu_state, 0);
         } break;
 
-        case Ichiaji::GAME: {
+        case Ichiaji::PS_GAME: {
             Ichiaji::fullscreen_transition({0.0f, 0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 1.0f}, 0.3f, enter_game_state, 0);
         } break;
 
-        case Ichiaji::PAUSE: {
+        case Ichiaji::PS_PAUSE: {
 
         } break;
     }
@@ -634,7 +638,7 @@ void Ichigo::Game::update_and_render() {
     }
 
     switch (Ichiaji::program_state) {
-        case Ichiaji::MAIN_MENU: {
+        case Ichiaji::PS_MAIN_MENU: {
 #define FADE_IN_DURATION 1.5f
 #define MENU_ITEM_COUNT 2
             static u32 selected_menu_item = 0;
@@ -692,7 +696,7 @@ void Ichigo::Game::update_and_render() {
 
             if (menu_select_button_down_this_frame) {
                 if (selected_menu_item == 0) {
-                    enter_new_program_state(Ichiaji::GAME);
+                    enter_new_program_state(Ichiaji::PS_GAME);
                 } else if (selected_menu_item == 1) {
                     std::exit(0);
                 }
@@ -749,15 +753,20 @@ void Ichigo::Game::update_and_render() {
 #undef MENU_ITEM_COUNT
         } break;
 
-        case Ichiaji::GAME: {
+        case Ichiaji::PS_GAME: {
             draw_game_ui();
 
             if (Internal::keyboard_state[IK_ESCAPE].down_this_frame || Internal::gamepad.start.down_this_frame) {
-                Ichiaji::program_state = Ichiaji::PAUSE;
+                Ichiaji::program_state = Ichiaji::PS_PAUSE;
             }
         } break;
 
-        case Ichiaji::PAUSE: {
+        case Ichiaji::PS_UI_MENU: {
+            draw_game_ui();
+            Ui::render_and_update_current_menu();
+        } break;
+
+        case Ichiaji::PS_PAUSE: {
             draw_game_ui();
 
 #define PAUSE_MENU_FADE_DURATION 0.2f
@@ -859,7 +868,7 @@ void Ichigo::Game::update_and_render() {
 
             if (menu_select_button_down_this_frame) {
                 if (selected_menu_item == 0) {
-                    Ichiaji::program_state = Ichiaji::GAME;
+                    Ichiaji::program_state = Ichiaji::PS_GAME;
                     selected_menu_item = 0;
                     fade_t = -1.0f;
                 } else if (selected_menu_item == 1) {
@@ -869,13 +878,13 @@ void Ichigo::Game::update_and_render() {
                         Ichigo::show_info("Failed to save game.");
                     }
 
-                    Ichiaji::program_state = Ichiaji::GAME;
+                    Ichiaji::program_state = Ichiaji::PS_GAME;
                     selected_menu_item = 0;
                     fade_t = -1.0f;
                 } else if (selected_menu_item == 2) {
                     selected_menu_item = 0;
                     // fade_t = -1.0f;
-                    enter_new_program_state(Ichiaji::MAIN_MENU);
+                    enter_new_program_state(Ichiaji::PS_MAIN_MENU);
                 } else if (selected_menu_item == 3) {
                     std::exit(0);
                 }
