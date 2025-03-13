@@ -160,6 +160,15 @@ static void spawn_gert(Vec2<f32> pos) {
     enemy->sprite = gert_sprite;
 }
 
+static void spawn_buchou(const Ichigo::EntityDescriptor &descriptor) {
+    Ichigo::Entity *e = Ichigo::spawn_entity();
+    std::strcpy(e->name, "buchou");
+
+    // TODO @asset: Sprite for this guy.
+    e->col            = {descriptor.pos, 1.0f, 1.0f};
+    e->user_type_id   = ET_BUCHOU;
+}
+
 bool Ichiaji::save_game() {
     Ichigo::Internal::PlatformFile *save_file = Ichigo::Internal::platform_open_file_write(Bana::temp_string("./default.save"));
 
@@ -417,6 +426,10 @@ static void respawn_all_entities(const Bana::Array<Ichigo::EntityDescriptor> &de
                 Entrances::spawn_shop_entrance(d);
             } break;
 
+            case ET_BUCHOU: {
+                spawn_buchou(d);
+            } break;
+
             default: {
                 ICHIGO_ERROR("Invalid/unknown entity type: %d", d.type);
             }
@@ -457,6 +470,18 @@ void Ichiaji::try_change_level(i64 level_id) {
     }
 
     change_level(level_id, false);
+}
+
+void Ichiaji::try_talk_to(Ichigo::Entity *entity) {
+    switch (entity->user_type_id) {
+        case ET_BUCHOU: {
+            Ui::open_dialogue_ui(BUCHOU_DIALOGUE, ARRAY_LEN(BUCHOU_DIALOGUE));
+        } break;
+
+        default: {
+            ICHIGO_ERROR("Cannot talk to this entity: %s", entity->name);
+        } break;
+    }
 }
 
 static void init_game() {

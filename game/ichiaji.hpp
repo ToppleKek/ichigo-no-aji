@@ -20,7 +20,8 @@ enum EntityType : u32 {
     ET_KEY,
     ET_ELEVATOR,
     ET_RABBIT,
-    ET_SHOP_ENTRANCE
+    ET_SHOP_ENTRANCE,
+    ET_BUCHOU
 };
 
 enum TileType : u16 {
@@ -103,6 +104,9 @@ extern Ichigo::EntityID player_entity_id;
 using FullscreenTransitionCompleteCallback = void (uptr);
 void fullscreen_transition(Vec4<f32> from, Vec4<f32> to, f32 t, FullscreenTransitionCompleteCallback *on_complete, uptr callback_data);
 void try_change_level(i64 level_id);
+void try_talk_to(Ichigo::Entity *entity);
+// void try_talk_to(Ichigo::EntityID eid);
+
 bool save_game();
 bool load_game();
 void new_game();

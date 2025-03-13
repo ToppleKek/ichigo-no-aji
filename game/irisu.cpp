@@ -67,10 +67,10 @@ static f32 irisu_collider_width  = 0.3f;
 static f32 irisu_collider_height = 1.1f;
 
 // TODO: Change this such that all types of entrances store the entity ID and call Entrance::can_enter_entrance(EntityID) function or something.
-static i64 entrance_to_enter                     = -1;
-static i64 level_to_enter                        = -1;
-static bool in_front_of_shop                     = false;
-static Ichigo::EntityID entrance_entity_to_enter = NULL_ENTITY_ID;
+// static i64 entrance_to_enter                     = -1;
+// static i64 level_to_enter                        = -1;
+// static bool in_front_of_shop                     = false;
+static Ichigo::EntityID interaction_entity = NULL_ENTITY_ID; // The entity that we are standing in front of- ie. the one we will try to interact with if the player presses up.
 static Vec2<f32> last_entrance_position          = {};
 
 static f32 invincibility_t = 0.0f;
@@ -159,6 +159,12 @@ static void try_enter_new_level(i64 level_index) {
 
 #define GERT_DAMAGE 1.0f
 static void on_collide(Ichigo::Entity *irisu, Ichigo::Entity *other, Vec2<f32> normal, [[maybe_unused]] Vec2<f32> collision_normal, [[maybe_unused]] Vec2<f32> collision_pos) {
+    if ((normal.x != collision_normal.x || normal.y != collision_normal.y) && other->id == interaction_entity) {
+        interaction_entity = NULL_ENTITY_ID;
+    } else {
+        interaction_entity = other->id;
+    }
+
     if (other->user_type_id == ET_GERT && irisu_state != HURT) {
         if (normal.y == -1.0f && collision_normal.y == -1.0f) {
             irisu->velocity.y -= 15.0f;
@@ -172,32 +178,8 @@ static void on_collide(Ichigo::Entity *irisu, Ichigo::Entity *other, Vec2<f32> n
 
             Ichiaji::current_save_data.player_data.health -= GERT_DAMAGE;
         }
-    } else if (other->user_type_id == ET_ENTRANCE) {
-        if (normal.x != collision_normal.x || normal.y != collision_normal.y) {
-            entrance_to_enter = -1;
-        } else {
-            entrance_to_enter = other->user_data_i64;
-        }
-    } else if (other->user_type_id == ET_LOCKED_DOOR) {
-        if (normal.x != collision_normal.x || normal.y != collision_normal.y) {
-            entrance_entity_to_enter = NULL_ENTITY_ID;
-        } else {
-            entrance_entity_to_enter = other->id;
-        }
-    } else if (other->user_type_id == ET_LEVEL_ENTRANCE) {
-        if (normal.x != collision_normal.x || normal.y != collision_normal.y) {
-            level_to_enter = -1;
-        } else {
-            level_to_enter = other->user_data_i64;
-        }
     } else if ((other->user_type_id == ET_ENTRANCE_TRIGGER || other->user_type_id == ET_ENTRANCE_TRIGGER_H) && !Ichiaji::input_disabled) {
         try_enter_entrance(other->user_data_i64);
-    } else if (other->user_type_id == ET_SHOP_ENTRANCE) {
-        if (normal.x != collision_normal.x || normal.y != collision_normal.y) {
-            in_front_of_shop = false;
-        } else {
-            in_front_of_shop = true;
-        }
     }
 }
 
@@ -289,7 +271,7 @@ void Irisu::spawn(Ichigo::Entity *entity, Vec2<f32> pos) {
     invincibility_t        = 0.0f;
     respawn_t              = 0.0f;
     irisu_state            = IDLE;
-    entrance_to_enter      = -1;
+    interaction_entity     = NULL_ENTITY_ID;
     last_entrance_position = pos; // FIXME: When you save the game, you will end up wherever you saved if you are respawned. Should we save the last entrance position as well?
     irisu_id               = entity->id;
 
@@ -482,18 +464,36 @@ void Irisu::update(Ichigo::Entity *irisu) {
             process_movement_keys(irisu);
 
             if (up_button_down_this_frame) {
-                if (in_front_of_shop) {
-                    Ui::open_shop_ui();
-                } else if (entrance_to_enter != -1) {
-                    try_enter_entrance(entrance_to_enter);
-                    entrance_to_enter = -1;
-                } else if (level_to_enter != -1) {
-                    try_enter_new_level(level_to_enter);
-                    level_to_enter = -1;
-                } else if (!Ichigo::entity_is_dead(entrance_entity_to_enter)) {
-                    auto exit_location = Entrances::get_exit_location_if_possible(entrance_entity_to_enter);
-                    if (exit_location.has_value) {
-                        try_enter_entrance(exit_location.value);
+                auto *e = Ichigo::get_entity(interaction_entity);
+
+                if (e) {
+                    switch (e->user_type_id) {
+                        case ET_ENTRANCE: {
+                            try_enter_entrance(e->user_data_i64);
+                            // Reset the interaction entity since we are leaving this area.
+                            interaction_entity = NULL_ENTITY_ID;
+                        } break;
+
+                        case ET_LOCKED_DOOR: {
+                            auto exit_location = Entrances::get_exit_location_if_possible(interaction_entity);
+                            if (exit_location.has_value) {
+                                try_enter_entrance(exit_location.value);
+                                interaction_entity = NULL_ENTITY_ID;
+                            }
+                        } break;
+
+                        case ET_LEVEL_ENTRANCE: {
+                            try_enter_new_level(e->user_data_i64);
+                            interaction_entity = NULL_ENTITY_ID;
+                        } break;
+
+                        case ET_SHOP_ENTRANCE: {
+                            Ui::open_shop_ui();
+                        } break;
+
+                        case ET_BUCHOU: {
+                            Ichiaji::try_talk_to(e);
+                        } break;
                     }
                 }
             }

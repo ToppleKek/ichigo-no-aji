@@ -6,6 +6,7 @@
 enum MenuType {
     MT_NOTHING,
     MT_SHOP,
+    MT_DIALOGUE,
 };
 
 struct ShopItem {
@@ -20,7 +21,9 @@ static const ShopItem SHOP_ITEMS[] = {
     {"Attack Power UP", 100, Ichiaji::INV_SHOP_ATTACK_POWER_UPGRADE},
 };
 
-static MenuType currently_open_menu = MT_NOTHING;
+static MenuType        currently_open_menu           = MT_NOTHING;
+static const StringID *current_dialogue_strings      = nullptr;
+static isize           current_dialogue_string_count = 0;
 
 void Ui::render_and_update_current_menu() {
     switch (currently_open_menu) {
@@ -50,7 +53,7 @@ void Ui::render_and_update_current_menu() {
                 0.0f
             };
 
-            Ichigo::render_rect_deferred(Ichigo::CoordinateSystem::CAMERA, shop_background_rect, {0.0f, 0.0f, 0.0f, 0.95f});
+            Ichigo::render_rect_deferred(Ichigo::CoordinateSystem::SCREEN_ASPECT_FIX, shop_background_rect, {0.0f, 0.0f, 0.0f, 0.95f});
 
             Ichigo::DrawCommand shop_text_cmd = {
                 .type              = Ichigo::DrawCommandType::TEXT,
@@ -206,10 +209,85 @@ void Ui::render_and_update_current_menu() {
                 }
             }
         } break;
+
+        case MT_DIALOGUE: {
+#define CHARACTER_COOLDOWN 0.03f
+
+            static isize current_string_index    = 0;
+            static isize current_string_length = 0;
+            static f32   character_cooldown_t    = 0.0f;
+
+            static Ichigo::TextStyle text_style  = {
+                Ichigo::TextAlignment::LEFT,
+                0.8f,
+                {1.0f, 1.0f, 1.0f, 1.0f},
+                100.0f
+            };
+
+            if (current_string_index >= current_dialogue_string_count || current_dialogue_strings == nullptr || current_dialogue_string_count == 0) {
+                current_string_index          = 0;
+                current_string_length         = 0;
+                character_cooldown_t          = 0.0f;
+                current_dialogue_strings      = nullptr;
+                current_dialogue_string_count = 0;
+                Ichiaji::program_state        = Ichiaji::PS_GAME;
+                currently_open_menu           = MT_NOTHING;
+            } else {
+                const char *string  = TL_STR(current_dialogue_strings[current_string_index]);
+                isize string_length = std::strlen(string);
+
+                static Rect<f32> text_background_rect = {
+                    {1.0f, 1.0f},
+                    Ichigo::Camera::screen_tile_dimensions.x - 2.0f,
+                    3.0f,
+                };
+
+                Ichigo::render_rect_deferred(Ichigo::CoordinateSystem::SCREEN_ASPECT_FIX, text_background_rect, {0.0f, 0.0f, 0.0f, 1.0f});
+
+                character_cooldown_t += Ichigo::Internal::dt;
+
+                if (character_cooldown_t >= CHARACTER_COOLDOWN) {
+                    // TODO @asset: Play some noise when advancing the string cursor.
+                    u32 advance_by = (u32) (character_cooldown_t / CHARACTER_COOLDOWN);
+                    current_string_length = clamp(current_string_length + advance_by, (isize) 0, (isize) string_length);
+                    character_cooldown_t    = 0.0f;
+                }
+
+                Ichigo::DrawCommand text_cmd = {
+                    .type              = Ichigo::DrawCommandType::TEXT,
+                    .coordinate_system = Ichigo::CoordinateSystem::SCREEN_ASPECT_FIX,
+                    .transform         = m4identity_f32,
+                    .string            = string,
+                    .string_length     = (usize) current_string_length,
+                    .string_pos        = {text_background_rect.pos.x + 0.2f, text_background_rect.pos.y + 0.5f},
+                    .text_style        = text_style
+                };
+
+                Ichigo::push_draw_command(text_cmd);
+
+                if (Ichigo::Internal::keyboard_state[Ichigo::IK_ENTER].down_this_frame || Ichigo::Internal::gamepad.a.down_this_frame) {
+                    // TODO @asset: Play a sound when advancing the text box.
+                    if (current_string_length >= string_length) {
+                        current_string_length = 0;
+                        character_cooldown_t  = 0.0f;
+                        ++current_string_index;
+                    } else {
+                        current_string_length = string_length;
+                    }
+                }
+            }
+        } break;
     }
 }
 
 void Ui::open_shop_ui() {
     Ichiaji::program_state = Ichiaji::PS_UI_MENU;
     currently_open_menu    = MT_SHOP;
+}
+
+void Ui::open_dialogue_ui(const StringID *strings, isize string_count) {
+    Ichiaji::program_state        = Ichiaji::PS_UI_MENU;
+    currently_open_menu           = MT_DIALOGUE;
+    current_dialogue_strings      = strings;
+    current_dialogue_string_count = string_count;
 }
