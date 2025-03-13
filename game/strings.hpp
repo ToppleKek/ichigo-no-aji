@@ -37,6 +37,7 @@ enum Strings {
     BUCHOU_DIALOGUE_2,
     BUCHOU_DIALOGUE_3,
     BUCHOU_DIALOGUE_4,
+    BUCHOU_DIALOGUE_5,
     STRING_COUNT
 };
 
@@ -103,6 +104,7 @@ static const constexpr char *STRINGS[STRING_COUNT][LANGUAGE_COUNT] = {
         "品質保証のためのセリフです！このセリフはすごく長いので、行間隔が見えます！こんにちは！\nいちごのあじ！無責任部！これは無責任部。俺は部長。よろしく。"
     },
     {"The club leader hands you a small key.", "部長に小さな鍵をもらった。"},
+    {"Go on. The cave is right over there.", "ほら行け。洞窟はあそこだぞ"},
 };
 
 extern Language current_language;
@@ -114,4 +116,8 @@ static constexpr StringID BUCHOU_DIALOGUE[] = {
     BUCHOU_DIALOGUE_2,
     BUCHOU_DIALOGUE_3,
     BUCHOU_DIALOGUE_4,
+};
+
+static constexpr StringID BUCHOU_DIALOGUE_HAVE_KEY[] = {
+    BUCHOU_DIALOGUE_5,
 };

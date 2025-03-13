@@ -475,7 +475,12 @@ void Ichiaji::try_change_level(i64 level_id) {
 void Ichiaji::try_talk_to(Ichigo::Entity *entity) {
     switch (entity->user_type_id) {
         case ET_BUCHOU: {
-            Ui::open_dialogue_ui(BUCHOU_DIALOGUE, ARRAY_LEN(BUCHOU_DIALOGUE));
+            if (!FLAG_IS_SET(current_save_data.level_data[1].progress_flags, Level1::LOCKED_DOOR_1_FLAGS)) {
+                SET_FLAG(current_save_data.level_data[1].progress_flags, Level1::LOCKED_DOOR_1_FLAGS);
+                Ui::open_dialogue_ui(BUCHOU_DIALOGUE, ARRAY_LEN(BUCHOU_DIALOGUE));
+            } else {
+                Ui::open_dialogue_ui(BUCHOU_DIALOGUE_HAVE_KEY, ARRAY_LEN(BUCHOU_DIALOGUE_HAVE_KEY));
+            }
         } break;
 
         default: {

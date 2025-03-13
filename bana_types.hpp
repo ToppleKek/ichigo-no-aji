@@ -7,6 +7,7 @@
 #pragma once
 
 #include <cstdint>
+#include <cstddef>
 
 using u8  = std::uint8_t;
 using u16 = std::uint16_t;
@@ -20,7 +21,7 @@ using i64 = std::int64_t;
 
 using iptr  = std::intptr_t;
 using uptr  = std::uintptr_t;
-using usize = size_t;
+using usize = std::size_t;
 using isize = i64;
 
 using f32 = float;
