@@ -726,8 +726,12 @@ void default_entity_render_proc(Ichigo::Entity *entity) {
         );
 #endif
 
+#ifdef ICHIGO_DEBUG
 skip_sprite_draw:
     if (DEBUG_draw_colliders) {
+#else
+    {
+#endif
         Ichigo::world_render_solid_colour_rect(entity->col, {1.0f, 0.2f, 0.2f, 0.6f});
 
         Ichigo::TextStyle style;
