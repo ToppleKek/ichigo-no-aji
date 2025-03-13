@@ -62,12 +62,14 @@ void Ui::render_and_update_current_menu() {
                 .text_style        = shop_text_style
             };
 
+            static u64 current_shopkeep_text_key = SHOPKEEP_WELCOME;
+
             Ichigo::DrawCommand shopkeep_text_cmd = {
                 .type              = Ichigo::DrawCommandType::TEXT,
                 .coordinate_system = Ichigo::CoordinateSystem::SCREEN_ASPECT_FIX,
                 .transform         = m4identity_f32,
-                .string            = TL_STR(SHOPKEEP_WELCOME),
-                .string_length     = std::strlen(TL_STR(SHOPKEEP_WELCOME)),
+                .string            = TL_STR(current_shopkeep_text_key),
+                .string_length     = std::strlen(TL_STR(current_shopkeep_text_key)),
                 .string_pos        = {1.3f, shop_background_rect.h + 0.6f},
                 .text_style        = shop_text_style
             };
@@ -129,9 +131,13 @@ void Ui::render_and_update_current_menu() {
 
             static i32 selected_item = 0;
             for (i32 i = 0; i < ARRAY_LEN(SHOP_ITEMS); ++i) {
-                const char *text = FLAG_IS_SET(Ichiaji::current_save_data.player_data.inventory_flags, SHOP_ITEMS[i].flag) ? "Sold out" : SHOP_ITEMS[i].name;
                 Bana::String str = make_string(64, Ichigo::Internal::temp_allocator);
-                Bana::string_format(str, "%s - %u", text, SHOP_ITEMS[i].cost);
+                if (FLAG_IS_SET(Ichiaji::current_save_data.player_data.inventory_flags, SHOP_ITEMS[i].flag)) {
+                    Bana::string_concat(str, TL_STR(SHOP_SOLD_OUT));
+                } else {
+                    // TODO: Translate item names too.
+                    Bana::string_format(str, "%s - %u", SHOP_ITEMS[i].name, SHOP_ITEMS[i].cost);
+                }
 
                 if (i == selected_item) {
                     f64 t = std::sin(Ichigo::Internal::platform_get_current_time() * 2);
@@ -171,8 +177,10 @@ void Ui::render_and_update_current_menu() {
             Ichigo::push_draw_command(shopkeep_cmd);
 
             if (Ichigo::Internal::keyboard_state[Ichigo::IK_ESCAPE].down_this_frame || Ichigo::Internal::gamepad.start.down_this_frame) {
-                currently_open_menu    = MT_NOTHING;
-                Ichiaji::program_state = Ichiaji::PS_GAME;
+                currently_open_menu       = MT_NOTHING;
+                selected_item             = 0;
+                Ichiaji::program_state    = Ichiaji::PS_GAME;
+                current_shopkeep_text_key = SHOPKEEP_WELCOME;
             }
 
             if (Ichigo::Internal::keyboard_state[Ichigo::IK_DOWN].down_this_frame || Ichigo::Internal::gamepad.down.down_this_frame) {
@@ -181,6 +189,21 @@ void Ui::render_and_update_current_menu() {
 
             if (Ichigo::Internal::keyboard_state[Ichigo::IK_UP].down_this_frame || Ichigo::Internal::gamepad.up.down_this_frame) {
                 selected_item = clamp(selected_item - 1, 0, (i32) ARRAY_LEN(SHOP_ITEMS) - 1);
+            }
+
+            if (Ichigo::Internal::keyboard_state[Ichigo::IK_ENTER].down_this_frame || Ichigo::Internal::gamepad.a.down_this_frame) {
+                if (FLAG_IS_SET(Ichiaji::current_save_data.player_data.inventory_flags, SHOP_ITEMS[selected_item].flag)) {
+                    // TODO @asset: Play a sound effect here.
+                    current_shopkeep_text_key = SHOPKEEP_SOLD_OUT;
+                } else if (SHOP_ITEMS[selected_item].cost <= Ichiaji::current_save_data.player_data.money) {
+                    // TODO @asset: Play a sound effect here.
+                    current_shopkeep_text_key = SHOPKEEP_THANK_YOU;
+                    Ichiaji::current_save_data.player_data.money -= SHOP_ITEMS[selected_item].cost;
+                    SET_FLAG(Ichiaji::current_save_data.player_data.inventory_flags, SHOP_ITEMS[selected_item].flag);
+                } else {
+                    // TODO @asset: Play a sound effect here.
+                    current_shopkeep_text_key = SHOPKEEP_YOU_ARE_BROKE;
+                }
             }
         } break;
     }

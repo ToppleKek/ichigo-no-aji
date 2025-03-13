@@ -27,6 +27,10 @@ enum Strings {
     MONEY_UI,
     SHOP_HEADER,
     SHOPKEEP_WELCOME,
+    SHOPKEEP_THANK_YOU,
+    SHOPKEEP_YOU_ARE_BROKE,
+    SHOPKEEP_SOLD_OUT,
+    SHOP_SOLD_OUT,
     STRING_COUNT
 };
 
@@ -78,6 +82,10 @@ static const char *STRINGS[STRING_COUNT][LANGUAGE_COUNT] = {
     {"Money:", "お金:"},
     {"Shop", "コンビニ"},
     {"Text", "いらっしゃいませー"},
+    {"Thanks", "まいどあり"},
+    {"You can't afford that", "お金が足りないよ"},
+    {"I'm all out of that", "売り切れたよ"},
+    {"Sold out", "売り切れ"},
 };
 
 extern Language current_language;
