@@ -66,6 +66,10 @@ struct Vec2 {
         return sqrt(x * x + y * y);
     }
 
+    T lengthsq() {
+        return x * x + y * y;
+    }
+
     void clamp(T min, T max) {
         x = ::clamp(x, min, max);
         y = ::clamp(y, min, max);

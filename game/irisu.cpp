@@ -21,7 +21,6 @@ EMBED("assets/sparks.png", sparks_png)
 
 enum IrisuState {
     IDLE,
-    IDLE_ATTACK,
     WALK,
     JUMP,
     FALL,
@@ -30,7 +29,6 @@ enum IrisuState {
     LAY_DOWN,
     GET_UP_SLOW,
     DIVE_BOOST,
-    CUTSCENE,
     RESPAWNING
 };
 

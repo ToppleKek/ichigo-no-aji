@@ -3,5 +3,5 @@
 
 namespace RabbitEnemy {
 void init();
-void spawn(const Ichigo::EntityDescriptor &descriptor);
+Ichigo::EntityID spawn(const Ichigo::EntityDescriptor &descriptor);
 }

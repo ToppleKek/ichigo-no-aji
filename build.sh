@@ -23,6 +23,7 @@ CXX_FILES_GAME=(
     game/rabbit_enemy.cpp
     game/ui.cpp
     game/asset_catalog.cpp
+    game/miniboss_room.cpp
 )
 
 IMGUI_CXX_FILES=(./thirdparty/imgui/imgui.cpp ./thirdparty/imgui/imgui_draw.cpp ./thirdparty/imgui/imgui_tables.cpp ./thirdparty/imgui/imgui_widgets.cpp ./thirdparty/imgui/imgui_impl_win32.cpp ./thirdparty/imgui/imgui_impl_opengl3.cpp)

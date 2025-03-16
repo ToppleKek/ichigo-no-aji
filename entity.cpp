@@ -42,7 +42,7 @@ Ichigo::Entity *Ichigo::get_entity(Ichigo::EntityID id) {
     if (id.index < 1 || id.index >= Internal::entities.size)
         return nullptr;
 
-    if (Internal::entities[id.index].id.generation != id.generation)
+    if (Internal::entities[id.index].id.index < 1 || Internal::entities[id.index].id.generation != id.generation)
         return nullptr;
 
     return &Internal::entities[id.index];

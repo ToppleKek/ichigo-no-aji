@@ -37,7 +37,7 @@ static constexpr u64 LOCKED_DOOR_1_FLAGS = (1 << 0) | (1 << 1);
 static bool spawn_hook(const Ichigo::EntityDescriptor &descriptor) {
     if (descriptor.type == ET_LOCKED_DOOR) {
         if (descriptor.data == LOCKED_DOOR_1_FLAGS) {
-            Entrances::spawn_locked_door(descriptor, descriptor.data, {0.0f, 0.0f}, 2); // NOTE: Bit 2 is the flag that is set when the door is unlocked.
+            Entrances::spawn_locked_door(descriptor, descriptor.data, {186.0f, 42.5f}, 2); // NOTE: Bit 2 is the flag that is set when the door is unlocked.
             return true;
         }
     }

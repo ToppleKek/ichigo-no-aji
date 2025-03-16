@@ -17,6 +17,7 @@
 #include "rabbit_enemy.hpp"
 #include "ui.hpp"
 #include "asset_catalog.hpp"
+#include "miniboss_room.hpp"
 
 EMBED("assets/enemy.png", enemy_png)
 EMBED("assets/bg.png", test_bg)
@@ -430,6 +431,10 @@ static void respawn_all_entities(const Bana::Array<Ichigo::EntityDescriptor> &de
                 spawn_buchou(d);
             } break;
 
+            case ET_MINIBOSS_ROOM_CONTROLLER: {
+                Miniboss::spawn_controller_entity(d);
+            } break;
+
             default: {
                 ICHIGO_ERROR("Invalid/unknown entity type: %d", d.type);
             }
@@ -636,9 +641,7 @@ static void enter_new_program_state(Ichiaji::ProgramState state) {
             Ichiaji::fullscreen_transition({0.0f, 0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 1.0f}, 0.3f, enter_game_state, 0);
         } break;
 
-        case Ichiaji::PS_PAUSE: {
-
-        } break;
+        default: break;
     }
 }
 
@@ -922,6 +925,8 @@ void Ichigo::Game::update_and_render() {
 #undef PAUSE_MENU_FADE_DURATION
 #undef PAUSE_MENU_ITEM_COUNT
         } break;
+
+        default: break;
     }
 
     // Render fullscreen transition rect, if it exists

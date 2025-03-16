@@ -21,7 +21,8 @@ enum EntityType : u32 {
     ET_ELEVATOR,
     ET_RABBIT,
     ET_SHOP_ENTRANCE,
-    ET_BUCHOU
+    ET_BUCHOU,
+    ET_MINIBOSS_ROOM_CONTROLLER,
 };
 
 enum TileType : u16 {
@@ -37,6 +38,7 @@ enum ProgramState {
     PS_MAIN_MENU,
     PS_GAME,
     PS_UI_MENU,
+    PS_CUTSCENE,
     PS_PAUSE,
 };
 

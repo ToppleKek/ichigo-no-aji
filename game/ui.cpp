@@ -133,7 +133,7 @@ void Ui::render_and_update_current_menu() {
             };
 
             static i32 selected_item = 0;
-            for (i32 i = 0; i < ARRAY_LEN(SHOP_ITEMS); ++i) {
+            for (i32 i = 0; i < (i32) ARRAY_LEN(SHOP_ITEMS); ++i) {
                 Bana::String str = make_string(64, Ichigo::Internal::temp_allocator);
                 if (FLAG_IS_SET(Ichiaji::current_save_data.player_data.inventory_flags, SHOP_ITEMS[i].flag)) {
                     Bana::string_concat(str, TL_STR(SHOP_SOLD_OUT));

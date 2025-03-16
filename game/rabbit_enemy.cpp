@@ -172,7 +172,7 @@ void on_kill(Ichigo::Entity *self) {
     rabbit_data.remove(bl);
 }
 
-void RabbitEnemy::spawn(const Ichigo::EntityDescriptor &descriptor) {
+Ichigo::EntityID RabbitEnemy::spawn(const Ichigo::EntityDescriptor &descriptor) {
     Ichigo::Entity *e = Ichigo::spawn_entity();
     Ichigo::change_entity_draw_layer(e, 8);
 
@@ -192,4 +192,6 @@ void RabbitEnemy::spawn(const Ichigo::EntityDescriptor &descriptor) {
     e->user_type_id   = ET_RABBIT;
     e->sprite         = rabbit_sprite;
     e->user_data_i64  = BIT_CAST(i64, bl);
+
+    return e->id;
 }
