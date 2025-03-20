@@ -651,6 +651,33 @@ void Ichigo::Game::frame_begin() {
     update_fullscreen_transition();
 }
 
+#ifdef ICHIGO_DEBUG
+static constexpr f32 NOCLIP_SPEED = 5.0f;
+static void DEBUG_noclip_update(Ichigo::Entity *e) {
+    f32 actual_noclip_speed = NOCLIP_SPEED;
+
+    if (Ichigo::Internal::keyboard_state[Ichigo::IK_SPACE].down) {
+        actual_noclip_speed *= 3.0f;
+    }
+
+    if (Ichigo::Internal::keyboard_state[Ichigo::IK_LEFT].down) {
+        e->col.pos.x -= actual_noclip_speed * Ichigo::Internal::dt;
+    }
+
+    if (Ichigo::Internal::keyboard_state[Ichigo::IK_RIGHT].down) {
+        e->col.pos.x += actual_noclip_speed * Ichigo::Internal::dt;
+    }
+
+    if (Ichigo::Internal::keyboard_state[Ichigo::IK_UP].down) {
+        e->col.pos.y -= actual_noclip_speed * Ichigo::Internal::dt;
+    }
+
+    if (Ichigo::Internal::keyboard_state[Ichigo::IK_DOWN].down) {
+        e->col.pos.y += actual_noclip_speed * Ichigo::Internal::dt;
+    }
+}
+#endif
+
 // Runs right before the engine begins to render
 void Ichigo::Game::update_and_render() {
     if (Ichiaji::all_levels[Ichiaji::current_level_id].update_proc) Ichiaji::all_levels[Ichiaji::current_level_id].update_proc();
@@ -789,6 +816,29 @@ void Ichigo::Game::update_and_render() {
         case Ichiaji::PS_GAME: {
             // == Cheats ==
 #ifdef ICHIGO_DEBUG
+            static bool DEBUG_noclip_enabled = false;
+            static Ichigo::EntityUpdateProc *DEBUG_old_proc = nullptr;
+            if (Internal::keyboard_state[IK_LEFT_CONTROL].down && Internal::keyboard_state[IK_N].down_this_frame) {
+                if (!DEBUG_noclip_enabled) {
+                    Ichigo::show_info("CHEAT: Noclip enabled.");
+                    auto *player = Ichigo::get_entity(Ichiaji::player_entity_id);
+
+                    if (player) {
+                        DEBUG_old_proc       = player->update_proc;
+                        player->update_proc  = DEBUG_noclip_update;
+                        DEBUG_noclip_enabled = true;
+                    }
+                } else {
+                    Ichigo::show_info("CHEAT: Noclip disabled.");
+                    auto *player = Ichigo::get_entity(Ichiaji::player_entity_id);
+
+                    if (player) {
+                        player->update_proc  = DEBUG_old_proc;
+                        DEBUG_noclip_enabled = false;
+                    }
+                }
+            }
+
             if (Internal::keyboard_state[IK_LEFT_CONTROL].down && Internal::keyboard_state[IK_1].down_this_frame) {
                 Ichigo::show_info("CHEAT: Load level ID 1.");
                 change_level(1, false);
