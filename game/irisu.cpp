@@ -116,30 +116,6 @@ static void try_enter_entrance(Vec2<f32> exit_location) {
     Ichiaji::fullscreen_transition({0.0f, 0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 1.0f}, 0.3f, callback, *((uptr *) &exit_location));
 }
 
-static void try_enter_entrance(i64 entrance_id) {
-    auto callback = [](uptr data) {
-        const Vec2<f32> &exit_position = Ichiaji::all_levels[Ichiaji::current_save_data.player_data.level_id].entrance_table[data];
-        auto enable_input = []([[maybe_unused]] uptr data) {
-            Ichiaji::input_disabled = false;
-        };
-
-        Ichiaji::fullscreen_transition({0.0f, 0.0f, 0.0f, 1.0f}, {0.0f, 0.0f, 0.0f, 0.0f}, 0.3f, enable_input, 0);
-        Ichigo::Camera::mode   = Ichigo::Camera::Mode::FOLLOW;
-        auto *irisu            = Ichigo::get_entity(irisu_id);
-        last_entrance_position = exit_position;
-
-        Ichigo::teleport_entity_considering_colliders(irisu, exit_position);
-
-        // Snap to the ground if we are close enough. If not, start falling.
-        snap_to_floor_or_fall(irisu);
-    };
-
-    Ichigo::Camera::mode               = Ichigo::Camera::Mode::MANUAL;
-    Ichigo::Camera::manual_focus_point = get_translation2d(Ichigo::Camera::transform) * -1.0f;
-    Ichiaji::input_disabled            = true;
-    Ichiaji::fullscreen_transition({0.0f, 0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 1.0f}, 0.3f, callback, (uptr) entrance_id);
-}
-
 static void try_enter_new_level(i64 level_index) {
     auto callback = [](uptr data) {
         auto enable_input = []([[maybe_unused]] uptr data) {
@@ -177,7 +153,7 @@ static void on_collide(Ichigo::Entity *irisu, Ichigo::Entity *other, Vec2<f32> n
             Ichiaji::current_save_data.player_data.health -= GERT_DAMAGE;
         }
     } else if ((other->user_type_id == ET_ENTRANCE_TRIGGER || other->user_type_id == ET_ENTRANCE_TRIGGER_H) && !Ichiaji::input_disabled) {
-        try_enter_entrance(other->user_data_i64);
+        try_enter_entrance(Vec2<f32>{other->user_data_f32_1, other->user_data_f32_2});
     }
 }
 
@@ -467,7 +443,7 @@ void Irisu::update(Ichigo::Entity *irisu) {
                 if (e) {
                     switch (e->user_type_id) {
                         case ET_ENTRANCE: {
-                            try_enter_entrance(e->user_data_i64);
+                            try_enter_entrance(Vec2<f32>{e->user_data_f32_1, e->user_data_f32_2});
                             // Reset the interaction entity since we are leaving this area.
                             interaction_entity = NULL_ENTITY_ID;
                         } break;

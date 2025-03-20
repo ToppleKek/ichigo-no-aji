@@ -56,7 +56,6 @@ struct Level {
     Vec4<f32> background_colour;
     Bana::FixedArray<Ichiaji::BackgroundPngDescriptor> background_descriptors;
     Bana::FixedArray<Ichigo::EntityDescriptor> entity_descriptors;
-    Bana::FixedArray<Vec2<f32>> entrance_table; // A table indexed by entrance_id (stored in the user data of the entity) to exit position.
     LevelInitProc *init_proc;
     LevelUpdateProc *update_proc;
     LevelSpawnProc *spawn_proc;

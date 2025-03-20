@@ -8,15 +8,11 @@ static Ichigo::Background backgrounds[] = {
 static Ichiaji::BackgroundPngDescriptor background_descriptors[] = {
 };
 
-Vec2<f32> entrance_table[] = {
-};
-
 Ichiaji::Level level = {
     nullptr,
     {0.0f, 0.0f, 0.0f, 1.0f},
     INLINE_INIT_OF_STATIC_ARRAY(background_descriptors),
     INLINE_INIT_OF_STATIC_ARRAY(entity_descriptors),
-    INLINE_INIT_OF_STATIC_ARRAY(entrance_table),
     nullptr,
     nullptr,
     nullptr,

@@ -17,15 +17,11 @@ static Ichiaji::BackgroundPngDescriptor background_descriptors[] = {
     { cave_bg_png_len, (u8 *) cave_bg_png, INLINE_INIT_OF_STATIC_ARRAY(backgrounds) }
 };
 
-Vec2<f32> entrance_table[] = {
-};
-
 Ichiaji::Level level = {
     (u8 *) cave_tilemap,
     {(30.0f / 255.0f), (28.0f / 255.0f), (21.0f / 255.0f), 1.0f},
     INLINE_INIT_OF_STATIC_ARRAY(background_descriptors),
     INLINE_INIT_OF_STATIC_ARRAY(entity_descriptors),
-    INLINE_INIT_OF_STATIC_ARRAY(entrance_table),
     nullptr,
     nullptr,
     nullptr,

@@ -16,24 +16,6 @@ static Ichiaji::BackgroundPngDescriptor background_descriptors[] = {
     { CaveEntranceLevel::cave_bg_png_len, (u8 *) CaveEntranceLevel::cave_bg_png, INLINE_INIT_OF_STATIC_ARRAY(backgrounds) }
 };
 
-Vec2<f32> entrance_table[] = {
-    {91.0f, 43.9f},  // 0 Start room (1) RIGHT entrance (to 2)
-    {82.0f, 43.9f},  // 1 Room 2 LEFT entrance (to START)
-    {141.0f, 43.9f}, // 2 Room 2 RIGHT entrance (to 3)
-    {131.0f, 43.9f}, // 3 Room 3 LEFT entrance (to 2)
-    {172.0f, 43.9f}, // 4 Room 4 (miniboss) LEFT entrance (to 3 / key door)
-    {166.0f, 54.9f}, // 5 Room 3 BOTTOM entrance (to BOTTOM 2)
-    {166.0f, 19.9f}, // 6 Room 3 TOP entrance (to TOP 1)
-    {162.0f, 43.9f}, // 7 Room BOTTOM 2 TOP entrance (to 3)
-    {135.0f, 63.8f}, // 8 Room BOTTOM 2 LEFT entrance (to BOTTOM 1)
-    {151.0f, 63.8f}, // 9 Room BOTTOM 1 RIGHT entrance (to BOTTOM 2)
-    {163.0f, 33.8f}, // 10 Room TOP 1 BOTTOM entrance (to 3)
-    {224.0f, 17.8f}, // 11 Room TOP 1 RIGHT entrance (to TOP 2)
-    {197.0f, 17.8f}, // 12 Room TOP 2 LEFT entrance (to TOP 1)
-    {244.0f, 43.0f}, // 13 Room 4 (miniboss) RIGHT entrance (to 2ND HALF 1)
-    {225.0f, 43.0f}, // 14 Room 2nd half 1 LEFT entrance (to miniboss)
-};
-
 static constexpr u64 LOCKED_DOOR_1_FLAGS = (1 << 0) | (1 << 1);
 
 static bool spawn_hook(const Ichigo::EntityDescriptor &descriptor) {
@@ -52,7 +34,6 @@ Ichiaji::Level level = {
     {(30.0f / 255.0f), (28.0f / 255.0f), (21.0f / 255.0f), 1.0f},
     INLINE_INIT_OF_STATIC_ARRAY(background_descriptors),
     INLINE_INIT_OF_STATIC_ARRAY(entity_descriptors),
-    INLINE_INIT_OF_STATIC_ARRAY(entrance_table),
     nullptr,
     nullptr,
     spawn_hook,

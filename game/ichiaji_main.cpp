@@ -787,6 +787,29 @@ void Ichigo::Game::update_and_render() {
         } break;
 
         case Ichiaji::PS_GAME: {
+            // == Cheats ==
+#ifdef ICHIGO_DEBUG
+            if (Internal::keyboard_state[IK_LEFT_CONTROL].down && Internal::keyboard_state[IK_1].down_this_frame) {
+                Ichigo::show_info("CHEAT: Load level ID 1.");
+                change_level(1, false);
+            }
+
+            if (Internal::keyboard_state[IK_LEFT_CONTROL].down && Internal::keyboard_state[IK_2].down_this_frame) {
+                Ichigo::show_info("CHEAT: Load level ID 2.");
+                change_level(2, false);
+            }
+
+            if (Internal::keyboard_state[IK_LEFT_CONTROL].down && Internal::keyboard_state[IK_3].down_this_frame) {
+                Ichigo::show_info("CHEAT: Load level ID 3.");
+                change_level(3, false);
+            }
+
+            if (Internal::keyboard_state[IK_LEFT_CONTROL].down && Internal::keyboard_state[IK_M].down_this_frame) {
+                Ichigo::show_info("CHEAT: Give money.");
+                Ichiaji::current_save_data.player_data.money = 9999;
+            }
+#endif
+
             draw_game_ui();
 
             if (Internal::keyboard_state[IK_ESCAPE].down_this_frame || Internal::gamepad.start.down_this_frame) {

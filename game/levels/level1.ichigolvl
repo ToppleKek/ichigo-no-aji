@@ -42,21 +42,11 @@ static bool spawn_hook(const Ichigo::EntityDescriptor &descriptor) {
     return false;
 }
 
-Vec2<f32> entrance_table[] = {
-    {2.0f, 15.0f}, // From under the school to above ground
-    {10.0f, 15.9f}, // Test entrance
-    {44.0f, 15.9f}, // To front of dorm from school
-    {33.0f, 15.9f}, // To front of school
-    {83.0f, 15.9f}, // To front of store
-    {73.0f, 15.9f}, // To front of dorm from store
-};
-
 Ichiaji::Level level = {
     (u8 *) level1_tilemap,
     {(30.0f / 255.0f), (28.0f / 255.0f), (21.0f / 255.0f), 1.0f},
     INLINE_INIT_OF_STATIC_ARRAY(background_descriptors),
     INLINE_INIT_OF_STATIC_ARRAY(entity_descriptors),
-    INLINE_INIT_OF_STATIC_ARRAY(entrance_table),
     nullptr,
     nullptr,
     spawn_hook,
