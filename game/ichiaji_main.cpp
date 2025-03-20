@@ -19,14 +19,6 @@
 #include "asset_catalog.hpp"
 #include "miniboss_room.hpp"
 
-EMBED("assets/enemy.png", enemy_png)
-EMBED("assets/bg.png", test_bg)
-EMBED("assets/music/song.mp3", test_song)
-EMBED("assets/music/coin.mp3", coin_sound_mp3)
-
-// Real tiles
-EMBED("assets/overworld_tiles.png", tileset_png)
-
 // Levels
 #include "levels/level0.ichigolvl"
 #include "levels/level1.ichigolvl"
@@ -41,11 +33,6 @@ Ichiaji::Level Ichiaji::all_levels[] = {
 };
 
 // UI
-EMBED("assets/coin-collected.png", ui_collected_coin_png)
-EMBED("assets/coin-uncollected.png", ui_uncollected_coin_png)
-EMBED("assets/coin-ui-bg.png", ui_coin_background_png)
-EMBED("assets/a-button.png", ui_a_button_png)
-EMBED("assets/enter-key.png", ui_enter_key_png)
 
 static Vec4<f32> colour_white = {1.0f, 1.0f, 1.0f, 1.0f};
 
@@ -76,21 +63,6 @@ static Ichigo::TextStyle credit_style = {
     .colour       = colour_white,
     .line_spacing = 100.0f
 };
-
-static Ichigo::TextureID tileset_texture    = 0;
-static Ichigo::TextureID enemy_texture_id   = 0;
-static Ichigo::TextureID test_bg_texture_id = 0;
-static Ichigo::AudioID   test_music_id      = 0;
-static Ichigo::AudioID   coin_sound         = 0;
-
-static Ichigo::TextureID ui_collected_coin_texture   = 0;
-static Ichigo::TextureID ui_uncollected_coin_texture = 0;
-static Ichigo::TextureID ui_coin_background          = 0;
-static Ichigo::TextureID ui_a_button                 = 0;
-static Ichigo::TextureID ui_enter_key                = 0;
-
-static f32 ui_coin_background_width_in_metres  = 0.0f;
-static f32 ui_coin_background_height_in_metres = 0.0f;
 
 static Ichigo::SpriteSheet tileset_sheet;
 
@@ -153,7 +125,7 @@ static void spawn_gert(Vec2<f32> pos) {
     gert_sprite.width             = 1.0f;
     gert_sprite.height            = 1.0f;
     gert_sprite.pos_offset        = Util::calculate_centered_pos_offset(enemy->col.w, enemy->col.h, gert_sprite.width, gert_sprite.height);
-    gert_sprite.sheet.texture     = enemy_texture_id;
+    gert_sprite.sheet.texture     = Assets::gert_texture_id;
     gert_sprite.sheet.cell_width  = 32;
     gert_sprite.sheet.cell_height = 32;
     gert_sprite.animation         = gert_idle;
@@ -321,26 +293,17 @@ void Ichigo::Game::init() {
     }
 
     // == Load assets ==
+    f64 before = Ichigo::Internal::platform_get_current_time();
     Assets::load_assets();
+    ICHIGO_INFO("Asset load took %fs.", Ichigo::Internal::platform_get_current_time() - before);
+
     Irisu::init();
     MovingPlatform::init();
     ParticleSource::init();
     Entrances::init();
     RabbitEnemy::init();
 
-    test_bg_texture_id    = Ichigo::load_texture(test_bg, test_bg_len);
-    enemy_texture_id      = Ichigo::load_texture(enemy_png, enemy_png_len);
-    tileset_texture       = Ichigo::load_texture(tileset_png, tileset_png_len);
-    test_music_id         = Ichigo::load_audio(test_song, test_song_len);
-    coin_sound            = Ichigo::load_audio(coin_sound_mp3, coin_sound_mp3_len);
-
-    ui_collected_coin_texture   = Ichigo::load_texture(ui_collected_coin_png, ui_collected_coin_png_len);
-    ui_uncollected_coin_texture = Ichigo::load_texture(ui_uncollected_coin_png, ui_uncollected_coin_png_len);
-    ui_coin_background          = Ichigo::load_texture(ui_coin_background_png, ui_coin_background_png_len);
-    ui_a_button                 = Ichigo::load_texture(ui_a_button_png, ui_a_button_png_len);
-    ui_enter_key                = Ichigo::load_texture(ui_enter_key_png, ui_enter_key_png_len);
-
-    tileset_sheet = { 32, 32, tileset_texture };
+    tileset_sheet = { 32, 32, Assets::tileset_texture_id };
 
     // == Load levels ==
     for (u32 i = 0; i < ARRAY_LEN(Ichiaji::all_levels); ++i) {
@@ -360,10 +323,6 @@ void Ichigo::Game::init() {
 
     // Title screen level
     Ichiaji::current_level_id = 0;
-
-    const Ichigo::Texture &t = Ichigo::Internal::textures[ui_coin_background];
-    ui_coin_background_width_in_metres  = pixels_to_metres(t.width);
-    ui_coin_background_height_in_metres = pixels_to_metres(t.height);
 
     Ichigo::Camera::mode = Ichigo::Camera::Mode::MANUAL;
     Ichigo::Camera::screen_tile_dimensions = {16.0f, 9.0f};
@@ -507,7 +466,7 @@ static void init_game() {
     }
 
     // == Setup initial game state ==
-    game_bgm = Ichigo::Mixer::play_audio(test_music_id, 1.0f, 1.0f, 1.0f, 0.864f, 54.188f);
+    game_bgm = Ichigo::Mixer::play_audio(Assets::test_song_audio_id, 1.0f, 1.0f, 1.0f, 0.864f, 54.188f);
 }
 
 static void deinit_game() {

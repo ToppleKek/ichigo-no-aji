@@ -1,7 +1,6 @@
 #include "rabbit_enemy.hpp"
 #include "ichiaji.hpp"
-
-EMBED("assets/rabbit.png", rabbit_sheet_png)
+#include "asset_catalog.hpp"
 
 #define RABBIT_BASE_HEALTH 3.0f
 
@@ -20,17 +19,15 @@ struct Rabbit {
     f32 health;
 };
 
-static Ichigo::TextureID rabbit_texture_id;
 static Ichigo::Sprite rabbit_sprite;
 static u32 tex_width_px;
 static u32 tex_height_px;
 static Bana::BucketArray<Rabbit> rabbit_data;
 
 void RabbitEnemy::init() {
-    rabbit_texture_id = Ichigo::load_texture(rabbit_sheet_png, rabbit_sheet_png_len);
     rabbit_data       = make_bucket_array<Rabbit>(128, Ichigo::Internal::perm_allocator);
 
-    const Ichigo::Texture &tex = Ichigo::Internal::textures[rabbit_texture_id];
+    const Ichigo::Texture &tex = Ichigo::Internal::textures[Assets::rabbit_texture_id];
 
     tex_width_px  = tex.width;
     tex_height_px = tex.height;
@@ -39,7 +36,7 @@ void RabbitEnemy::init() {
     rabbit_sprite.pos_offset = {0.0f, 0.0f};
     rabbit_sprite.width      = pixels_to_metres(tex_width_px);
     rabbit_sprite.height     = pixels_to_metres(tex_height_px);
-    rabbit_sprite.sheet      = { tex_width_px, tex_height_px, rabbit_texture_id };
+    rabbit_sprite.sheet      = { tex_width_px, tex_height_px, Assets::rabbit_texture_id };
     rabbit_sprite.animation  = {};
 }
 

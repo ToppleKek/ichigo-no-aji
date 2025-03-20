@@ -12,12 +12,7 @@
 #include "particle_source.hpp"
 #include "entrances.hpp"
 #include "ui.hpp"
-
-EMBED("assets/irisu.png", irisu_spritesheet_png)
-EMBED("assets/music/boo_womp441.mp3", boo_womp_mp3)
-EMBED("assets/music/jump.mp3", jump_sound_mp3)
-EMBED("assets/spell.png", spell_spritesheet_png)
-EMBED("assets/sparks.png", sparks_png)
+#include "asset_catalog.hpp"
 
 enum IrisuState {
     IDLE,
@@ -52,11 +47,6 @@ static Ichigo::Animation irisu_lay_down    = {};
 static Ichigo::Animation irisu_get_up_slow = {};
 
 static Ichigo::EntityID irisu_id          = {};
-static Ichigo::TextureID irisu_texture_id = 0;
-static Ichigo::TextureID spell_texture_id = 0;
-static Ichigo::TextureID sparks_texture_id = 0;
-static Ichigo::AudioID boo_womp_id        = {};
-static Ichigo::AudioID jump_sound         = 0;
 
 static Ichigo::Sprite spell_sprite;
 static Ichigo::Sprite irisu_sprite;
@@ -143,7 +133,7 @@ static void on_collide(Ichigo::Entity *irisu, Ichigo::Entity *other, Vec2<f32> n
         if (normal.y == -1.0f && collision_normal.y == -1.0f) {
             irisu->velocity.y -= 15.0f;
             Ichigo::kill_entity(other->id);
-            Ichigo::Mixer::play_audio_oneshot(boo_womp_id, 1.0f, 1.0f, 1.0f);
+            Ichigo::Mixer::play_audio_oneshot(Assets::gert_death_audio_id, 1.0f, 1.0f, 1.0f);
         } else if (invincibility_t == 0.0f) {
             irisu->acceleration = {0.0f, 0.0f};
             irisu->velocity.y   = -3.0f;
@@ -158,12 +148,6 @@ static void on_collide(Ichigo::Entity *irisu, Ichigo::Entity *other, Vec2<f32> n
 }
 
 void Irisu::init() {
-    irisu_texture_id  = Ichigo::load_texture(irisu_spritesheet_png, irisu_spritesheet_png_len);
-    spell_texture_id  = Ichigo::load_texture(spell_spritesheet_png, spell_spritesheet_png_len);
-    sparks_texture_id = Ichigo::load_texture(sparks_png, sparks_png_len);
-    boo_womp_id       = Ichigo::load_audio(boo_womp_mp3, boo_womp_mp3_len);
-    jump_sound        = Ichigo::load_audio(jump_sound_mp3, jump_sound_mp3_len);
-
     irisu_idle.tag                 = IrisuState::IDLE;
     irisu_idle.cell_of_first_frame = 6 * 17;
     irisu_idle.cell_of_last_frame  = irisu_idle.cell_of_first_frame + 7;
@@ -224,16 +208,16 @@ void Irisu::init() {
     irisu_sprite.width             = pixels_to_metres(60.0f);
     irisu_sprite.height            = pixels_to_metres(60.0f);
     irisu_sprite.pos_offset        = Util::calculate_centered_pos_offset(irisu_collider_width, irisu_collider_height, irisu_sprite.width, irisu_sprite.height);
-    irisu_sprite.sheet.texture     = irisu_texture_id;
+    irisu_sprite.sheet.texture     = Assets::irisu_texture_id;
     irisu_sprite.sheet.cell_width  = 60;
     irisu_sprite.sheet.cell_height = 60;
     irisu_sprite.animation         = irisu_idle;
 
-    const Ichigo::Texture &spell_texture = Ichigo::Internal::textures[spell_texture_id];
+    const Ichigo::Texture &spell_texture = Ichigo::Internal::textures[Assets::spell_texture_id];
     spell_sprite.width             = pixels_to_metres(spell_texture.width);
     spell_sprite.height            = pixels_to_metres(spell_texture.height);
     spell_sprite.pos_offset        = {0.0f, 0.0f};
-    spell_sprite.sheet.texture     = spell_texture_id;
+    spell_sprite.sheet.texture     = Assets::spell_texture_id;
     spell_sprite.sheet.cell_width  = spell_texture.width;
     spell_sprite.sheet.cell_height = spell_texture.height;
     spell_sprite.animation         = {0, 0, 0, 0, 0, 0.0f};
@@ -296,32 +280,6 @@ static void process_movement_keys(Ichigo::Entity *irisu) {
     }
 }
 
-// static IrisuState handle_idle_state(Ichigo::Entity *irisu, InputState input_state) {
-//     IrisuState new_state = irisu_state;
-
-//     maybe_enter_animation(irisu, irisu_idle);
-//     if      (!FLAG_IS_SET(irisu->flags, Ichigo::EF_ON_GROUND)) new_state = JUMP;
-//     else if (irisu->velocity.x != 0.0f)                        new_state = WALK;
-//     process_movement_keys(irisu);
-
-//     if (input_state.up_button_down_this_frame && entrance_to_enter != -1) {
-//         try_enter_entrance(entrance_to_enter);
-//     }
-
-//     if (input_state.jump_button_down_this_frame) {
-//         released_jump     = false;
-//         applied_t         = 0.0f;
-//         new_state         = JUMP;
-//         irisu->velocity.y = -irisu->jump_acceleration;
-//         maybe_enter_animation(irisu, irisu_jump);
-//         Ichigo::Mixer::play_audio_oneshot(jump_sound, 1.0f, 1.0f, 1.0f);
-//     }
-
-//     return new_state;
-// }
-
-// static Ichigo::EntityID spell_entity_id = {};
-
 static void make_sparks(Vec2<f32> pos) {
     Ichigo::EntityDescriptor spark_particle_gen_descriptor = {
         "DYN_SPARK_PARTICLES",
@@ -333,7 +291,7 @@ static void make_sparks(Vec2<f32> pos) {
         0
     };
 
-    ParticleSource::spawn(spark_particle_gen_descriptor, sparks_texture_id, 0.1f, 0.3f, 3.0f);
+    ParticleSource::spawn(spark_particle_gen_descriptor, Assets::sparks_texture_id, 0.1f, 0.3f, 3.0f);
 }
 
 #define SPELL_MAX_VELOCITY 24.0f
@@ -478,7 +436,7 @@ void Irisu::update(Ichigo::Entity *irisu) {
                 irisu_state       = JUMP;
                 irisu->velocity.y = -irisu->jump_acceleration;
                 maybe_enter_animation(irisu, irisu_jump);
-                Ichigo::Mixer::play_audio_oneshot(jump_sound, 1.0f, 1.0f, 1.0f);
+                Ichigo::Mixer::play_audio_oneshot(Assets::jump_audio_id, 1.0f, 1.0f, 1.0f);
             }
         } break;
 
@@ -505,7 +463,7 @@ void Irisu::update(Ichigo::Entity *irisu) {
                     irisu_state       = JUMP;
                     irisu->velocity.y = -irisu->jump_acceleration;
                     maybe_enter_animation(irisu, irisu_jump);
-                    Ichigo::Mixer::play_audio_oneshot(jump_sound, 1.0f, 1.0f, 1.0f);
+                    Ichigo::Mixer::play_audio_oneshot(Assets::jump_audio_id, 1.0f, 1.0f, 1.0f);
                 }
 
                 if (run_button_down) {
@@ -599,7 +557,7 @@ void Irisu::update(Ichigo::Entity *irisu) {
                     irisu->velocity.x += DIVE_X_VELOCITY * 2.5f * signof(irisu->velocity.x);
                     irisu_state = DIVE_BOOST;
                     maybe_enter_animation(irisu, irisu_jump);
-                    Ichigo::Mixer::play_audio_oneshot(jump_sound, 1.0f, 1.0f, 1.0f);
+                    Ichigo::Mixer::play_audio_oneshot(Assets::jump_audio_id, 1.0f, 1.0f, 1.0f);
                 }
             }
 

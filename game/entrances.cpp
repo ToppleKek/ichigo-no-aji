@@ -1,15 +1,8 @@
 #include "entrances.hpp"
 #include "ichiaji.hpp"
+#include "asset_catalog.hpp"
 
 #include <immintrin.h>
-
-EMBED("assets/key.png", key_png)
-EMBED("assets/lock.png", lock_png)
-EMBED("assets/entrance.png", entrance_png)
-
-static Ichigo::TextureID key_texture;
-static Ichigo::TextureID lock_texture;
-static Ichigo::TextureID entrance_texture;
 
 struct LockedDoor {
     u64 unlock_flags;
@@ -23,14 +16,14 @@ static void render_locked_door(Ichigo::Entity *e) {
     Bana::BucketLocator bl = *((Bana::BucketLocator *) &e->user_data_i64);
     LockedDoor &ld         = locked_doors[bl];
 
-    Ichigo::world_render_textured_rect(e->col, entrance_texture);
+    Ichigo::world_render_textured_rect(e->col, Assets::entrance_texture_id);
 
 
     if (!FLAG_IS_SET(Ichiaji::current_level_save_data().progress_flags, 1 << ld.unlocked_bit)) {
-        Ichigo::Texture &lock_tex = Ichigo::Internal::textures[lock_texture];
+        Ichigo::Texture &lock_tex = Ichigo::Internal::textures[Assets::lock_texture_id];
         // FIXME: position this.
         Rect<f32> r = {e->col.pos + Vec2<f32>{e->col.w / 2.0f, e->col.h / 2.0f}, pixels_to_metres(lock_tex.width), pixels_to_metres(lock_tex.height)};
-        Ichigo::world_render_textured_rect(r, lock_texture);
+        Ichigo::world_render_textured_rect(r, Assets::lock_texture_id);
     }
 }
 
@@ -48,23 +41,19 @@ static void on_key_collide(Ichigo::Entity *key, Ichigo::Entity *other, [[maybe_u
 }
 
 void Entrances::init() {
-    key_texture      = Ichigo::load_texture(key_png, key_png_len);
-    lock_texture     = Ichigo::load_texture(lock_png, lock_png_len);
-    entrance_texture = Ichigo::load_texture(entrance_png, entrance_png_len);
-
     locked_doors = make_bucket_array<LockedDoor>(128, Ichigo::Internal::perm_allocator);
 }
 
 void Entrances::spawn_entrance(const Ichigo::EntityDescriptor &descriptor) {
     Ichigo::Entity *entrance = Ichigo::spawn_entity();
-    Ichigo::Texture &tex     = Ichigo::Internal::textures[entrance_texture];
+    Ichigo::Texture &tex     = Ichigo::Internal::textures[Assets::entrance_texture_id];
 
     std::strcpy(entrance->name, "entrance");
 
     entrance->col                                  = {descriptor.pos, 1.0f, 1.0f};
     entrance->sprite.width                         = 1.0f;
     entrance->sprite.height                        = 1.0f;
-    entrance->sprite.sheet.texture                 = entrance_texture;
+    entrance->sprite.sheet.texture                 = Assets::entrance_texture_id;
     entrance->sprite.sheet.cell_width              = pixels_to_metres(tex.width);
     entrance->sprite.sheet.cell_height             = pixels_to_metres(tex.height);
     entrance->sprite.animation                     = {};
@@ -110,7 +99,7 @@ void Entrances::spawn_death_trigger(const Ichigo::EntityDescriptor &descriptor) 
 void Entrances::spawn_locked_door(const Ichigo::EntityDescriptor &descriptor, u64 unlock_flags, Vec2<f32> exit_location, u8 unlocked_bit) {
     LockedDoor ld          = {unlock_flags, exit_location, unlocked_bit};
     Bana::BucketLocator bl = locked_doors.insert(ld);
-    Ichigo::Texture &tex   = Ichigo::Internal::textures[entrance_texture];
+    Ichigo::Texture &tex   = Ichigo::Internal::textures[Assets::entrance_texture_id];
     Ichigo::Entity *e      = Ichigo::spawn_entity();
 
     std::strcpy(e->name, "locked_door");
@@ -126,7 +115,7 @@ void Entrances::spawn_locked_door(const Ichigo::EntityDescriptor &descriptor, u6
 
 void Entrances::spawn_key(const Ichigo::EntityDescriptor &descriptor) {
     Ichigo::Entity *e      = Ichigo::spawn_entity();
-    Ichigo::Texture &tex   = Ichigo::Internal::textures[key_texture];
+    Ichigo::Texture &tex   = Ichigo::Internal::textures[Assets::key_texture_id];
 
     static const Ichigo::Sprite key_sprite = {
         .pos_offset = {},
@@ -135,7 +124,7 @@ void Entrances::spawn_key(const Ichigo::EntityDescriptor &descriptor) {
         .sheet      = {
             .cell_width  = tex.width,
             .cell_height = tex.height,
-            .texture     = key_texture,
+            .texture     = Assets::key_texture_id,
         },
         .animation                    = {},
         .current_animation_frame      = 0,
@@ -154,7 +143,7 @@ void Entrances::spawn_key(const Ichigo::EntityDescriptor &descriptor) {
 }
 
 void Entrances::spawn_shop_entrance(const Ichigo::EntityDescriptor &descriptor) {
-    Ichigo::Texture &tex   = Ichigo::Internal::textures[entrance_texture];
+    Ichigo::Texture &tex   = Ichigo::Internal::textures[Assets::entrance_texture_id];
     Ichigo::Entity *e      = Ichigo::spawn_entity();
 
     static const Ichigo::Sprite shop_entrance_sprite = {
@@ -164,7 +153,7 @@ void Entrances::spawn_shop_entrance(const Ichigo::EntityDescriptor &descriptor) 
         .sheet      = {
             .cell_width  = tex.width,
             .cell_height = tex.height,
-            .texture     = entrance_texture,
+            .texture     = Assets::entrance_texture_id,
         },
         .animation                    = {},
         .current_animation_frame      = 0,
