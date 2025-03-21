@@ -3,6 +3,9 @@
 #include "../ichigo.hpp"
 
 #define PLAYER_STARTING_HEALTH 10.0f
+#define HEALTH_BONUS_ITEM_POWER 2.0f
+#define ATTACK_SPEED_UP_POWER 0.2f
+#define ATTACK_POWER_UP_POWER 1.0f
 
 enum EntityType : u32 {
     ET_NOTHING,
@@ -77,6 +80,12 @@ struct __attribute__((packed)) LevelSaveData {
     u64 item_flags;
 };
 
+struct PlayerBonuses {
+    f32 max_health;
+    f32 attack_speed;
+    f32 attack_power;
+};
+
 struct GameSaveData {
     PlayerSaveData player_data;
     Bana::FixedArray<LevelSaveData> level_data;
@@ -89,6 +98,7 @@ enum InventoryItems {
 };
 
 extern GameSaveData current_save_data;
+extern PlayerBonuses player_bonuses;
 extern ProgramState program_state;
 extern bool input_disabled;
 // extern bool ai_disabled;
@@ -100,7 +110,7 @@ using FullscreenTransitionCompleteCallback = void (uptr);
 void fullscreen_transition(Vec4<f32> from, Vec4<f32> to, f32 t, FullscreenTransitionCompleteCallback *on_complete, uptr callback_data);
 void try_change_level(i64 level_id);
 void try_talk_to(Ichigo::Entity *entity);
-// void try_talk_to(Ichigo::EntityID eid);
+void recalculate_player_bonuses();
 
 bool save_game();
 bool load_game();

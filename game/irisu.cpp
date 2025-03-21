@@ -46,7 +46,7 @@ static Ichigo::Animation irisu_hurt        = {};
 static Ichigo::Animation irisu_lay_down    = {};
 static Ichigo::Animation irisu_get_up_slow = {};
 
-static Ichigo::EntityID irisu_id          = {};
+static Ichigo::EntityID irisu_id           = {};
 
 static Ichigo::Sprite spell_sprite;
 static Ichigo::Sprite irisu_sprite;
@@ -295,7 +295,7 @@ static void make_sparks(Vec2<f32> pos) {
 }
 
 #define SPELL_MAX_VELOCITY 24.0f
-#define DEFAULT_SPELL_COOLDOWN 0.7f
+#define DEFAULT_SPELL_COOLDOWN 0.5f
 static void spell_update(Ichigo::Entity *spell) {
     if (Ichiaji::program_state != Ichiaji::PS_GAME) {
         return;
@@ -317,6 +317,7 @@ static void spell_collide(Ichigo::Entity *spell, [[maybe_unused]] Ichigo::Entity
     }
 }
 
+static f32 attack_cooldown_remaining = 0.0f;
 static void cast_spell(Ichigo::Entity *irisu) {
     Ichigo::Entity *spell = Ichigo::spawn_entity();
 
@@ -338,6 +339,8 @@ static void cast_spell(Ichigo::Entity *irisu) {
         spell->velocity.x = -SPELL_MAX_VELOCITY;
         spell->col.pos += Vec2<f32>{-spell_sprite.width, 0.0f};
     }
+
+    attack_cooldown_remaining = DEFAULT_SPELL_COOLDOWN - Ichiaji::player_bonuses.attack_speed; // NOTE: This attack speed bonus could be a % of the default instead?
 }
 
 void Irisu::update(Ichigo::Entity *irisu) {
@@ -346,7 +349,6 @@ void Irisu::update(Ichigo::Entity *irisu) {
     }
 
     static f32 applied_t = 0.0f;
-    static f32 attack_cooldown_remaining = 0.0f;
     static bool released_jump = false;
 
     if (attack_cooldown_remaining > 0.0f) {
@@ -388,7 +390,6 @@ void Irisu::update(Ichigo::Entity *irisu) {
 
             if (fire_button_down && attack_cooldown_remaining <= 0.0f) {
                 cast_spell(irisu);
-                attack_cooldown_remaining = DEFAULT_SPELL_COOLDOWN;
             }
 
             if      (!FLAG_IS_SET(irisu->flags, Ichigo::EF_ON_GROUND)) irisu_state = JUMP;
@@ -445,7 +446,6 @@ void Irisu::update(Ichigo::Entity *irisu) {
 
             if (fire_button_down && attack_cooldown_remaining <= 0.0f) {
                 cast_spell(irisu);
-                attack_cooldown_remaining = DEFAULT_SPELL_COOLDOWN;
             }
 
             if (!FLAG_IS_SET(irisu->flags, Ichigo::EF_ON_GROUND)) {
@@ -493,6 +493,10 @@ void Irisu::update(Ichigo::Entity *irisu) {
                     released_jump = true;
                 }
 
+                if (fire_button_down && attack_cooldown_remaining <= 0.0f) {
+                    cast_spell(irisu);
+                }
+
                 if (jump_button_down && !released_jump && applied_t < IRISU_MAX_JUMP_T) {
                     CLEAR_FLAG(irisu->flags, Ichigo::EntityFlag::EF_ON_GROUND);
                     f32 effective_dt = MIN(Ichigo::Internal::dt, IRISU_MAX_JUMP_T - applied_t);
@@ -515,6 +519,11 @@ void Irisu::update(Ichigo::Entity *irisu) {
                 maybe_enter_animation(irisu, irisu_dive);
             } else {
                 process_movement_keys(irisu);
+
+                if (fire_button_down && attack_cooldown_remaining <= 0.0f) {
+                    cast_spell(irisu);
+                }
+
             }
         } break;
 

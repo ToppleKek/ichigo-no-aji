@@ -73,12 +73,13 @@ struct Coin {
     Ichigo::EntityID id;
 };
 
-Language              current_language           = ENGLISH;
-Ichiaji::GameSaveData Ichiaji::current_save_data = {};
-Ichiaji::ProgramState Ichiaji::program_state     = Ichiaji::PS_MAIN_MENU;
-bool                  Ichiaji::input_disabled    = false;
-i64                   Ichiaji::current_level_id  = 0;
-Ichigo::EntityID      Ichiaji::player_entity_id  = NULL_ENTITY_ID;
+Language               current_language           = ENGLISH;
+Ichiaji::GameSaveData  Ichiaji::current_save_data = {};
+Ichiaji::PlayerBonuses Ichiaji::player_bonuses    = {};
+Ichiaji::ProgramState  Ichiaji::program_state     = Ichiaji::PS_MAIN_MENU;
+bool                   Ichiaji::input_disabled    = false;
+i64                    Ichiaji::current_level_id  = 0;
+Ichigo::EntityID       Ichiaji::player_entity_id  = NULL_ENTITY_ID;
 
 static void gert_update(Ichigo::Entity *gert) {
     if (Ichiaji::program_state != Ichiaji::PS_GAME) {
@@ -295,6 +296,8 @@ void Ichigo::Game::init() {
     Assets::load_assets();
     ICHIGO_INFO("Asset load took %fs.", Ichigo::Internal::platform_get_current_time() - before);
 
+    Ichiaji::recalculate_player_bonuses();
+
     Irisu::init();
     MovingPlatform::init();
     ParticleSource::init();
@@ -439,6 +442,15 @@ void Ichiaji::try_talk_to(Ichigo::Entity *entity) {
     }
 }
 
+void Ichiaji::recalculate_player_bonuses() {
+    Ichiaji::player_bonuses = {};
+    auto inv = Ichiaji::current_save_data.player_data.inventory_flags;
+
+    if (FLAG_IS_SET(inv, INV_SHOP_HEALTH_UPGRADE))       Ichiaji::player_bonuses.max_health   += HEALTH_BONUS_ITEM_POWER;
+    if (FLAG_IS_SET(inv, INV_SHOP_ATTACK_SPEED_UPGRADE)) Ichiaji::player_bonuses.attack_speed += ATTACK_SPEED_UP_POWER;
+    if (FLAG_IS_SET(inv, INV_SHOP_ATTACK_SPEED_UPGRADE)) Ichiaji::player_bonuses.attack_power += ATTACK_POWER_UP_POWER;
+}
+
 static void init_game() {
     // == SETUP CURRENT LEVEL ==
     assert(Ichiaji::current_save_data.player_data.level_id < (i64) ARRAY_LEN(Ichiaji::all_levels));
@@ -483,7 +495,7 @@ static void draw_game_ui() {
     Ichigo::push_draw_command(health_text_background_cmd);
 
     Bana::String health_string = Bana::make_string(64, Ichigo::Internal::temp_allocator);
-    Bana::string_format(health_string, "%s %.1f", TL_STR(HEALTH_UI), Ichiaji::current_save_data.player_data.health);
+    Bana::string_format(health_string, "%s %.1f / %.1f", TL_STR(HEALTH_UI), Ichiaji::current_save_data.player_data.health, PLAYER_STARTING_HEALTH + Ichiaji::player_bonuses.max_health);
 
     Bana::String money_string = Bana::make_string(64, Ichigo::Internal::temp_allocator);
     Bana::string_format(money_string, "%s %u", TL_STR(MONEY_UI), Ichiaji::current_save_data.player_data.money);

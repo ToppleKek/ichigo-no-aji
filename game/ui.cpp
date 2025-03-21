@@ -203,6 +203,7 @@ void Ui::render_and_update_current_menu() {
                     current_shopkeep_text_key = SHOPKEEP_THANK_YOU;
                     Ichiaji::current_save_data.player_data.money -= SHOP_ITEMS[selected_item].cost;
                     SET_FLAG(Ichiaji::current_save_data.player_data.inventory_flags, SHOP_ITEMS[selected_item].flag);
+                    Ichiaji::recalculate_player_bonuses();
                 } else {
                     // TODO @asset: Play a sound effect here.
                     current_shopkeep_text_key = SHOPKEEP_YOU_ARE_BROKE;
@@ -213,9 +214,9 @@ void Ui::render_and_update_current_menu() {
         case MT_DIALOGUE: {
 #define CHARACTER_COOLDOWN 0.03f
 
-            static isize current_string_index    = 0;
+            static isize current_string_index  = 0;
             static isize current_string_length = 0;
-            static f32   character_cooldown_t    = 0.0f;
+            static f32   character_cooldown_t  = 0.0f;
 
             static Ichigo::TextStyle text_style  = {
                 Ichigo::TextAlignment::LEFT,
