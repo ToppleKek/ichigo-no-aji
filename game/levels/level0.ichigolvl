@@ -5,13 +5,10 @@ static Ichigo::EntityDescriptor entity_descriptors[] = {
 static Ichigo::Background backgrounds[] = {
 };
 
-static Ichiaji::BackgroundPngDescriptor background_descriptors[] = {
-};
-
 Ichiaji::Level level = {
     nullptr,
     {0.0f, 0.0f, 0.0f, 1.0f},
-    INLINE_INIT_OF_STATIC_ARRAY(background_descriptors),
+    INLINE_INIT_OF_STATIC_ARRAY(backgrounds),
     INLINE_INIT_OF_STATIC_ARRAY(entity_descriptors),
     nullptr,
     nullptr,

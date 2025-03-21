@@ -50,12 +50,12 @@ void Entrances::spawn_entrance(const Ichigo::EntityDescriptor &descriptor) {
 
     std::strcpy(entrance->name, "entrance");
 
-    entrance->col                                  = {descriptor.pos, 1.0f, 1.0f};
-    entrance->sprite.width                         = 1.0f;
-    entrance->sprite.height                        = 1.0f;
+    entrance->col                                  = {descriptor.pos, pixels_to_metres(tex.width), pixels_to_metres(tex.height)};
+    entrance->sprite.width                         = pixels_to_metres(tex.width);
+    entrance->sprite.height                        = pixels_to_metres(tex.height);
     entrance->sprite.sheet.texture                 = Assets::entrance_texture_id;
-    entrance->sprite.sheet.cell_width              = pixels_to_metres(tex.width);
-    entrance->sprite.sheet.cell_height             = pixels_to_metres(tex.height);
+    entrance->sprite.sheet.cell_width              = tex.width;
+    entrance->sprite.sheet.cell_height             = tex.height;
     entrance->sprite.animation                     = {};
     entrance->user_data_i64                        = descriptor.data;
     entrance->user_type_id                         = descriptor.type; // NOTE: Could be an ET_ENTRANCE or an ET_LEVEL_ENTRANCE.

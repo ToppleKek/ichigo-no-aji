@@ -22,7 +22,7 @@
 // Levels
 #include "levels/level0.ichigolvl"
 #include "levels/level1.ichigolvl"
-#include "levels/cave_entrance.ichigolvl"
+#include "levels/cave.ichigolvl"
 #include "levels/first.ichigolvl"
 
 Ichiaji::Level Ichiaji::all_levels[] = {
@@ -31,8 +31,6 @@ Ichiaji::Level Ichiaji::all_levels[] = {
     CaveEntranceLevel::level,
     FirstLevel::level,
 };
-
-// UI
 
 static Vec4<f32> colour_white = {1.0f, 1.0f, 1.0f, 1.0f};
 
@@ -310,15 +308,6 @@ void Ichigo::Game::init() {
         auto &level = Ichiaji::all_levels[i];
 
         if (level.init_proc) level.init_proc();
-
-        // == Load level backgrounds ==
-        for (u32 i = 0; i < level.background_descriptors.size; ++i) {
-            auto &descriptor = level.background_descriptors[i];
-            Ichigo::TextureID background_texture_id = Ichigo::load_texture(descriptor.png_data, descriptor.png_size);
-            for (u32 j = 0; j < descriptor.backgrounds.size; ++j) {
-                descriptor.backgrounds[j].texture_id = background_texture_id;
-            }
-        }
     }
 
     // Title screen level
@@ -411,11 +400,8 @@ static void change_level(i64 level_id, bool first_start) {
 
     // == Setup backgrounds ==
     Ichigo::game_state.background_colour = level.background_colour;
-    for (u32 i = 0; i < level.background_descriptors.size; ++i) {
-        const auto &descriptor = level.background_descriptors[i];
-        for (u32 j = 0; j < descriptor.backgrounds.size && j < ICHIGO_MAX_BACKGROUNDS; ++j) {
-            Ichigo::game_state.background_layers[j] = descriptor.backgrounds[j];
-        }
+    for (u32 i = 0; i < level.backgrounds.size; ++i) {
+        Ichigo::game_state.background_layers[i] = level.backgrounds[i];
     }
 
     // NOTE: "current_entity_descriptors" is copied to a Bana::Array because the editor may need to modify it.

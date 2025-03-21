@@ -12,10 +12,6 @@ static Ichigo::Background backgrounds[] = {
     },
 };
 
-static Ichiaji::BackgroundPngDescriptor background_descriptors[] = {
-    { CaveEntranceLevel::cave_bg_png_len, (u8 *) CaveEntranceLevel::cave_bg_png, INLINE_INIT_OF_STATIC_ARRAY(backgrounds) }
-};
-
 static constexpr u64 LOCKED_DOOR_1_FLAGS = (1 << 0) | (1 << 1);
 
 static bool spawn_hook(const Ichigo::EntityDescriptor &descriptor) {
@@ -29,12 +25,16 @@ static bool spawn_hook(const Ichigo::EntityDescriptor &descriptor) {
     return false;
 }
 
+static void deferred_background_texture_load() {
+    backgrounds[0].texture_id = Assets::star_bg_texture_id;
+}
+
 Ichiaji::Level level = {
     (u8 *) first_tilemap,
     {(30.0f / 255.0f), (28.0f / 255.0f), (21.0f / 255.0f), 1.0f},
-    INLINE_INIT_OF_STATIC_ARRAY(background_descriptors),
+    INLINE_INIT_OF_STATIC_ARRAY(backgrounds),
     INLINE_INIT_OF_STATIC_ARRAY(entity_descriptors),
-    nullptr,
+    deferred_background_texture_load,
     nullptr,
     spawn_hook,
 };

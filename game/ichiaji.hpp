@@ -42,19 +42,13 @@ enum ProgramState {
     PS_PAUSE,
 };
 
-struct BackgroundPngDescriptor {
-    usize png_size;
-    u8 *png_data;
-    Bana::FixedArray<Ichigo::Background> backgrounds;
-};
-
 using LevelInitProc   = void ();
 using LevelUpdateProc = void ();
 using LevelSpawnProc  = bool (const Ichigo::EntityDescriptor &);
 struct Level {
     u8 *tilemap_data;
     Vec4<f32> background_colour;
-    Bana::FixedArray<Ichiaji::BackgroundPngDescriptor> background_descriptors;
+    Bana::FixedArray<Ichigo::Background> backgrounds;
     Bana::FixedArray<Ichigo::EntityDescriptor> entity_descriptors;
     LevelInitProc *init_proc;
     LevelUpdateProc *update_proc;
