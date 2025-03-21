@@ -137,7 +137,6 @@ void MovingPlatform::spawn(const Ichigo::EntityDescriptor &descriptor) {
     platform->friction_when_tangible               = 8.0f; // TODO: Custom friction?
     platform->sprite.width                         = 0.0f; // TODO: Sprite for platforms, requires a custom render proc!!
     platform->sprite.height                        = 0.0f;
-    // platform->sprite.sheet.texture                 = coin_texture_id;
     platform->render_proc                          = render;
     platform->update_proc                          = update;
     platform->stand_proc                           = on_stand;
@@ -145,13 +144,6 @@ void MovingPlatform::spawn(const Ichigo::EntityDescriptor &descriptor) {
     platform->user_data_f32_1                      = *((f32 *) &descriptor.data);
     platform->user_data_f32_2                      = *((f32 *) ((u8 *) (&descriptor.data) + sizeof(f32)));
     platform->user_type_id                         = descriptor.type;
-    platform->sprite.sheet.cell_width              = 32;
-    platform->sprite.sheet.cell_height             = 32;
-    platform->sprite.animation.cell_of_first_frame = 0;
-    platform->sprite.animation.cell_of_last_frame  = 7;
-    platform->sprite.animation.cell_of_loop_start  = 0;
-    platform->sprite.animation.cell_of_loop_end    = 7;
-    platform->sprite.animation.seconds_per_frame   = 0.12f;
 
     SET_FLAG(platform->flags, Ichigo::EF_TANGIBLE_ON_TOP);
 

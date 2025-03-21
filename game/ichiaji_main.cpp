@@ -18,6 +18,7 @@
 #include "ui.hpp"
 #include "asset_catalog.hpp"
 #include "miniboss_room.hpp"
+#include "collectables.hpp"
 
 // Levels
 #include "levels/level0.ichigolvl"
@@ -89,11 +90,10 @@ static void gert_update(Ichigo::Entity *gert) {
     Ichigo::EntityControllers::patrol_controller(gert);
 }
 
-#define GERT_KILL_REWARD 10
 static void gert_collide(Ichigo::Entity *gert, Ichigo::Entity *other, [[maybe_unused]] Vec2<f32> normal, [[maybe_unused]] Vec2<f32> collision_normal, [[maybe_unused]] Vec2<f32> collision_pos) {
     if (other->user_type_id == ET_SPELL) {
-        // TODO: Show some coin particle effect when you kill enemies?
-        Ichiaji::current_save_data.player_data.money += GERT_KILL_REWARD;
+        Ichiaji::drop_collectable(gert->col.pos);
+        Ichigo::Mixer::play_audio_oneshot(Assets::gert_death_audio_id, 1.0f, 1.0f, 1.0f);
         Ichigo::kill_entity_deferred(gert->id);
     }
 }
@@ -449,6 +449,14 @@ void Ichiaji::recalculate_player_bonuses() {
     if (FLAG_IS_SET(inv, INV_SHOP_HEALTH_UPGRADE))       Ichiaji::player_bonuses.max_health   += HEALTH_BONUS_ITEM_POWER;
     if (FLAG_IS_SET(inv, INV_SHOP_ATTACK_SPEED_UPGRADE)) Ichiaji::player_bonuses.attack_speed += ATTACK_SPEED_UP_POWER;
     if (FLAG_IS_SET(inv, INV_SHOP_ATTACK_SPEED_UPGRADE)) Ichiaji::player_bonuses.attack_power += ATTACK_POWER_UP_POWER;
+}
+
+void Ichiaji::drop_collectable(Vec2<f32> pos) {
+    if (Ichiaji::current_save_data.player_data.health < PLAYER_STARTING_HEALTH + Ichiaji::player_bonuses.max_health && rand_01_f32() < 0.75f) {
+        Collectables::spawn_recovery_heart(pos);
+    } else {
+        Collectables::spawn_coin(pos);
+    }
 }
 
 static void init_game() {

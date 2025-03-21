@@ -157,8 +157,10 @@ void on_collide(Ichigo::Entity *self, Ichigo::Entity *other, [[maybe_unused]] Ve
         Rabbit &rabbit = rabbit_data[BIT_CAST(Bana::BucketLocator, self->user_data_i64)];
 
         // TODO: Enter hurt state?
-        rabbit.health -= SPELL_DAMAGE;
+        rabbit.health -= SPELL_DAMAGE + Ichiaji::player_bonuses.attack_power;
         if (rabbit.health <= 0.0f) {
+            // TODO @asset: Play a sound here.
+            Ichiaji::drop_collectable(self->col.pos);
             Ichigo::kill_entity_deferred(self);
         }
     }

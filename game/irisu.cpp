@@ -122,6 +122,7 @@ static void try_enter_new_level(i64 level_index) {
 }
 
 #define GERT_DAMAGE 1.0f
+#define RABBIT_DAMAGE 2.0f
 static void on_collide(Ichigo::Entity *irisu, Ichigo::Entity *other, Vec2<f32> normal, [[maybe_unused]] Vec2<f32> collision_normal, [[maybe_unused]] Vec2<f32> collision_pos) {
     if ((normal.x != collision_normal.x || normal.y != collision_normal.y) && other->id == interaction_entity) {
         interaction_entity = NULL_ENTITY_ID;
@@ -129,21 +130,41 @@ static void on_collide(Ichigo::Entity *irisu, Ichigo::Entity *other, Vec2<f32> n
         interaction_entity = other->id;
     }
 
-    if (other->user_type_id == ET_GERT && irisu_state != HURT) {
-        if (normal.y == -1.0f && collision_normal.y == -1.0f) {
-            irisu->velocity.y -= 15.0f;
-            Ichigo::kill_entity(other->id);
-            Ichigo::Mixer::play_audio_oneshot(Assets::gert_death_audio_id, 1.0f, 1.0f, 1.0f);
-        } else if (invincibility_t == 0.0f) {
-            irisu->acceleration = {0.0f, 0.0f};
-            irisu->velocity.y   = -3.0f;
-            irisu->velocity.x   = 3.0f * (FLAG_IS_SET(irisu->flags, Ichigo::EF_FLIP_H) ? -1 : 1);
-            irisu_state         = HURT;
+    switch (other->user_type_id) {
+        case ET_RABBIT:
+        case ET_GERT: {
+            if (irisu_state != HURT && invincibility_t == 0.0f) {
+                irisu->acceleration = {0.0f, 0.0f};
+                irisu->velocity.y   = -3.0f;
+                irisu->velocity.x   = 3.0f * (FLAG_IS_SET(irisu->flags, Ichigo::EF_FLIP_H) ? -1 : 1);
+                irisu_state         = HURT;
 
-            Ichiaji::current_save_data.player_data.health -= GERT_DAMAGE;
-        }
-    } else if ((other->user_type_id == ET_ENTRANCE_TRIGGER || other->user_type_id == ET_ENTRANCE_TRIGGER_H) && !Ichiaji::input_disabled) {
-        try_enter_entrance(Vec2<f32>{other->user_data_f32_1, other->user_data_f32_2});
+                Ichiaji::current_save_data.player_data.health -= other->user_type_id == ET_GERT ? GERT_DAMAGE : RABBIT_DAMAGE;
+            }
+        } break;
+
+        case ET_ENTRANCE_TRIGGER:
+        case ET_ENTRANCE_TRIGGER_H: {
+            // NOTE: Don't try to enter another entrance if we are already entering one (input is disabled) or we are in a cutscene.
+            if (!Ichiaji::input_disabled) {
+                try_enter_entrance(Vec2<f32>{other->user_data_f32_1, other->user_data_f32_2});
+            }
+        } break;
+
+        case ET_COIN: {
+            Ichigo::Mixer::play_audio_oneshot(Assets::coin_collect_audio_id, 1.0f, 1.0f, 1.0f);
+            Ichiaji::current_save_data.player_data.money += COIN_VALUE;
+            Ichigo::kill_entity_deferred(other);
+        } break;
+
+        case ET_RECOVERY_HEART: {
+            // TODO @asset: Play a sound effect here.
+            // Ichigo::Mixer::play_audio_oneshot(Assets::coin_collect_audio_id, 1.0f, 1.0f, 1.0f);
+            Ichiaji::current_save_data.player_data.health = clamp(Ichiaji::current_save_data.player_data.health + RECOVERY_HEART_VALUE, 0.0f, PLAYER_STARTING_HEALTH + Ichiaji::player_bonuses.max_health);
+            Ichigo::kill_entity_deferred(other);
+        } break;
+
+        default: break;
     }
 }
 
@@ -311,9 +332,19 @@ static void spell_update(Ichigo::Entity *spell) {
 }
 
 static void spell_collide(Ichigo::Entity *spell, [[maybe_unused]] Ichigo::Entity *other, [[maybe_unused]] Vec2<f32> normal, [[maybe_unused]] Vec2<f32> collision_normal, [[maybe_unused]] Vec2<f32> collision_pos) {
-    if (other->user_type_id != ET_PLAYER) {
+    if (FLAG_IS_SET(other->flags, Ichigo::EF_TANGIBLE)) {
         make_sparks(spell->col.pos);
         Ichigo::kill_entity_deferred(spell);
+    }
+
+    switch (other->user_type_id) {
+        case ET_RABBIT:
+        case ET_GERT: {
+            make_sparks(spell->col.pos);
+            Ichigo::kill_entity_deferred(spell);
+        } break;
+
+        default: break;
     }
 }
 

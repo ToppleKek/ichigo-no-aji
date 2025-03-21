@@ -6,6 +6,8 @@
 #define HEALTH_BONUS_ITEM_POWER 2.0f
 #define ATTACK_SPEED_UP_POWER 0.2f
 #define ATTACK_POWER_UP_POWER 1.0f
+#define COIN_VALUE 20
+#define RECOVERY_HEART_VALUE 2.0f
 
 enum EntityType : u32 {
     ET_NOTHING,
@@ -26,6 +28,7 @@ enum EntityType : u32 {
     ET_SHOP_ENTRANCE,
     ET_BUCHOU,
     ET_MINIBOSS_ROOM_CONTROLLER,
+    ET_RECOVERY_HEART
 };
 
 enum TileType : u16 {
@@ -111,6 +114,7 @@ void fullscreen_transition(Vec4<f32> from, Vec4<f32> to, f32 t, FullscreenTransi
 void try_change_level(i64 level_id);
 void try_talk_to(Ichigo::Entity *entity);
 void recalculate_player_bonuses();
+void drop_collectable(Vec2<f32> pos);
 
 bool save_game();
 bool load_game();
