@@ -31,6 +31,8 @@ enum EntityType : u32 {
     ET_RECOVERY_HEART,
     ET_HP_UP_COLLECTABLE,
     ET_ATTACK_SPEED_UP_COLLECTABLE,
+    ET_FIRE_SPELL_COLLECTABLE,
+    ET_FIRE_SPELL,
 };
 
 enum TileType : u16 {
@@ -102,6 +104,7 @@ enum InventoryItem {
     INV_SHOP_ATTACK_POWER_UPGRADE     = 1 << 2,
     INV_HP_UP_COLLECTABLE_1           = 1 << 3,
     INV_ATTACK_SPEED_UP_COLLECTABLE_1 = 1 << 4,
+    INV_FIRE_SPELL                    = 1 << 5,
 };
 
 extern GameSaveData current_save_data;

@@ -152,12 +152,13 @@ void update(Ichigo::Entity *self) {
 }
 
 #define SPELL_DAMAGE 1.0f
+#define FIRE_SPELL_DAMAGE 2.0f
 void on_collide(Ichigo::Entity *self, Ichigo::Entity *other, [[maybe_unused]] Vec2<f32> normal, [[maybe_unused]] Vec2<f32> collision_normal, [[maybe_unused]] Vec2<f32> collision_pos) {
-    if (other->user_type_id == ET_SPELL) {
+    if (other->user_type_id == ET_SPELL || other->user_type_id == ET_FIRE_SPELL) {
         Rabbit &rabbit = rabbit_data[BIT_CAST(Bana::BucketLocator, self->user_data_i64)];
 
         // TODO: Enter hurt state?
-        rabbit.health -= SPELL_DAMAGE + Ichiaji::player_bonuses.attack_power;
+        rabbit.health -= (other->user_type_id == ET_SPELL ? SPELL_DAMAGE : FIRE_SPELL_DAMAGE) + Ichiaji::player_bonuses.attack_power;
         if (rabbit.health <= 0.0f) {
             // TODO @asset: Play a sound here.
             Ichiaji::drop_collectable(self->col.pos);

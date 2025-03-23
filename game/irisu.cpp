@@ -27,6 +27,11 @@ enum IrisuState {
     RESPAWNING
 };
 
+enum SpellType {
+    ST_NORMAL,
+    ST_FIRE
+};
+
 #define IRISU_DEFAULT_GRAVITY 14.0f
 #define IRISU_FALL_GRAVITY (IRISU_DEFAULT_GRAVITY * 1.75f)
 #define IRISU_MAX_JUMP_T 0.20f
@@ -35,8 +40,10 @@ enum IrisuState {
 #define IRISU_DEFAULT_JUMP_ACCELERATION 6.0f
 #define RESPAWN_COOLDOWN_T 0.75f
 #define RESPAWN_DAMAGE 2.0f
+#define FIRE_SPELL_ANIMATION_FRAMES 4
 
-static IrisuState irisu_state = IrisuState::IDLE;
+static SpellType current_spell_type        = ST_NORMAL;
+static IrisuState irisu_state              = IrisuState::IDLE;
 static Ichigo::Animation irisu_idle        = {};
 static Ichigo::Animation irisu_walk        = {};
 static Ichigo::Animation irisu_jump        = {};
@@ -45,10 +52,10 @@ static Ichigo::Animation irisu_dive        = {};
 static Ichigo::Animation irisu_hurt        = {};
 static Ichigo::Animation irisu_lay_down    = {};
 static Ichigo::Animation irisu_get_up_slow = {};
-
 static Ichigo::EntityID irisu_id           = {};
 
 static Ichigo::Sprite spell_sprite;
+static Ichigo::Sprite fire_spell_sprite;
 static Ichigo::Sprite irisu_sprite;
 
 static f32 irisu_collider_width  = 0.3f;
@@ -178,6 +185,13 @@ static void on_collide(Ichigo::Entity *irisu, Ichigo::Entity *other, Vec2<f32> n
             Ichigo::kill_entity_deferred(other);
         } break;
 
+        case ET_FIRE_SPELL_COLLECTABLE: {
+            // TODO @asset: Play a sound effect here.
+            Ichiaji::give_item(Ichiaji::INV_FIRE_SPELL);
+            Ichigo::kill_entity_deferred(other);
+            Ui::open_dialogue_ui(DIALOGUE_FIRE_SPELL_EXPLAIN, ARRAY_LEN(DIALOGUE_FIRE_SPELL_EXPLAIN));
+        } break;
+
         default: break;
     }
 }
@@ -256,6 +270,15 @@ void Irisu::init() {
     spell_sprite.sheet.cell_width  = spell_texture.width;
     spell_sprite.sheet.cell_height = spell_texture.height;
     spell_sprite.animation         = {0, 0, 0, 0, 0, 0.0f};
+
+    const Ichigo::Texture &fire_spell_texture = Ichigo::Internal::textures[Assets::fire_spell_texture_id];
+    fire_spell_sprite.width             = pixels_to_metres(fire_spell_texture.width) / (f32) FIRE_SPELL_ANIMATION_FRAMES;
+    fire_spell_sprite.height            = pixels_to_metres(fire_spell_texture.height);
+    fire_spell_sprite.pos_offset        = {0.0f, 0.0f};
+    fire_spell_sprite.sheet.texture     = Assets::fire_spell_texture_id;
+    fire_spell_sprite.sheet.cell_width  = fire_spell_texture.width / FIRE_SPELL_ANIMATION_FRAMES;
+    fire_spell_sprite.sheet.cell_height = fire_spell_texture.height;
+    fire_spell_sprite.animation         = {0, 0, 3, 0, 3, 0.12f};
 }
 
 void Irisu::spawn(Ichigo::Entity *entity, Vec2<f32> pos) {
@@ -365,16 +388,11 @@ static void spell_collide(Ichigo::Entity *spell, [[maybe_unused]] Ichigo::Entity
 static f32 attack_cooldown_remaining = 0.0f;
 static void cast_spell(Ichigo::Entity *irisu) {
     Ichigo::Entity *spell = Ichigo::spawn_entity();
-
-    std::strcpy(spell->name, "spell");
-    spell->col            = {irisu->col.pos + Vec2<f32>{0.0f, 0.2f}, spell_sprite.width, spell_sprite.height};
     spell->max_velocity   = {SPELL_MAX_VELOCITY, 0.0f};
     spell->movement_speed = 100.0f;
     spell->gravity        = 0.0f;
     spell->update_proc    = spell_update;
     spell->collide_proc   = spell_collide;
-    spell->sprite         = spell_sprite;
-    spell->user_type_id   = ET_SPELL;
 
     if (FLAG_IS_SET(irisu->flags, Ichigo::EF_FLIP_H)) {
         spell->velocity.x = SPELL_MAX_VELOCITY;
@@ -383,6 +401,18 @@ static void cast_spell(Ichigo::Entity *irisu) {
         SET_FLAG(spell->flags, Ichigo::EF_FLIP_H);
         spell->velocity.x = -SPELL_MAX_VELOCITY;
         spell->col.pos += Vec2<f32>{-spell_sprite.width, 0.0f};
+    }
+
+    if (current_spell_type == ST_NORMAL) {
+        std::strcpy(spell->name, "spell");
+        spell->col            = {irisu->col.pos + Vec2<f32>{0.0f, 0.2f}, spell_sprite.width, spell_sprite.height};
+        spell->sprite         = spell_sprite;
+        spell->user_type_id   = ET_SPELL;
+    } else if (current_spell_type == ST_FIRE) {
+        std::strcpy(spell->name, "fire_spell");
+        spell->col            = {irisu->col.pos + Vec2<f32>{0.0f, 0.2f}, fire_spell_sprite.width, fire_spell_sprite.height};
+        spell->sprite         = fire_spell_sprite;
+        spell->user_type_id   = ET_FIRE_SPELL;
     }
 
     attack_cooldown_remaining = DEFAULT_SPELL_COOLDOWN - Ichiaji::player_bonuses.attack_speed; // NOTE: This attack speed bonus could be a % of the default instead?
@@ -420,12 +450,23 @@ void Irisu::update(Ichigo::Entity *irisu) {
         }
     }
 
-    bool jump_button_down_this_frame = !Ichiaji::input_disabled && (Ichigo::Internal::keyboard_state[Ichigo::IK_SPACE].down_this_frame || Ichigo::Internal::gamepad.a.down_this_frame || Ichigo::Internal::gamepad.b.down_this_frame);
-    bool jump_button_down            = !Ichiaji::input_disabled && (Ichigo::Internal::keyboard_state[Ichigo::IK_SPACE].down || Ichigo::Internal::gamepad.a.down || Ichigo::Internal::gamepad.b.down);
-    bool run_button_down             = !Ichiaji::input_disabled && (Ichigo::Internal::keyboard_state[Ichigo::IK_LEFT_SHIFT].down || Ichigo::Internal::gamepad.x.down || Ichigo::Internal::gamepad.y.down);
-    bool dive_button_down_this_frame = !Ichiaji::input_disabled && (Ichigo::Internal::keyboard_state[Ichigo::IK_Z].down_this_frame || Ichigo::Internal::gamepad.lb.down_this_frame || Ichigo::Internal::gamepad.rb.down_this_frame);
-    bool up_button_down_this_frame   = !Ichiaji::input_disabled && (Ichigo::Internal::keyboard_state[Ichigo::IK_UP].down_this_frame || Ichigo::Internal::gamepad.up.down_this_frame);
-    bool fire_button_down            = !Ichiaji::input_disabled && (Ichigo::Internal::keyboard_state[Ichigo::IK_X].down || Ichigo::Internal::gamepad.stick_left_click.down); // TODO: wtf lol
+    bool jump_button_down_this_frame         = !Ichiaji::input_disabled && (Ichigo::Internal::keyboard_state[Ichigo::IK_SPACE].down_this_frame || Ichigo::Internal::gamepad.a.down_this_frame || Ichigo::Internal::gamepad.b.down_this_frame);
+    bool jump_button_down                    = !Ichiaji::input_disabled && (Ichigo::Internal::keyboard_state[Ichigo::IK_SPACE].down || Ichigo::Internal::gamepad.a.down || Ichigo::Internal::gamepad.b.down);
+    bool run_button_down                     = !Ichiaji::input_disabled && (Ichigo::Internal::keyboard_state[Ichigo::IK_LEFT_SHIFT].down || Ichigo::Internal::gamepad.x.down || Ichigo::Internal::gamepad.y.down);
+    bool dive_button_down_this_frame         = !Ichiaji::input_disabled && (Ichigo::Internal::keyboard_state[Ichigo::IK_Z].down_this_frame || Ichigo::Internal::gamepad.lb.down_this_frame || Ichigo::Internal::gamepad.rb.down_this_frame);
+    bool up_button_down_this_frame           = !Ichiaji::input_disabled && (Ichigo::Internal::keyboard_state[Ichigo::IK_UP].down_this_frame || Ichigo::Internal::gamepad.up.down_this_frame);
+    bool fire_button_down                    = !Ichiaji::input_disabled && (Ichigo::Internal::keyboard_state[Ichigo::IK_X].down || Ichigo::Internal::gamepad.stick_left_click.down); // TODO: wtf lol
+    bool spell_switch_button_down_this_frame = !Ichiaji::input_disabled && (Ichigo::Internal::keyboard_state[Ichigo::IK_TAB].down_this_frame || Ichigo::Internal::gamepad.select.down_this_frame);
+
+    if (spell_switch_button_down_this_frame) {
+        if (current_spell_type == ST_NORMAL && Ichiaji::item_obtained(Ichiaji::INV_FIRE_SPELL)) {
+            Ichigo::show_info("Fire spell active.");
+            current_spell_type = ST_FIRE;
+        } else {
+            Ichigo::show_info("Normal spell active.");
+            current_spell_type = ST_NORMAL;
+        }
+    }
 
     irisu->gravity = IRISU_DEFAULT_GRAVITY;
 

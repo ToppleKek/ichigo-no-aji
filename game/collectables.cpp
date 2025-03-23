@@ -129,3 +129,32 @@ void Collectables::spawn_powerup(const Ichigo::EntityDescriptor &descriptor) {
     e->user_type_id  = descriptor.type;
     e->user_data_i64 = descriptor.data;
 }
+
+void Collectables::spawn_fire_spell_collectable(const Ichigo::EntityDescriptor &descriptor) {
+    static constexpr u32 animation_frames = 7;
+    auto &tex = Ichigo::Internal::textures[Assets::fire_spell_collectable_texture_id];
+    Ichigo::Sprite sprite = {
+        {},
+        pixels_to_metres(tex.width) / (f32) animation_frames,
+        pixels_to_metres(tex.height),
+        { tex.width / animation_frames, tex.height, Assets::fire_spell_collectable_texture_id },
+        {
+            0,
+            0,
+            animation_frames - 1,
+            0,
+            animation_frames - 1,
+            0.2f
+        },
+        0,
+        0.0f
+    };
+
+    auto *e = Ichigo::spawn_entity();
+
+    std::strcpy(e->name, "fire_spell_collectable");
+
+    e->col          = {descriptor.pos, sprite.width, sprite.height};
+    e->sprite       = sprite;
+    e->user_type_id = ET_FIRE_SPELL_COLLECTABLE;
+}

@@ -91,7 +91,7 @@ static void gert_update(Ichigo::Entity *gert) {
 }
 
 static void gert_collide(Ichigo::Entity *gert, Ichigo::Entity *other, [[maybe_unused]] Vec2<f32> normal, [[maybe_unused]] Vec2<f32> collision_normal, [[maybe_unused]] Vec2<f32> collision_pos) {
-    if (other->user_type_id == ET_SPELL) {
+    if (other->user_type_id == ET_SPELL || other->user_type_id == ET_FIRE_SPELL) {
         Ichiaji::drop_collectable(gert->col.pos);
         Ichigo::Mixer::play_audio_oneshot(Assets::gert_death_audio_id, 1.0f, 1.0f, 1.0f);
         Ichigo::kill_entity_deferred(gert->id);
@@ -393,6 +393,11 @@ static void respawn_all_entities(const Bana::Array<Ichigo::EntityDescriptor> &de
                 }
             } break;
 
+            case ET_FIRE_SPELL_COLLECTABLE: {
+                if (!item_obtained(Ichiaji::INV_FIRE_SPELL)) {
+                    Collectables::spawn_fire_spell_collectable(d);
+                }
+            } break;
             default: {
                 ICHIGO_ERROR("Invalid/unknown entity type: %d", d.type);
             }
