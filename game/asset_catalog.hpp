@@ -18,6 +18,8 @@ extern Ichigo::TextureID platform_texture_id;
 extern Ichigo::TextureID rabbit_texture_id;
 extern Ichigo::TextureID star_bg_texture_id;
 extern Ichigo::TextureID heart_texture_id;
+extern Ichigo::TextureID hp_up_texture_id;
+extern Ichigo::TextureID attack_speed_up_texture_id;
 extern Ichigo::AudioID   test_song_audio_id;
 extern Ichigo::AudioID   coin_collect_audio_id;
 extern Ichigo::AudioID   gert_death_audio_id;

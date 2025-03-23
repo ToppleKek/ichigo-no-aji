@@ -294,7 +294,7 @@ void Ichigo::Game::init() {
     // == Load assets ==
     f64 before = Ichigo::Internal::platform_get_current_time();
     Assets::load_assets();
-    ICHIGO_INFO("Asset load took %fs.", Ichigo::Internal::platform_get_current_time() - before);
+    ICHIGO_INFO("Asset load took %fms!", (Ichigo::Internal::platform_get_current_time() - before) * 1000.0f);
 
     Ichiaji::recalculate_player_bonuses();
 
@@ -386,6 +386,11 @@ static void respawn_all_entities(const Bana::Array<Ichigo::EntityDescriptor> &de
                 Miniboss::spawn_controller_entity(d);
             } break;
 
+            case ET_HP_UP_COLLECTABLE:
+            case ET_ATTACK_SPEED_UP_COLLECTABLE: {
+            Collectables::spawn_powerup(d);
+            } break;
+
             default: {
                 ICHIGO_ERROR("Invalid/unknown entity type: %d", d.type);
             }
@@ -444,11 +449,12 @@ void Ichiaji::try_talk_to(Ichigo::Entity *entity) {
 
 void Ichiaji::recalculate_player_bonuses() {
     Ichiaji::player_bonuses = {};
-    auto inv = Ichiaji::current_save_data.player_data.inventory_flags;
 
-    if (FLAG_IS_SET(inv, INV_SHOP_HEALTH_UPGRADE))       Ichiaji::player_bonuses.max_health   += HEALTH_BONUS_ITEM_POWER;
-    if (FLAG_IS_SET(inv, INV_SHOP_ATTACK_SPEED_UPGRADE)) Ichiaji::player_bonuses.attack_speed += ATTACK_SPEED_UP_POWER;
-    if (FLAG_IS_SET(inv, INV_SHOP_ATTACK_SPEED_UPGRADE)) Ichiaji::player_bonuses.attack_power += ATTACK_POWER_UP_POWER;
+    if (item_obtained(INV_SHOP_HEALTH_UPGRADE))           Ichiaji::player_bonuses.max_health   += HEALTH_BONUS_ITEM_POWER;
+    if (item_obtained(INV_SHOP_ATTACK_SPEED_UPGRADE))     Ichiaji::player_bonuses.attack_speed += ATTACK_SPEED_UP_POWER;
+    if (item_obtained(INV_SHOP_ATTACK_POWER_UPGRADE))     Ichiaji::player_bonuses.attack_power += ATTACK_POWER_UP_POWER;
+    if (item_obtained(INV_HP_UP_COLLECTABLE_1))           Ichiaji::player_bonuses.max_health   += HEALTH_BONUS_ITEM_POWER;
+    if (item_obtained(INV_ATTACK_SPEED_UP_COLLECTABLE_1)) Ichiaji::player_bonuses.attack_speed += ATTACK_SPEED_UP_POWER;
 }
 
 void Ichiaji::drop_collectable(Vec2<f32> pos) {

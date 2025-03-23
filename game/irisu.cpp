@@ -164,6 +164,20 @@ static void on_collide(Ichigo::Entity *irisu, Ichigo::Entity *other, Vec2<f32> n
             Ichigo::kill_entity_deferred(other);
         } break;
 
+        case ET_HP_UP_COLLECTABLE: {
+            // TODO @asset: Play a sound effect here.
+            Ichiaji::give_item((Ichiaji::InventoryItem) other->user_data_i64);
+            Ichigo::show_info("Max HP increased!");
+            Ichigo::kill_entity_deferred(other);
+        } break;
+
+        case ET_ATTACK_SPEED_UP_COLLECTABLE: {
+            // TODO @asset: Play a sound effect here.
+            Ichiaji::give_item((Ichiaji::InventoryItem) other->user_data_i64);
+            Ichigo::show_info("Attack speed increased!");
+            Ichigo::kill_entity_deferred(other);
+        } break;
+
         default: break;
     }
 }

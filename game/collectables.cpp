@@ -86,5 +86,46 @@ void Collectables::spawn_recovery_heart(Vec2<f32> pos) {
     heart->update_proc                          = coin_update;
     heart->user_type_id                         = ET_RECOVERY_HEART;
     heart->user_data_f32_1                      = COIN_LIFETIME;
+}
 
+void Collectables::spawn_powerup(const Ichigo::EntityDescriptor &descriptor) {
+    auto *e                  = Ichigo::spawn_entity();
+    Ichigo::TextureID tex_id = 0;
+    u32 animation_frames     = 0;
+
+    if (descriptor.type == ET_HP_UP_COLLECTABLE) {
+        std::strcpy(e->name, "hp_up");
+        tex_id = Assets::hp_up_texture_id;
+        animation_frames = 7;
+    } else if (descriptor.type == ET_ATTACK_SPEED_UP_COLLECTABLE) {
+        std::strcpy(e->name, "attack_speed_up");
+        tex_id = Assets::attack_speed_up_texture_id;
+        animation_frames = 7;
+    } else {
+        assert(false && "spawn_powerup called with an entity ID that is not a powerup!");
+    }
+
+    auto &tex = Ichigo::Internal::textures[tex_id];
+
+    Ichigo::Sprite sprite = {
+        {},
+        pixels_to_metres(tex.width) / (f32) animation_frames,
+        pixels_to_metres(tex.height),
+        { tex.width / animation_frames, tex.height, tex_id },
+        {
+            0,
+            0,
+            animation_frames - 1,
+            0,
+            animation_frames - 1,
+            0.2f
+        },
+        0,
+        0.0f
+    };
+
+    e->col           = {descriptor.pos, sprite.width, sprite.height};
+    e->sprite        = sprite;
+    e->user_type_id  = descriptor.type;
+    e->user_data_i64 = descriptor.data;
 }

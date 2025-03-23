@@ -28,7 +28,9 @@ enum EntityType : u32 {
     ET_SHOP_ENTRANCE,
     ET_BUCHOU,
     ET_MINIBOSS_ROOM_CONTROLLER,
-    ET_RECOVERY_HEART
+    ET_RECOVERY_HEART,
+    ET_HP_UP_COLLECTABLE,
+    ET_ATTACK_SPEED_UP_COLLECTABLE,
 };
 
 enum TileType : u16 {
@@ -94,10 +96,12 @@ struct GameSaveData {
     Bana::FixedArray<LevelSaveData> level_data;
 };
 
-enum InventoryItems {
-    INV_SHOP_HEALTH_UPGRADE       = 1 << 0,
-    INV_SHOP_ATTACK_SPEED_UPGRADE = 1 << 1,
-    INV_SHOP_ATTACK_POWER_UPGRADE = 1 << 2,
+enum InventoryItem {
+    INV_SHOP_HEALTH_UPGRADE           = 1 << 0,
+    INV_SHOP_ATTACK_SPEED_UPGRADE     = 1 << 1,
+    INV_SHOP_ATTACK_POWER_UPGRADE     = 1 << 2,
+    INV_HP_UP_COLLECTABLE_1           = 1 << 3,
+    INV_ATTACK_SPEED_UP_COLLECTABLE_1 = 1 << 4,
 };
 
 extern GameSaveData current_save_data;
@@ -115,6 +119,18 @@ void try_change_level(i64 level_id);
 void try_talk_to(Ichigo::Entity *entity);
 void recalculate_player_bonuses();
 void drop_collectable(Vec2<f32> pos);
+
+inline bool item_obtained(InventoryItem item) {
+    return FLAG_IS_SET(Ichiaji::current_save_data.player_data.inventory_flags, item);
+}
+
+inline bool give_item(InventoryItem item) {
+    if (item_obtained(item)) return false;
+
+    SET_FLAG(Ichiaji::current_save_data.player_data.inventory_flags, item);
+    recalculate_player_bonuses();
+    return true;
+}
 
 bool save_game();
 bool load_game();
