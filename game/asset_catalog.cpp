@@ -22,7 +22,8 @@ EMBED("assets/heart.png",                  heart_png)
 EMBED("assets/hp-up.png",                  hp_up_texture_png)
 EMBED("assets/attack-speed-up.png",        attack_speed_up_png)
 EMBED("assets/fire-spell-collectable.png", fire_spell_collectable_png)
-EMBED("assets/fire-spell.png", fire_spell_png)
+EMBED("assets/fire-spell.png",             fire_spell_png)
+EMBED("assets/ice-block.png",              ice_block_png)
 
 Ichigo::TextureID Assets::coin_texture_id                   = 0;
 Ichigo::TextureID Assets::shopkeep_texture_id               = 0;
@@ -43,6 +44,7 @@ Ichigo::TextureID Assets::hp_up_texture_id                  = 0;
 Ichigo::TextureID Assets::attack_speed_up_texture_id        = 0;
 Ichigo::TextureID Assets::fire_spell_collectable_texture_id = 0;
 Ichigo::TextureID Assets::fire_spell_texture_id             = 0;
+Ichigo::TextureID Assets::ice_block_texture_id              = 0;
 Ichigo::AudioID   Assets::test_song_audio_id                = 0;
 Ichigo::AudioID   Assets::coin_collect_audio_id             = 0;
 Ichigo::AudioID   Assets::gert_death_audio_id               = 0;
@@ -71,6 +73,7 @@ void Assets::load_assets() {
     LOAD_TEXTURE(attack_speed_up_texture_id,        attack_speed_up_png);
     LOAD_TEXTURE(fire_spell_collectable_texture_id, fire_spell_collectable_png);
     LOAD_TEXTURE(fire_spell_texture_id,             fire_spell_png);
+    LOAD_TEXTURE(ice_block_texture_id,              ice_block_png);
     LOAD_AUDIO(test_song_audio_id,                  test_song_mp3);
     LOAD_AUDIO(coin_collect_audio_id,               coin_sound_mp3);
     LOAD_AUDIO(gert_death_audio_id,                 gert_death_mp3);

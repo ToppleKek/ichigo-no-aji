@@ -98,13 +98,12 @@ static void gert_collide(Ichigo::Entity *gert, Ichigo::Entity *other, [[maybe_un
     }
 }
 
-static Ichigo::EntityID gert_id;
 static bool controller_connected = false;
 
 static void spawn_gert(Vec2<f32> pos) {
     Ichigo::Entity *enemy = Ichigo::spawn_entity();
-    gert_id = enemy->id;
     std::strcpy(enemy->name, "gert");
+
     enemy->col            = {pos, 0.7f, 0.8f};
     enemy->max_velocity   = {2.0f, 12.0f};
     enemy->movement_speed = 6.0f;
@@ -139,6 +138,67 @@ static void spawn_buchou(const Ichigo::EntityDescriptor &descriptor) {
     // TODO @asset: Sprite for this guy.
     e->col            = {descriptor.pos, 1.0f, 1.0f};
     e->user_type_id   = ET_BUCHOU;
+}
+
+static void ice_block_update(Ichigo::Entity *e) {
+    if (e->user_data_f32_2 != 0.0f) {
+        e->user_data_f32_1 -= Ichigo::Internal::dt;
+    }
+}
+
+static void ice_block_on_collide(Ichigo::Entity *e, Ichigo::Entity *other, [[maybe_unused]] Vec2<f32> normal, [[maybe_unused]] Vec2<f32> collision_normal, [[maybe_unused]] Vec2<f32> collision_pos) {
+    if (other->user_type_id == ET_FIRE_SPELL && e->user_data_f32_2 == 0.0f) {
+        // TODO @asset: Play a melting sound here.
+        e->user_data_f32_1 = 1.0f;
+        e->user_data_f32_2 = 1.0f;
+    }
+}
+
+static void ice_block_render(Ichigo::Entity *e) {
+    f32 alpha = 1.0f;
+    if (e->user_data_f32_2 != 0.0f) {
+        alpha = ichigo_lerp(1.0f, 1.0f - (e->user_data_f32_1 / e->user_data_f32_2), 0.0f);
+    }
+
+    Ichigo::render_sprite_and_advance_animation(Ichigo::WORLD, e->col.pos, &e->sprite, false, true, m4identity_f32, {1.0f, 1.0f, 1.0f, alpha});
+
+    if (alpha <= 0.0f) {
+        Ichigo::kill_entity_deferred(e);
+    }
+}
+
+static void spawn_ice_block(const Ichigo::EntityDescriptor &descriptor) {
+    static constexpr u32 animation_frames = 9;
+    Ichigo::Sprite sprite = {
+        {},
+        1.0f,
+        1.0f,
+        { 32, 32, Assets::ice_block_texture_id },
+        {
+            0,
+            0,
+            animation_frames - 1,
+            0,
+            animation_frames - 1,
+            0.2f
+        },
+        0,
+        0.0f
+    };
+
+    Ichigo::Entity *e = Ichigo::spawn_entity();
+    std::strcpy(e->name, "ice_block");
+
+    e->col                    = {descriptor.pos, 1.0f, 1.0f};
+    e->sprite                 = sprite;
+    e->user_type_id           = ET_ICE_BLOCK;
+    e->update_proc            = ice_block_update;
+    e->collide_proc           = ice_block_on_collide;
+    e->render_proc            = ice_block_render;
+    e->friction_when_tangible = 1.5f;
+
+    SET_FLAG(e->flags, Ichigo::EF_TANGIBLE);
+    SET_FLAG(e->flags, Ichigo::EF_STATIC);
 }
 
 bool Ichiaji::save_game() {
@@ -398,6 +458,11 @@ static void respawn_all_entities(const Bana::Array<Ichigo::EntityDescriptor> &de
                     Collectables::spawn_fire_spell_collectable(d);
                 }
             } break;
+
+            case ET_ICE_BLOCK: {
+                spawn_ice_block(d);
+            } break;
+
             default: {
                 ICHIGO_ERROR("Invalid/unknown entity type: %d", d.type);
             }

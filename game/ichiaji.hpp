@@ -33,6 +33,7 @@ enum EntityType : u32 {
     ET_ATTACK_SPEED_UP_COLLECTABLE,
     ET_FIRE_SPELL_COLLECTABLE,
     ET_FIRE_SPELL,
+    ET_ICE_BLOCK,
 };
 
 enum TileType : u16 {

@@ -425,7 +425,8 @@ void Ichigo::render_sprite_and_advance_animation(CoordinateSystem coordinate_sys
     Ichigo::Internal::gl.glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
     Ichigo::Internal::gl.glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(rectangle_indices), rectangle_indices, GL_STATIC_DRAW);
 
-    Ichigo::Internal::gl.glUniform4fv(tint_uniform, 4, (GLfloat *) &tint);
+    Ichigo::Internal::gl.glUniform4fv(tint_uniform, 1, (GLfloat *) &tint);
+
     Ichigo::Internal::gl.glUniform1i(texture_uniform, 0);
     Ichigo::Internal::gl.glUniformMatrix4fv(object_uniform, 1, GL_TRUE, (GLfloat *) &transform);
 
