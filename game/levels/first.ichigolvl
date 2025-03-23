@@ -13,11 +13,17 @@ static Ichigo::Background backgrounds[] = {
 };
 
 static constexpr u64 LOCKED_DOOR_1_FLAGS = (1 << 0) | (1 << 1);
+static constexpr u64 LOCKED_DOOR_2_FLAGS = (1 << 3);
 
+// Locked doors work by having a mask (LOCKED_DOOR_1_FLAGS for example) that they check against the current level progress flags.
+// When you get a key, it sets the flag in the user data section of the key in the current level progress flags.
 static bool spawn_hook(const Ichigo::EntityDescriptor &descriptor) {
     if (descriptor.type == ET_LOCKED_DOOR) {
         if (descriptor.data == LOCKED_DOOR_1_FLAGS) {
             Entrances::spawn_locked_door(descriptor, descriptor.data, {186.0f, 42.5f}, 2); // NOTE: Bit 2 is the flag that is set when the door is unlocked.
+            return true;
+        } else if (descriptor.data == LOCKED_DOOR_2_FLAGS) {
+            Entrances::spawn_locked_door(descriptor, descriptor.data, {313.0f, 92.5f}, 4);
             return true;
         }
     }

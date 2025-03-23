@@ -388,7 +388,9 @@ static void respawn_all_entities(const Bana::Array<Ichigo::EntityDescriptor> &de
 
             case ET_HP_UP_COLLECTABLE:
             case ET_ATTACK_SPEED_UP_COLLECTABLE: {
-            Collectables::spawn_powerup(d);
+                if (!item_obtained((Ichiaji::InventoryItem) d.data)) {
+                    Collectables::spawn_powerup(d);
+                }
             } break;
 
             default: {
