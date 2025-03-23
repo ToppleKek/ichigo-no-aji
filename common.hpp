@@ -11,6 +11,9 @@
 
 #include "bana.hpp"
 
+#define BEGIN_TIMED_BLOCK(NAME) f64 NAME##_TIMED_BLOCK = Ichigo::Internal::platform_get_current_time()
+#define END_TIMED_BLOCK(NAME)   ICHIGO_INFO("Timed block \"" #NAME "\" took %fms!", Ichigo::Internal::platform_get_current_time() - NAME##_TIMED_BLOCK)
+
 #ifndef ICHIGO_DEBUG
 #undef ICHIGO_INFO
 #undef ICHIGO_ERROR

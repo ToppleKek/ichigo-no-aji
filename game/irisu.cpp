@@ -513,6 +513,14 @@ void Irisu::update(Ichigo::Entity *irisu) {
                         case ET_BUCHOU: {
                             Ichiaji::try_talk_to(e);
                         } break;
+
+                        case ET_SAVE_STATUE: {
+                            if (Ichiaji::save_game()) {
+                                Ichigo::show_info("Saved!");
+                            } else {
+                                Ichigo::show_info("Failed to save game.");
+                            }
+                        } break;
                     }
                 }
             }

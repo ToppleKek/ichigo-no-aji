@@ -34,6 +34,7 @@ enum EntityType : u32 {
     ET_FIRE_SPELL_COLLECTABLE,
     ET_FIRE_SPELL,
     ET_ICE_BLOCK,
+    ET_SAVE_STATUE,
 };
 
 enum TileType : u16 {

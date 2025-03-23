@@ -1583,6 +1583,7 @@ static GLuint link_program(GLuint vertex_shader_id, GLuint fragment_shader_id) {
 }
 
 void Ichigo::Internal::init() {
+    BEGIN_TIMED_BLOCK(engine_init);
     identity_mat4 = m4identity();
 
     // Load images flipped. OpenGL coordinates are upside down :)
@@ -1625,6 +1626,8 @@ void Ichigo::Internal::init() {
 
     kanji_hash_map.data            = kanji_codepoints;
     kanji_hash_map.codepoint_count = kanji_codepoint_count;
+
+    BEGIN_TIMED_BLOCK(font_atlas_init);
 
     // NOTE: The font bitmap is in temporary memory since we don't care about it after we upload it to the GPU.
     u8 *font_bitmap               = PUSH_ARRAY(Ichigo::game_state.transient_storage_arena, u8, ICHIGO_FONT_ATLAS_WIDTH * ICHIGO_FONT_ATLAS_HEIGHT);
@@ -1671,6 +1674,8 @@ void Ichigo::Internal::init() {
     Ichigo::Internal::gl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     Ichigo::Internal::gl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     Ichigo::Internal::gl.glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, ICHIGO_FONT_ATLAS_WIDTH, ICHIGO_FONT_ATLAS_HEIGHT, 0, GL_RED, GL_UNSIGNED_BYTE, font_bitmap);
+
+    END_TIMED_BLOCK(font_atlas_init);
 
     ICHIGO_INFO("GL_VERSION=%s", Ichigo::Internal::gl.glGetString(GL_VERSION));
 
@@ -1736,8 +1741,11 @@ void Ichigo::Internal::init() {
     audio_assets.append({});
 
     invalid_tile_texture_id = Ichigo::load_texture(invalid_tile_png, invalid_tile_png_len);
+    END_TIMED_BLOCK(engine_init);
 
+    BEGIN_TIMED_BLOCK(game_init);
     Ichigo::Game::init();
+    END_TIMED_BLOCK(game_init);
 
 #ifdef ICHIGO_DEBUG
     test_sound_id = Ichigo::load_audio(test_sound, test_sound_len);

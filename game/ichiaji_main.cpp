@@ -201,6 +201,35 @@ static void spawn_ice_block(const Ichigo::EntityDescriptor &descriptor) {
     SET_FLAG(e->flags, Ichigo::EF_STATIC);
 }
 
+static void spawn_save_statue(const Ichigo::EntityDescriptor &descriptor) {
+    static constexpr u32 animation_frames = 6;
+    Ichigo::Sprite sprite = {
+        {},
+        1.0f,
+        2.0f,
+        { 32, 64, Assets::save_statue_texture_id },
+        {
+            0,
+            0,
+            animation_frames - 1,
+            0,
+            animation_frames - 1,
+            0.2f
+        },
+        0,
+        0.0f
+    };
+
+    Ichigo::Entity *e = Ichigo::spawn_entity();
+    std::strcpy(e->name, "save_statue");
+
+    e->col                    = {descriptor.pos, sprite.width, sprite.height};
+    e->sprite                 = sprite;
+    e->user_type_id           = ET_SAVE_STATUE;
+
+    SET_FLAG(e->flags, Ichigo::EF_STATIC);
+}
+
 bool Ichiaji::save_game() {
     Ichigo::Internal::PlatformFile *save_file = Ichigo::Internal::platform_open_file_write(Bana::temp_string("./default.save"));
 
@@ -461,6 +490,10 @@ static void respawn_all_entities(const Bana::Array<Ichigo::EntityDescriptor> &de
 
             case ET_ICE_BLOCK: {
                 spawn_ice_block(d);
+            } break;
+
+            case ET_SAVE_STATUE: {
+                spawn_save_statue(d);
             } break;
 
             default: {
@@ -1021,6 +1054,7 @@ void Ichigo::Game::update_and_render() {
                     selected_menu_item = 0;
                     fade_t = -1.0f;
                 } else if (selected_menu_item == 1) {
+                    // TODO: Remove this option from the menu in the finished game!
                     if (Ichiaji::save_game()) {
                         Ichigo::show_info("Saved!");
                     } else {
