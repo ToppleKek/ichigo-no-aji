@@ -410,7 +410,7 @@ static void cast_spell(Ichigo::Entity *irisu) {
         spell->user_type_id   = ET_SPELL;
     } else if (current_spell_type == ST_FIRE) {
         std::strcpy(spell->name, "fire_spell");
-        spell->col            = {irisu->col.pos + Vec2<f32>{0.0f, 0.2f}, fire_spell_sprite.width, fire_spell_sprite.height};
+        spell->col            = {irisu->col.pos + Vec2<f32>{(FLAG_IS_SET(irisu->flags, Ichigo::EF_FLIP_H) ? irisu->col.w : -fire_spell_sprite.width), 0.2f}, fire_spell_sprite.width, fire_spell_sprite.height};
         spell->sprite         = fire_spell_sprite;
         spell->user_type_id   = ET_FIRE_SPELL;
     }

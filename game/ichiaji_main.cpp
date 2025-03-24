@@ -82,6 +82,10 @@ bool                   Ichiaji::input_disabled    = false;
 i64                    Ichiaji::current_level_id  = 0;
 Ichigo::EntityID       Ichiaji::player_entity_id  = NULL_ENTITY_ID;
 
+#ifdef ICHIGO_DEBUG
+static f32 DEBUG_timescale = 1.0f;
+#endif
+
 static void gert_update(Ichigo::Entity *gert) {
     if (Ichiaji::program_state != Ichiaji::PS_GAME) {
         return;
@@ -149,6 +153,7 @@ static void ice_block_update(Ichigo::Entity *e) {
 static void ice_block_on_collide(Ichigo::Entity *e, Ichigo::Entity *other, [[maybe_unused]] Vec2<f32> normal, [[maybe_unused]] Vec2<f32> collision_normal, [[maybe_unused]] Vec2<f32> collision_pos) {
     if (other->user_type_id == ET_FIRE_SPELL && e->user_data_f32_2 == 0.0f) {
         // TODO @asset: Play a melting sound here.
+        CLEAR_FLAG(e->flags, Ichigo::EF_TANGIBLE);
         e->user_data_f32_1 = 1.0f;
         e->user_data_f32_2 = 1.0f;
     }
@@ -160,11 +165,11 @@ static void ice_block_render(Ichigo::Entity *e) {
         alpha = ichigo_lerp(1.0f, 1.0f - (e->user_data_f32_1 / e->user_data_f32_2), 0.0f);
     }
 
-    Ichigo::render_sprite_and_advance_animation(Ichigo::WORLD, e->col.pos, &e->sprite, false, true, m4identity_f32, {1.0f, 1.0f, 1.0f, alpha});
-
     if (alpha <= 0.0f) {
         Ichigo::kill_entity_deferred(e);
     }
+
+    Ichigo::render_sprite_and_advance_animation(Ichigo::WORLD, e->col.pos, &e->sprite, false, true, m4identity_f32, {1.0f, 1.0f, 1.0f, alpha});
 }
 
 static void spawn_ice_block(const Ichigo::EntityDescriptor &descriptor) {
@@ -232,6 +237,8 @@ static void spawn_save_statue(const Ichigo::EntityDescriptor &descriptor) {
 
 bool Ichiaji::save_game() {
     Ichigo::Internal::PlatformFile *save_file = Ichigo::Internal::platform_open_file_write(Bana::temp_string("./default.save"));
+
+    Ichiaji::current_save_data.player_data.level_id = Ichiaji::current_level_id;
 
     if (!save_file) {
         return false;
@@ -723,6 +730,10 @@ static void enter_new_program_state(Ichiaji::ProgramState state) {
 
 // Runs at the beginning of a new frame
 void Ichigo::Game::frame_begin() {
+#ifdef ICHIGO_DEBUG
+    Ichigo::Internal::dt *= DEBUG_timescale;
+#endif
+
     // Fullscreen transition
     update_fullscreen_transition();
 }
@@ -933,6 +944,25 @@ void Ichigo::Game::update_and_render() {
             if (Internal::keyboard_state[IK_LEFT_CONTROL].down && Internal::keyboard_state[IK_M].down_this_frame) {
                 Ichigo::show_info("CHEAT: Give money.");
                 Ichiaji::current_save_data.player_data.money = 9999;
+            }
+
+            if (Internal::keyboard_state[IK_LEFT_CONTROL].down && Internal::keyboard_state[IK_DOWN].down_this_frame) {
+                DEBUG_timescale = clamp(DEBUG_timescale - 0.10f, 0.1f, 2.0f);
+                Bana::String s = make_string(64, Ichigo::Internal::temp_allocator);
+                Bana::string_format(s, "Timescale: %.2f", DEBUG_timescale);
+                Ichigo::show_info(s.data, s.length);
+            }
+
+            if (Internal::keyboard_state[IK_LEFT_CONTROL].down && Internal::keyboard_state[IK_UP].down_this_frame) {
+                DEBUG_timescale = clamp(DEBUG_timescale + 0.10f, 0.1f, 2.0f);
+                Bana::String s = make_string(64, Ichigo::Internal::temp_allocator);
+                Bana::string_format(s, "Timescale: %.2f", DEBUG_timescale);
+                Ichigo::show_info(s.data, s.length);
+            }
+
+            if (Internal::keyboard_state[IK_LEFT_CONTROL].down && (Internal::keyboard_state[IK_RIGHT].down_this_frame || Internal::keyboard_state[IK_LEFT].down_this_frame)) {
+                DEBUG_timescale = 1.0f;
+                Ichigo::show_info("(Reset) Timescale: 1.00");
             }
 #endif
 

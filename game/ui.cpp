@@ -103,6 +103,7 @@ void Ui::render_and_update_current_menu() {
                 .coordinate_system      = Ichigo::CoordinateSystem::SCREEN_ASPECT_FIX,
                 .transform              = m4identity_f32,
                 .sprite                 = &coin_sprite,
+                .sprite_tint            = COLOUR_WHITE,
                 .sprite_pos             = {shop_background_rect.w - 3.0f, 1.2f},
                 .sprite_flip_h          = false,
                 .actually_render_sprite = true
