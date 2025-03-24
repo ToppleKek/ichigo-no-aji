@@ -24,7 +24,8 @@ enum IrisuState {
     LAY_DOWN,
     GET_UP_SLOW,
     DIVE_BOOST,
-    RESPAWNING
+    RESPAWNING,
+    DEAD
 };
 
 enum SpellType {
@@ -470,6 +471,11 @@ void Irisu::update(Ichigo::Entity *irisu) {
 
     irisu->gravity = IRISU_DEFAULT_GRAVITY;
 
+    if (irisu_state != DEAD && Ichiaji::current_save_data.player_data.health <= 0.0f) {
+        irisu_state = DEAD;
+        Ui::open_game_over_ui();
+    }
+
     switch (irisu_state) {
         case IDLE: {
             maybe_enter_animation(irisu, irisu_idle);
@@ -702,6 +708,10 @@ void Irisu::update(Ichigo::Entity *irisu) {
                 Ichiaji::fullscreen_transition({0.0f, 0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 1.0f}, 0.3f, callback, BIT_CAST(uptr, irisu->id));
                 respawn_t = 999.0f; // FIXME: @hack lol. Just so the transition can complete.
             }
+        } break;
+
+        case DEAD: {
+            maybe_enter_animation(irisu, irisu_hurt);
         } break;
     }
 

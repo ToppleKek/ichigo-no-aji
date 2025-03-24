@@ -140,6 +140,7 @@ inline bool give_item(InventoryItem item) {
 bool save_game();
 bool load_game();
 void new_game();
+void restart_game_from_save_on_disk();
 
 inline LevelSaveData &current_level_save_data() {
     return current_save_data.level_data[current_level_id];

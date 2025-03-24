@@ -40,6 +40,8 @@ enum Strings {
     BUCHOU_DIALOGUE_5,
     FIRE_SPELL_EXPLAIN_1,
     FIRE_SPELL_EXPLAIN_2,
+    GAME_OVER_TEXT,
+    GAME_OVER_LOAD_GAME,
     STRING_COUNT
 };
 
@@ -109,6 +111,8 @@ static const constexpr char *STRINGS[STRING_COUNT][LANGUAGE_COUNT] = {
     {"Go on. The cave is right over there.", "ほら行け。洞窟はあそこだぞ"},
     {"You got the fire spell! Using this spell will shoot a fireball that can deal more damage and melt ice.", "ファイア魔法を手に入れました！この魔法で攻撃力が高くなり、氷を溶かせることになります。"},
     {"Press TAB or SELECT to switch spells.", "TABまたはSELECTを押すと魔法を交換できます。"},
+    {"Game Over", "ゲームオーバー"},
+    {"Load save", "ロード"},
 };
 
 extern Language current_language;

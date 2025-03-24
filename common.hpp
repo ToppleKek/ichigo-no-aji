@@ -4,7 +4,7 @@
     Commonly used types and macros.
 
     Author:      Braeden Hong
-    Last edited: 2024/12/1
+    Last edited: 2025/03/24
 */
 
 #pragma once
@@ -12,7 +12,7 @@
 #include "bana.hpp"
 
 #define BEGIN_TIMED_BLOCK(NAME) f64 NAME##_TIMED_BLOCK = Ichigo::Internal::platform_get_current_time()
-#define END_TIMED_BLOCK(NAME)   ICHIGO_INFO("Timed block \"" #NAME "\" took %fms!", Ichigo::Internal::platform_get_current_time() - NAME##_TIMED_BLOCK)
+#define END_TIMED_BLOCK(NAME)   ICHIGO_INFO("Timed block \"" #NAME "\" took %fms!", (Ichigo::Internal::platform_get_current_time() - NAME##_TIMED_BLOCK) * 1000.0)
 
 #ifndef ICHIGO_DEBUG
 #undef ICHIGO_INFO

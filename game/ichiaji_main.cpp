@@ -235,6 +235,146 @@ static void spawn_save_statue(const Ichigo::EntityDescriptor &descriptor) {
     SET_FLAG(e->flags, Ichigo::EF_STATIC);
 }
 
+static void respawn_all_entities(const Bana::Array<Ichigo::EntityDescriptor> &descriptors, bool load_player_data_from_save) {
+    for (u32 i = 0; i < descriptors.size; ++i) {
+        const auto &d = descriptors[i];
+
+        if (Ichiaji::all_levels[Ichiaji::current_level_id].spawn_proc) {
+            if (Ichiaji::all_levels[Ichiaji::current_level_id].spawn_proc(d)) continue;
+        }
+
+        switch (d.type) {
+            case ET_PLAYER: {
+                Ichigo::Entity *player = Ichigo::spawn_entity();
+                Irisu::spawn(player, load_player_data_from_save ? Ichiaji::current_save_data.player_data.position : d.pos);
+                Ichiaji::player_entity_id = player->id;
+                Ichigo::Camera::mode = Ichigo::Camera::Mode::FOLLOW;
+                Ichigo::Camera::follow(player->id);
+            } break;
+
+            case ET_GERT: {
+                spawn_gert(d.pos);
+            } break;
+
+            case ET_COIN: {
+
+            } break;
+
+            case ET_ENTRANCE:
+            case ET_LEVEL_ENTRANCE: {
+                Entrances::spawn_entrance(d);
+            } break;
+
+            case ET_ENTRANCE_TRIGGER_H:
+            case ET_ENTRANCE_TRIGGER: {
+                Entrances::spawn_entrance_trigger(d);
+            } break;
+
+            case ET_ELEVATOR:
+            case ET_MOVING_PLATFORM: {
+                MovingPlatform::spawn(d);
+            } break;
+
+            case ET_DEATH_TRIGGER: {
+                Entrances::spawn_death_trigger(d);
+            } break;
+
+            case ET_KEY: {
+                if (!FLAG_IS_SET(Ichiaji::current_level_save_data().progress_flags, d.data)) {
+                    Entrances::spawn_key(d);
+                }
+            } break;
+
+            case ET_RABBIT: {
+                RabbitEnemy::spawn(d);
+            } break;
+
+            case ET_SHOP_ENTRANCE: {
+                Entrances::spawn_shop_entrance(d);
+            } break;
+
+            case ET_BUCHOU: {
+                spawn_buchou(d);
+            } break;
+
+            case ET_MINIBOSS_ROOM_CONTROLLER: {
+                Miniboss::spawn_controller_entity(d);
+            } break;
+
+            case ET_HP_UP_COLLECTABLE:
+            case ET_ATTACK_SPEED_UP_COLLECTABLE: {
+                if (!item_obtained((Ichiaji::InventoryItem) d.data)) {
+                    Collectables::spawn_powerup(d);
+                }
+            } break;
+
+            case ET_FIRE_SPELL_COLLECTABLE: {
+                if (!item_obtained(Ichiaji::INV_FIRE_SPELL)) {
+                    Collectables::spawn_fire_spell_collectable(d);
+                }
+            } break;
+
+            case ET_ICE_BLOCK: {
+                spawn_ice_block(d);
+            } break;
+
+            case ET_SAVE_STATUE: {
+                spawn_save_statue(d);
+            } break;
+
+            default: {
+                ICHIGO_ERROR("Invalid/unknown entity type: %d", d.type);
+            }
+        }
+    }
+}
+
+static void change_level(i64 level_id, bool first_start) {
+    Ichigo::kill_all_entities();
+    std::memset(&Ichigo::game_state.background_layers, 0, sizeof(Ichigo::game_state.background_layers));
+
+    Ichiaji::current_level_id = level_id;
+    Ichiaji::Level level      = Ichiaji::all_levels[level_id];
+    Ichigo::set_tilemap(level.tilemap_data, tileset_sheet);
+
+    // == Setup backgrounds ==
+    Ichigo::game_state.background_colour = level.background_colour;
+    for (u32 i = 0; i < level.backgrounds.size; ++i) {
+        Ichigo::game_state.background_layers[i] = level.backgrounds[i];
+    }
+
+    // NOTE: "current_entity_descriptors" is copied to a Bana::Array because the editor may need to modify it.
+    current_entity_descriptors.size = level.entity_descriptors.size;
+    current_entity_descriptors.ensure_capacity(level.entity_descriptors.size);
+    std::memcpy(current_entity_descriptors.data, level.entity_descriptors.data, level.entity_descriptors.size * sizeof(Ichigo::EntityDescriptor));
+
+    // == Spawn entities in world ==
+    respawn_all_entities(current_entity_descriptors, first_start);
+}
+
+static void init_game() {
+    // == SETUP CURRENT LEVEL ==
+    assert(Ichiaji::current_save_data.player_data.level_id < (i64) ARRAY_LEN(Ichiaji::all_levels));
+    if (Ichiaji::current_save_data.player_data.level_id < 0) {
+         // NOTE: Load the first level if this is a new file. Do not attempt to spawn the player at the last save point
+         //       because the last save point of a new file is 0,0.
+        change_level(1, false);
+        Ichiaji::current_save_data.player_data.level_id = 1;
+    } else {
+        change_level(Ichiaji::current_save_data.player_data.level_id, true);
+    }
+
+    // == Setup initial game state ==
+    game_bgm = Ichigo::Mixer::play_audio(Assets::test_song_audio_id, 1.0f, 1.0f, 1.0f, 0.864f, 54.188f);
+}
+
+static void deinit_game() {
+    Ichigo::Camera::mode = Ichigo::Camera::Mode::MANUAL;
+    Ichigo::Mixer::cancel_audio(game_bgm);
+
+    change_level(0, false);
+}
+
 bool Ichiaji::save_game() {
     Ichigo::Internal::PlatformFile *save_file = Ichigo::Internal::platform_open_file_write(Bana::temp_string("./default.save"));
 
@@ -372,6 +512,12 @@ void Ichiaji::new_game() {
     std::memset(Ichiaji::current_save_data.level_data.data, 0, Ichiaji::current_save_data.level_data.size * sizeof(Ichiaji::LevelSaveData));
 }
 
+void Ichiaji::restart_game_from_save_on_disk() {
+    deinit_game();
+    load_game();
+    init_game();
+}
+
 void Ichigo::Game::init() {
     std::srand((u64) Ichigo::Internal::platform_get_current_time());
 
@@ -416,123 +562,6 @@ void Ichigo::Game::init() {
     Ichigo::Camera::screen_tile_dimensions = {16.0f, 9.0f};
 }
 
-static void respawn_all_entities(const Bana::Array<Ichigo::EntityDescriptor> &descriptors, bool load_player_data_from_save) {
-    for (u32 i = 0; i < descriptors.size; ++i) {
-        const auto &d = descriptors[i];
-
-        if (Ichiaji::all_levels[Ichiaji::current_level_id].spawn_proc) {
-            if (Ichiaji::all_levels[Ichiaji::current_level_id].spawn_proc(d)) continue;
-        }
-
-        switch (d.type) {
-            case ET_PLAYER: {
-                Ichigo::Entity *player = Ichigo::spawn_entity();
-                Irisu::spawn(player, load_player_data_from_save ? Ichiaji::current_save_data.player_data.position : d.pos);
-                Ichiaji::player_entity_id = player->id;
-                Ichigo::Camera::mode = Ichigo::Camera::Mode::FOLLOW;
-                Ichigo::Camera::follow(player->id);
-            } break;
-
-            case ET_GERT: {
-                spawn_gert(d.pos);
-            } break;
-
-            case ET_COIN: {
-
-            } break;
-
-            case ET_ENTRANCE:
-            case ET_LEVEL_ENTRANCE: {
-                Entrances::spawn_entrance(d);
-            } break;
-
-            case ET_ENTRANCE_TRIGGER_H:
-            case ET_ENTRANCE_TRIGGER: {
-                Entrances::spawn_entrance_trigger(d);
-            } break;
-
-            case ET_ELEVATOR:
-            case ET_MOVING_PLATFORM: {
-                MovingPlatform::spawn(d);
-            } break;
-
-            case ET_DEATH_TRIGGER: {
-                Entrances::spawn_death_trigger(d);
-            } break;
-
-            case ET_KEY: {
-                if (!FLAG_IS_SET(Ichiaji::current_level_save_data().progress_flags, d.data)) {
-                    Entrances::spawn_key(d);
-                }
-            } break;
-
-            case ET_RABBIT: {
-                RabbitEnemy::spawn(d);
-            } break;
-
-            case ET_SHOP_ENTRANCE: {
-                Entrances::spawn_shop_entrance(d);
-            } break;
-
-            case ET_BUCHOU: {
-                spawn_buchou(d);
-            } break;
-
-            case ET_MINIBOSS_ROOM_CONTROLLER: {
-                Miniboss::spawn_controller_entity(d);
-            } break;
-
-            case ET_HP_UP_COLLECTABLE:
-            case ET_ATTACK_SPEED_UP_COLLECTABLE: {
-                if (!item_obtained((Ichiaji::InventoryItem) d.data)) {
-                    Collectables::spawn_powerup(d);
-                }
-            } break;
-
-            case ET_FIRE_SPELL_COLLECTABLE: {
-                if (!item_obtained(Ichiaji::INV_FIRE_SPELL)) {
-                    Collectables::spawn_fire_spell_collectable(d);
-                }
-            } break;
-
-            case ET_ICE_BLOCK: {
-                spawn_ice_block(d);
-            } break;
-
-            case ET_SAVE_STATUE: {
-                spawn_save_statue(d);
-            } break;
-
-            default: {
-                ICHIGO_ERROR("Invalid/unknown entity type: %d", d.type);
-            }
-        }
-    }
-}
-
-static void change_level(i64 level_id, bool first_start) {
-    Ichigo::kill_all_entities();
-    std::memset(&Ichigo::game_state.background_layers, 0, sizeof(Ichigo::game_state.background_layers));
-
-    Ichiaji::current_level_id = level_id;
-    Ichiaji::Level level      = Ichiaji::all_levels[level_id];
-    Ichigo::set_tilemap(level.tilemap_data, tileset_sheet);
-
-    // == Setup backgrounds ==
-    Ichigo::game_state.background_colour = level.background_colour;
-    for (u32 i = 0; i < level.backgrounds.size; ++i) {
-        Ichigo::game_state.background_layers[i] = level.backgrounds[i];
-    }
-
-    // NOTE: "current_entity_descriptors" is copied to a Bana::Array because the editor may need to modify it.
-    current_entity_descriptors.size = level.entity_descriptors.size;
-    current_entity_descriptors.ensure_capacity(level.entity_descriptors.size);
-    std::memcpy(current_entity_descriptors.data, level.entity_descriptors.data, level.entity_descriptors.size * sizeof(Ichigo::EntityDescriptor));
-
-    // == Spawn entities in world ==
-    respawn_all_entities(current_entity_descriptors, first_start);
-}
-
 void Ichiaji::try_change_level(i64 level_id) {
     if (level_id >= (i64) ARRAY_LEN(all_levels)) {
         ICHIGO_ERROR("try_change_level: Invalid level index.");
@@ -575,29 +604,6 @@ void Ichiaji::drop_collectable(Vec2<f32> pos) {
     } else {
         Collectables::spawn_coin(pos);
     }
-}
-
-static void init_game() {
-    // == SETUP CURRENT LEVEL ==
-    assert(Ichiaji::current_save_data.player_data.level_id < (i64) ARRAY_LEN(Ichiaji::all_levels));
-    if (Ichiaji::current_save_data.player_data.level_id < 0) {
-         // NOTE: Load the first level if this is a new file. Do not attempt to spawn the player at the last save point
-         //       because the last save point of a new file is 0,0.
-        change_level(1, false);
-        Ichiaji::current_save_data.player_data.level_id = 1;
-    } else {
-        change_level(Ichiaji::current_save_data.player_data.level_id, true);
-    }
-
-    // == Setup initial game state ==
-    game_bgm = Ichigo::Mixer::play_audio(Assets::test_song_audio_id, 1.0f, 1.0f, 1.0f, 0.864f, 54.188f);
-}
-
-static void deinit_game() {
-    Ichigo::Camera::mode = Ichigo::Camera::Mode::MANUAL;
-    Ichigo::Mixer::cancel_audio(game_bgm);
-
-    change_level(0, false);
 }
 
 static void draw_game_ui() {

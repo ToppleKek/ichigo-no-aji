@@ -7,6 +7,7 @@ enum MenuType {
     MT_NOTHING,
     MT_SHOP,
     MT_DIALOGUE,
+    MT_GAME_OVER,
 };
 
 struct ShopItem {
@@ -28,8 +29,6 @@ static isize           current_dialogue_string_count = 0;
 void Ui::render_and_update_current_menu() {
     switch (currently_open_menu) {
         case MT_NOTHING: {
-            ICHIGO_ERROR("render_current_menu() called with no menu open!");
-            Ichiaji::program_state = Ichiaji::PS_GAME;
         } break;
 
         case MT_SHOP: {
@@ -279,12 +278,113 @@ void Ui::render_and_update_current_menu() {
                 }
             }
         } break;
+
+        case MT_GAME_OVER: {
+            static constexpr u32 MENU_ITEM_COUNT = 2;
+            static u32 selected_menu_item = 0;
+
+            static Ichigo::TextStyle text_style = {
+                .alignment    = Ichigo::TextAlignment::CENTER,
+                .scale        = 1.2f,
+                .colour       = {0.0f, 0.0f, 0.0f, 1.0f},
+                .line_spacing = 100.0f
+            };
+
+            static Ichigo::TextStyle menu_item_style = {
+                .alignment    = Ichigo::TextAlignment::CENTER,
+                .scale        = 1.0f,
+                .colour       = {0.0f, 0.0f, 0.0f, 1.0f},
+                .line_spacing = 100.0f
+            };
+
+            Ichigo::DrawCommand text_cmd = {
+                .type              = Ichigo::DrawCommandType::TEXT,
+                .coordinate_system = Ichigo::CoordinateSystem::SCREEN_ASPECT_FIX,
+                .transform         = m4identity_f32,
+                .string            = TL_STR(GAME_OVER_TEXT),
+                .string_length     = std::strlen(TL_STR(GAME_OVER_TEXT)),
+                .string_pos        = {SCREEN_ASPECT_FIX_WIDTH / 2.0f, 2.0f},
+                .text_style        = text_style
+            };
+
+            static Ichigo::DrawCommand background_cmd = {
+                .type              = Ichigo::DrawCommandType::SOLID_COLOUR_RECT,
+                .coordinate_system = Ichigo::CoordinateSystem::SCREEN_ASPECT_FIX,
+                .transform         = m4identity_f32,
+                .rect              = {{0.0f, 0.0f}, SCREEN_ASPECT_FIX_WIDTH, SCREEN_ASPECT_FIX_HEIGHT},
+                .colour            = COLOUR_WHITE
+            };
+
+            Ichigo::push_draw_command(background_cmd);
+            Ichigo::push_draw_command(text_cmd);
+
+            bool menu_down_button_down_this_frame   = Ichigo::Internal::keyboard_state[Ichigo::IK_DOWN].down_this_frame || Ichigo::Internal::gamepad.down.down_this_frame;
+            bool menu_up_button_down_this_frame     = Ichigo::Internal::keyboard_state[Ichigo::IK_UP].down_this_frame || Ichigo::Internal::gamepad.up.down_this_frame;
+            bool menu_select_button_down_this_frame = Ichigo::Internal::keyboard_state[Ichigo::IK_ENTER].down_this_frame || Ichigo::Internal::gamepad.a.down_this_frame || Ichigo::Internal::gamepad.start.down_this_frame;
+
+            if (menu_down_button_down_this_frame) {
+                selected_menu_item = (selected_menu_item + 1) % MENU_ITEM_COUNT;
+            } else if (menu_up_button_down_this_frame) {
+                selected_menu_item = DEC_POSITIVE_OR(selected_menu_item, MENU_ITEM_COUNT - 1);
+            }
+
+            f64 t = std::sin(Ichigo::Internal::platform_get_current_time() * 2.0);
+            t *= t;
+            t = 0.5 + 0.5 * t;
+            Vec4<f32> pulse_colour = {0.6f, 0.2f, ichigo_lerp(0.4, t, 0.9), 1.0f};
+
+            Ichigo::DrawCommand menu_draw_cmd = {
+                .type              = Ichigo::TEXT,
+                .coordinate_system = Ichigo::CoordinateSystem::SCREEN_ASPECT_FIX,
+                .transform         = m4identity_f32,
+                .string            = TL_STR(GAME_OVER_LOAD_GAME),
+                .string_length     = std::strlen(TL_STR(GAME_OVER_LOAD_GAME)),
+                .string_pos        = {SCREEN_ASPECT_FIX_WIDTH / 2.0f, SCREEN_ASPECT_FIX_HEIGHT - 3.0f},
+                .text_style        = menu_item_style
+            };
+
+            if (selected_menu_item == 0) menu_draw_cmd.text_style.colour = pulse_colour;
+            else                         menu_draw_cmd.text_style.colour = {0.0f, 0.0f, 0.0f, 1.0f};
+
+
+            Ichigo::push_draw_command(menu_draw_cmd);
+
+            if (selected_menu_item == 1) menu_draw_cmd.text_style.colour = pulse_colour;
+            else                         menu_draw_cmd.text_style.colour = {0.0f, 0.0f, 0.0f, 1.0f};
+
+            menu_draw_cmd.string        = TL_STR(EXIT);
+            menu_draw_cmd.string_length = std::strlen(TL_STR(EXIT)),
+            menu_draw_cmd.string_pos.y  = SCREEN_ASPECT_FIX_HEIGHT - 2.0f;
+
+            Ichigo::push_draw_command(menu_draw_cmd);
+
+            if (menu_select_button_down_this_frame) {
+                if (selected_menu_item == 0) {
+                    selected_menu_item     = 0;
+                    currently_open_menu    = MT_NOTHING;
+                    Ichiaji::program_state = Ichiaji::PS_GAME;
+                    Ichiaji::restart_game_from_save_on_disk();
+                    Ichiaji::current_save_data.player_data.health = PLAYER_STARTING_HEALTH + Ichiaji::player_bonuses.max_health;
+                } else if (selected_menu_item == 1) {
+                    std::exit(0);
+                }
+            }
+        } break;
     }
 }
 
 void Ui::open_shop_ui() {
     Ichiaji::program_state = Ichiaji::PS_UI_MENU;
     currently_open_menu    = MT_SHOP;
+}
+
+void Ui::open_game_over_ui() {
+    auto callback = []([[maybe_unused]] uptr data) {
+        currently_open_menu = MT_GAME_OVER;
+    };
+
+    Ichiaji::fullscreen_transition({1.0f, 1.0f, 1.0f, 0.0f}, {1.0f, 1.0f, 1.0f, 1.0f}, 2.0f, callback, 0);
+    Ichiaji::program_state = Ichiaji::PS_UI_MENU;
 }
 
 void Ui::open_dialogue_ui(const StringID *strings, isize string_count) {
