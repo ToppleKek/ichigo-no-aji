@@ -515,7 +515,11 @@ void Ichiaji::new_game() {
 
 void Ichiaji::restart_game_from_save_on_disk() {
     deinit_game();
-    load_game();
+
+    if (!load_game()) {
+        new_game();
+    }
+
     init_game();
 }
 

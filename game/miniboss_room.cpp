@@ -10,13 +10,13 @@ enum CutsceneState {
     CS_DOOR_OPEN,
 };
 
-static f32 cutscene_t = 0.0f;
-static CutsceneState cutscene_state = CS_NOTHING;
-static Vec2<f32> camera_start_pos = {};
+static f32 cutscene_t                          = 0.0f;
+static CutsceneState cutscene_state            = CS_NOTHING;
+static Vec2<f32> camera_start_pos              = {};
 static Ichigo::EntityID player_sense_entity_id = NULL_ENTITY_ID;
-static Ichigo::EntityID left_door_id = NULL_ENTITY_ID;
-static Ichigo::EntityID right_door_id = NULL_ENTITY_ID;
-static Ichigo::EntityID enemies[4];
+static Ichigo::EntityID left_door_id           = NULL_ENTITY_ID;
+static Ichigo::EntityID right_door_id          = NULL_ENTITY_ID;
+static Ichigo::EntityID enemies[4]             = {};
 
 #define CAMERA_PAN_T 1.25f
 
@@ -116,6 +116,15 @@ static void update(Ichigo::Entity *e) {
 
 void Miniboss::spawn_controller_entity(const Ichigo::EntityDescriptor &descriptor) {
     if (FLAG_IS_SET(Ichiaji::current_level_save_data().progress_flags, MINIBOSS_COMPLETE_FLAG)) return;
+
+    cutscene_t             = 0.0f;
+    cutscene_state         = CS_NOTHING;
+    camera_start_pos       = {};
+    player_sense_entity_id = NULL_ENTITY_ID;
+    left_door_id           = NULL_ENTITY_ID;
+    right_door_id          = NULL_ENTITY_ID;
+
+    std::memset(enemies, 0, sizeof(enemies));
 
     Ichigo::Entity *e       = Ichigo::spawn_entity();
     Ichigo::Entity *sense_e = Ichigo::spawn_entity();
