@@ -731,9 +731,6 @@ void default_entity_render_proc(Ichigo::Entity *entity) {
 #ifdef ICHIGO_DEBUG
 skip_sprite_draw:
     if (DEBUG_draw_colliders) {
-#else
-    {
-#endif
         Ichigo::world_render_solid_colour_rect(entity->col, {1.0f, 0.2f, 0.2f, 0.6f});
 
         Ichigo::TextStyle style;
@@ -747,6 +744,7 @@ skip_sprite_draw:
         Ichigo::world_render_solid_colour_rect({pos + Vec2<f32>{0.0f, -0.15f}, text_width, 0.2f}, {0.0f, 0.0f, 0.0f, 0.8f});
         render_text(pos, entity->name, name_len, Ichigo::CoordinateSystem::WORLD, style);
     }
+#endif
 }
 
 void Ichigo::set_tilemap(Tilemap *tilemap) {
