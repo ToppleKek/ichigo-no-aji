@@ -7,13 +7,13 @@ static Ichigo::Background backgrounds[] = {
     {
         0,
         Ichigo::BG_REPEAT_X,
-        {0.0f, 0.0f},
+        {0.0f, 1.0f},
         {0.2f, 0.2f},
     },
 };
 
 static void deferred_background_texture_load() {
-    backgrounds[0].texture_id = Assets::star_bg_texture_id;
+    backgrounds[0].texture_id = Assets::cave_bg_texture_id;
 }
 
 Ichiaji::Level level = {

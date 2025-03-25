@@ -108,6 +108,7 @@ struct String {
 String make_string(const char *cstr, Allocator allocator = heap_allocator);
 String make_string(const char *bytes, usize length, Allocator allocator = heap_allocator);
 String make_string(usize capacity, Allocator allocator = heap_allocator);
+String make_formatted_string(Allocator allocator, const char *fmt, va_list args);
 void free_string(String *str, Allocator allocator = heap_allocator);
 String temp_string(const char *bytes, usize length);
 String temp_string(const char *cstr);

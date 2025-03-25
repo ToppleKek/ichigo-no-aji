@@ -3,14 +3,19 @@
 
     Author: Braeden Hong
       Date: October 30, 2023
+
+    Last edited: 2025/03/24
 */
 
 #pragma once
+
 #include "common.hpp"
 #include <cstring>
 #include <cassert>
 #include <cstdlib>
+#include <stdarg.h>
 #include "math.hpp"
+#include "ichigo.hpp"
 
 namespace Util {
 /*
@@ -216,6 +221,16 @@ struct IchigoCircularStack {
 
 inline Vec2<f32> calculate_centered_pos_offset(f32 col_width, f32 col_height, f32 sprite_width, f32 sprite_height) {
     return {(col_width - sprite_width) / 2.0f, col_height - sprite_height};
+}
+
+inline Bana::String tprintf(const char *fmt, ...) {
+    va_list args;
+    va_start(args, fmt);
+
+    auto ret = Bana::make_formatted_string(Ichigo::Internal::temp_allocator, fmt, args);
+
+    va_end(args);
+    return ret;
 }
 
 char *json_string_serialize(const char *json_string);

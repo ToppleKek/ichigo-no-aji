@@ -13,6 +13,7 @@
 #include "entrances.hpp"
 #include "ui.hpp"
 #include "asset_catalog.hpp"
+#include "../util.hpp"
 
 enum IrisuState {
     IDLE,

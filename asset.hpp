@@ -9,7 +9,6 @@
 
 #pragma once
 #include "common.hpp"
-#include "util.hpp"
 
 namespace Ichigo {
 using TextureID = u32;

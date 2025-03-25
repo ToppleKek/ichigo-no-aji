@@ -69,6 +69,16 @@ Bana::String Bana::make_string(usize capacity, Allocator allocator) {
     return str;
 }
 
+Bana::String Bana::make_formatted_string(Allocator allocator, const char *fmt, va_list args) {
+    isize string_length = std::vsnprintf(nullptr, 0, fmt, args) + 1;
+    String ret          = make_string(string_length, allocator);
+
+    std::vsnprintf(ret.data, ret.capacity, fmt, args);
+    ret.length = string_length - 1;
+
+    return ret;
+}
+
 Bana::String Bana::temp_string(const char *bytes, usize length) {
     String str;
 
@@ -113,18 +123,22 @@ void Bana::string_concat(String &dst, const char *cstr) {
     dst.length += src_length;
 }
 
-// FIXME: standard vsnprintf null terminates the string.
-void Bana::string_format(String &dst, const char *fmt, ...) {
+static void string_format_va(Bana::String &dst, const char *fmt, va_list args) {
     dst.length = 0;
 
-    va_list args;
-    va_start(args, fmt);
     isize ret = std::vsnprintf(dst.data, dst.capacity, fmt, args);
-    va_end(args);
 
     if (ret < 0 || ret > (isize) dst.capacity) return;
 
     dst.length = ret;
+}
+
+// FIXME: standard vsnprintf null terminates the string.
+void Bana::string_format(String &dst, const char *fmt, ...) {
+    va_list args;
+    va_start(args, fmt);
+    string_format_va(dst, fmt, args);
+    va_end(args);
 }
 
 void Bana::string_strip_whitespace(String &str) {

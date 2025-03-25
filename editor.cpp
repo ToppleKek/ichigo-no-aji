@@ -10,6 +10,7 @@
 
 #include "editor.hpp"
 #include "ichigo.hpp"
+#include "util.hpp"
 #include "thirdparty/imgui/imgui.h"
 
 EMBED("assets/editor-move-arrow.png", move_arrow_png)
@@ -542,7 +543,13 @@ void Ichigo::Editor::render_ui() {
                         ImGui::SetItemDefaultFocus();
                     }
 
-                    if (ImGui::Selectable(tilemap_working_copy.tile_info[i].name, i == tile_being_edited)) {
+                    char *name = tilemap_working_copy.tile_info[i].name;
+                    if (tilemap_working_copy.tile_info[i].name[0] == 0) {
+                        auto s = Util::tprintf("tile %d", i);
+                        name = s.data;
+                    }
+
+                    if (ImGui::Selectable(name, i == tile_being_edited)) {
                         tile_being_edited = i;
                     }
                 }

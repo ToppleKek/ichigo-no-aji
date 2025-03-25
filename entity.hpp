@@ -11,7 +11,6 @@
 #include "common.hpp"
 #include "math.hpp"
 #include "asset.hpp"
-#include "util.hpp"
 
 namespace Ichigo {
 struct Entity;

@@ -16,6 +16,7 @@
 #include "math.hpp"
 #include "ichigo.hpp"
 #include "mixer.hpp"
+#include "util.hpp"
 
 #include "editor.hpp"
 

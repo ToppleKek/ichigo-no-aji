@@ -24,6 +24,7 @@ extern Ichigo::TextureID fire_spell_collectable_texture_id;
 extern Ichigo::TextureID fire_spell_texture_id;
 extern Ichigo::TextureID ice_block_texture_id;
 extern Ichigo::TextureID save_statue_texture_id;
+extern Ichigo::TextureID cave_bg_texture_id;
 extern Ichigo::AudioID   test_song_audio_id;
 extern Ichigo::AudioID   coin_collect_audio_id;
 extern Ichigo::AudioID   gert_death_audio_id;

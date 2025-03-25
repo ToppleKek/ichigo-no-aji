@@ -13,7 +13,6 @@
 #include "camera.hpp"
 #include "entity.hpp"
 #include "mixer.hpp"
-#include "util.hpp"
 #include "opengl.hpp"
 #include "math.hpp"
 

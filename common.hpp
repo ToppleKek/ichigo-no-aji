@@ -15,6 +15,11 @@
 #define END_TIMED_BLOCK(NAME)   ICHIGO_INFO("Timed block \"" #NAME "\" took %fms!", (Ichigo::Internal::platform_get_current_time() - NAME##_TIMED_BLOCK) * 1000.0)
 
 #ifndef ICHIGO_DEBUG
+#undef BEGIN_TIMED_BLOCK
+#undef END_TIMED_BLOCK
+#define BEGIN_TIMED_BLOCK(...)
+#define END_TIMED_BLOCK(...)
+
 #undef ICHIGO_INFO
 #undef ICHIGO_ERROR
 #undef VK_ASSERT_OK

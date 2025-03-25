@@ -19,6 +19,7 @@
 #include "asset_catalog.hpp"
 #include "miniboss_room.hpp"
 #include "collectables.hpp"
+#include "../util.hpp"
 
 // Levels
 #include "levels/level0.ichigolvl"
