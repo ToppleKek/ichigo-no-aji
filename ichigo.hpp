@@ -255,7 +255,7 @@ enum TileFlag {
     TF_LETHAL   = 1 << 1, // This tile causes entities to die when touched (used by games).
 };
 
-struct TileInfo {
+struct __attribute__((packed)) TileInfo {
     char name[8];
     i32 cell; // NOTE: A negative cell number means this tile does not render. Otherwise, it is the cell number in the tile set sprite sheet.
     TileFlags flags;

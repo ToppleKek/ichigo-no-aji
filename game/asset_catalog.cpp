@@ -26,6 +26,7 @@ EMBED("assets/fire-spell.png",             fire_spell_png)
 EMBED("assets/ice-block.png",              ice_block_png)
 EMBED("assets/save-statue.png",            save_statue_png)
 EMBED("assets/cavebg.png",                 cave_bg_png)
+EMBED("assets/stalactites_bg.png",         stalactites_bg_png)
 
 Ichigo::TextureID Assets::coin_texture_id                   = 0;
 Ichigo::TextureID Assets::shopkeep_texture_id               = 0;
@@ -49,6 +50,7 @@ Ichigo::TextureID Assets::fire_spell_texture_id             = 0;
 Ichigo::TextureID Assets::ice_block_texture_id              = 0;
 Ichigo::TextureID Assets::save_statue_texture_id            = 0;
 Ichigo::TextureID Assets::cave_bg_texture_id                = 0;
+Ichigo::TextureID Assets::stalactites_bg_texture_id         = 0;
 Ichigo::AudioID   Assets::test_song_audio_id                = 0;
 Ichigo::AudioID   Assets::coin_collect_audio_id             = 0;
 Ichigo::AudioID   Assets::gert_death_audio_id               = 0;
@@ -80,6 +82,7 @@ void Assets::load_assets() {
     LOAD_TEXTURE(ice_block_texture_id,              ice_block_png);
     LOAD_TEXTURE(save_statue_texture_id,            save_statue_png);
     LOAD_TEXTURE(cave_bg_texture_id,                cave_bg_png);
+    LOAD_TEXTURE(stalactites_bg_texture_id,         stalactites_bg_png);
     LOAD_AUDIO(test_song_audio_id,                  test_song_mp3);
     LOAD_AUDIO(coin_collect_audio_id,               coin_sound_mp3);
     LOAD_AUDIO(gert_death_audio_id,                 gert_death_mp3);
