@@ -248,10 +248,13 @@ void Ui::render_and_update_current_menu() {
                 character_cooldown_t += Ichigo::Internal::dt;
 
                 if (character_cooldown_t >= CHARACTER_COOLDOWN) {
-                    // TODO @asset: Play some noise when advancing the string cursor.
-                    u32 advance_by = (u32) (character_cooldown_t / CHARACTER_COOLDOWN);
+                    u32 advance_by        = (u32) (character_cooldown_t / CHARACTER_COOLDOWN);
                     current_string_length = clamp(current_string_length + advance_by, (isize) 0, (isize) string_length);
-                    character_cooldown_t    = 0.0f;
+                    character_cooldown_t  = 0.0f;
+
+                    if (current_string_length != string_length && current_string_length % 2 == 0) {
+                        Ichigo::Mixer::play_audio_oneshot(Assets::text_scroll_audio_id, 0.75f, 1.0f, 1.0f);
+                    }
                 }
 
                 Ichigo::DrawCommand text_cmd = {
@@ -267,7 +270,8 @@ void Ui::render_and_update_current_menu() {
                 Ichigo::push_draw_command(text_cmd);
 
                 if (Ichigo::Internal::keyboard_state[Ichigo::IK_ENTER].down_this_frame || Ichigo::Internal::gamepad.a.down_this_frame) {
-                    // TODO @asset: Play a sound when advancing the text box.
+                    Ichigo::Mixer::play_audio_oneshot(Assets::menu_accept_audio_id, 1.0f, 1.0f, 1.0f);
+
                     if (current_string_length >= string_length) {
                         current_string_length = 0;
                         character_cooldown_t  = 0.0f;

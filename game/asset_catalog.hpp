@@ -26,10 +26,16 @@ extern Ichigo::TextureID ice_block_texture_id;
 extern Ichigo::TextureID save_statue_texture_id;
 extern Ichigo::TextureID cave_bg_texture_id;
 extern Ichigo::TextureID stalactites_bg_texture_id;
+extern Ichigo::TextureID health_bar_ui_texture_id;
 extern Ichigo::AudioID   test_song_audio_id;
 extern Ichigo::AudioID   coin_collect_audio_id;
 extern Ichigo::AudioID   gert_death_audio_id;
 extern Ichigo::AudioID   jump_audio_id;
+extern Ichigo::AudioID   steam_audio_id;
+extern Ichigo::AudioID   heart_collect_audio_id;
+extern Ichigo::AudioID   as_up_collect_audio_id;
+extern Ichigo::AudioID   text_scroll_audio_id;
+extern Ichigo::AudioID   menu_accept_audio_id;
 
 void load_assets();
 }

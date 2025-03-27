@@ -27,6 +27,12 @@ EMBED("assets/ice-block.png",              ice_block_png)
 EMBED("assets/save-statue.png",            save_statue_png)
 EMBED("assets/cavebg.png",                 cave_bg_png)
 EMBED("assets/stalactites_bg.png",         stalactites_bg_png)
+EMBED("assets/music/steam.mp3",            steam_mp3)
+EMBED("assets/music/heart.mp3",            heart_mp3)
+EMBED("assets/music/as_up_collect.mp3",    as_up_collect_mp3)
+EMBED("assets/music/text_scroll.mp3",      text_scroll_mp3)
+EMBED("assets/music/menu_accept.mp3",      menu_accept_mp3)
+EMBED("assets/health-bar-ui.png",          health_bar_ui_png)
 
 Ichigo::TextureID Assets::coin_texture_id                   = 0;
 Ichigo::TextureID Assets::shopkeep_texture_id               = 0;
@@ -51,10 +57,16 @@ Ichigo::TextureID Assets::ice_block_texture_id              = 0;
 Ichigo::TextureID Assets::save_statue_texture_id            = 0;
 Ichigo::TextureID Assets::cave_bg_texture_id                = 0;
 Ichigo::TextureID Assets::stalactites_bg_texture_id         = 0;
+Ichigo::TextureID Assets::health_bar_ui_texture_id          = 0;
 Ichigo::AudioID   Assets::test_song_audio_id                = 0;
 Ichigo::AudioID   Assets::coin_collect_audio_id             = 0;
 Ichigo::AudioID   Assets::gert_death_audio_id               = 0;
 Ichigo::AudioID   Assets::jump_audio_id                     = 0;
+Ichigo::AudioID   Assets::steam_audio_id                    = 0;
+Ichigo::AudioID   Assets::heart_collect_audio_id            = 0;
+Ichigo::AudioID   Assets::as_up_collect_audio_id            = 0;
+Ichigo::AudioID   Assets::text_scroll_audio_id              = 0;
+Ichigo::AudioID   Assets::menu_accept_audio_id              = 0;
 
 #define LOAD_TEXTURE(ID_NAME, FILE_NAME) Assets::ID_NAME = Ichigo::load_texture(FILE_NAME, FILE_NAME##_len)
 #define LOAD_AUDIO(ID_NAME, FILE_NAME)   Assets::ID_NAME = Ichigo::load_audio(FILE_NAME, FILE_NAME##_len)
@@ -83,8 +95,14 @@ void Assets::load_assets() {
     LOAD_TEXTURE(save_statue_texture_id,            save_statue_png);
     LOAD_TEXTURE(cave_bg_texture_id,                cave_bg_png);
     LOAD_TEXTURE(stalactites_bg_texture_id,         stalactites_bg_png);
+    LOAD_TEXTURE(health_bar_ui_texture_id,          health_bar_ui_png);
     LOAD_AUDIO(test_song_audio_id,                  test_song_mp3);
     LOAD_AUDIO(coin_collect_audio_id,               coin_sound_mp3);
     LOAD_AUDIO(gert_death_audio_id,                 gert_death_mp3);
     LOAD_AUDIO(jump_audio_id,                       jump_sound_mp3);
+    LOAD_AUDIO(steam_audio_id,                      steam_mp3);
+    LOAD_AUDIO(heart_collect_audio_id,              heart_mp3);
+    LOAD_AUDIO(as_up_collect_audio_id,              as_up_collect_mp3);
+    LOAD_AUDIO(text_scroll_audio_id,                text_scroll_mp3);
+    LOAD_AUDIO(menu_accept_audio_id,                menu_accept_mp3);
 }

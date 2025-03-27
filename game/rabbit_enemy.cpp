@@ -46,6 +46,9 @@ void RabbitEnemy::init() {
 #define RABBIT_WANDER_WALK_TIME_MAX 0.6f
 #define RABBIT_JUMP_CHARGE_TIME 0.4f
 #define RABBIT_CHASE_JUMP_FREQ 0.5f
+#define RABBIT_ALERT_DISTANCE_SQ 6.0f * 6.0f
+#define RABBIT_ACTIVATE_DISTANCE_SQ 13.0f * 13.0f
+
 void update(Ichigo::Entity *self) {
     if (Ichiaji::program_state != Ichiaji::PS_GAME) {
         return;
@@ -57,18 +60,18 @@ void update(Ichigo::Entity *self) {
 
     switch (rabbit.state) {
         case RS_IDLE: {
-            if (distance.length() < 12.0f) {
+            if (distance.lengthsq() < RABBIT_ACTIVATE_DISTANCE_SQ) {
                 rabbit.state      = RS_WANDER;
                 rabbit.cooldown_t = rand_range_f32(RABBIT_WANDER_STILL_TIME_MIN, RABBIT_WANDER_STILL_TIME_MAX);
             }
         } break;
 
         case RS_WANDER: {
-            if (distance.length() < 2.0f) {
+            if (distance.lengthsq() < RABBIT_ALERT_DISTANCE_SQ) {
                 // TODO: Play a sound effect here.
                 rabbit.state     = RS_ALERT;
                 self->velocity.y = -3.0f;
-            } else if (distance.length() > 13.0f) {
+            } else if (distance.lengthsq() > RABBIT_ACTIVATE_DISTANCE_SQ) {
                 rabbit.state = RS_IDLE;
             } else {
                 rabbit.cooldown_t -= Ichigo::Internal::dt;

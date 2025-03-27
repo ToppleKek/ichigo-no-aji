@@ -153,7 +153,18 @@ static void ice_block_update(Ichigo::Entity *e) {
 
 static void ice_block_on_collide(Ichigo::Entity *e, Ichigo::Entity *other, [[maybe_unused]] Vec2<f32> normal, [[maybe_unused]] Vec2<f32> collision_normal, [[maybe_unused]] Vec2<f32> collision_pos) {
     if (other->user_type_id == ET_FIRE_SPELL && e->user_data_f32_2 == 0.0f) {
-        // TODO @asset: Play a melting sound here.
+        Rect<f32> camera_rect = {-1.0f * get_translation2d(Ichigo::Camera::transform), Ichigo::Camera::screen_tile_dimensions.x, Ichigo::Camera::screen_tile_dimensions.y};
+        f32 d = e->col.pos.x - (camera_rect.pos.x + camera_rect.w / 2.0f);
+        f32 l, r;
+        if (d < 0.0f) {
+            l = 1.0f;
+            r = safe_ratio_0(1.0f, -d);
+        } else  {
+            l = safe_ratio_0(1.0f, d);
+            r = 1.0f;
+        }
+
+        Ichigo::Mixer::play_audio_oneshot(Assets::steam_audio_id, 1.0f, clamp(l, 0.25f, 1.0f), clamp(r, 0.25f, 1.0f));
         CLEAR_FLAG(e->flags, Ichigo::EF_TANGIBLE);
         e->user_data_f32_1 = 1.0f;
         e->user_data_f32_2 = 1.0f;
@@ -614,25 +625,45 @@ void Ichiaji::drop_collectable(Vec2<f32> pos) {
 static void draw_game_ui() {
     static const Ichigo::TextStyle ui_style = {
         .alignment    = Ichigo::TextAlignment::CENTER,
-        .scale        = 1.0f,
-        .colour       = colour_white,
+        .scale        = 0.75f,
+        .colour       = {0.0f, 0.0f, 0.0f, 1.0f},
         .line_spacing = 100.0f
     };
 
-    static constexpr Rect<f32> health_ui_rect  = {{0.2f, 0.2f}, 3.0f, 1.3f};
-    static constexpr Vec2<f32> health_text_pos = {health_ui_rect.pos.x + health_ui_rect.w / 2.0f, health_ui_rect.pos.y + health_ui_rect.h / 2.0f};
+    static Ichigo::Texture health_ui_tex   = Ichigo::Internal::textures[Assets::health_bar_ui_texture_id];
+    static const Rect<f32> health_ui_rect  = {{0.2f, 0.2f}, pixels_to_metres(health_ui_tex.width), pixels_to_metres(health_ui_tex.height)};
+    static const Vec2<f32> health_text_pos = {health_ui_rect.pos.x + health_ui_rect.w / 2.0f, (health_ui_rect.pos.y + health_ui_rect.h / 2.0f) + 0.1f};
+
+    f32 player_max_health = PLAYER_STARTING_HEALTH + Ichiaji::player_bonuses.max_health;
+
     static Ichigo::DrawCommand health_text_background_cmd = {
+        .type              = Ichigo::DrawCommandType::TEXTURED_RECT,
+        .coordinate_system = Ichigo::CoordinateSystem::SCREEN_ASPECT_FIX,
+        .transform         = m4identity_f32,
+        .texture_rect      = health_ui_rect,
+        .texture_id        = Assets::health_bar_ui_texture_id,
+        .texture_tint      = COLOUR_WHITE
+    };
+
+    Rect<f32> health_bar_rect = {
+        {health_ui_rect.pos + Vec2<f32>{pixels_to_metres(2.0f), pixels_to_metres(2.0f)}},
+        ichigo_lerp(0.0f, Ichiaji::current_save_data.player_data.health / player_max_health, health_ui_rect.w - pixels_to_metres(4.0f)),
+        pixels_to_metres(12.0f)
+    };
+
+    Ichigo::DrawCommand health_bar_cmd = {
         .type              = Ichigo::DrawCommandType::SOLID_COLOUR_RECT,
         .coordinate_system = Ichigo::CoordinateSystem::SCREEN_ASPECT_FIX,
         .transform         = m4identity_f32,
-        .rect              = health_ui_rect,
-        .colour            = {0.0f, 0.0f, 0.0f, 0.75f}
+        .rect              = health_bar_rect,
+        .colour            = {224.0f / 255.0f, 215.0f / 255.0f, 161.0f / 255.0f, 1.0f}
     };
 
     Ichigo::push_draw_command(health_text_background_cmd);
+    Ichigo::push_draw_command(health_bar_cmd);
 
     Bana::String health_string = Bana::make_string(64, Ichigo::Internal::temp_allocator);
-    Bana::string_format(health_string, "%s %.1f / %.1f", TL_STR(HEALTH_UI), Ichiaji::current_save_data.player_data.health, PLAYER_STARTING_HEALTH + Ichiaji::player_bonuses.max_health);
+    Bana::string_format(health_string, "%.1f / %.1f", Ichiaji::current_save_data.player_data.health, player_max_health);
 
     Bana::String money_string = Bana::make_string(64, Ichigo::Internal::temp_allocator);
     Bana::string_format(money_string, "%s %u", TL_STR(MONEY_UI), Ichiaji::current_save_data.player_data.money);
@@ -658,7 +689,7 @@ static void draw_game_ui() {
     };
 
     Ichigo::push_draw_command(health_text_cmd);
-    Ichigo::push_draw_command(money_text_cmd);
+    // Ichigo::push_draw_command(money_text_cmd);
 }
 
 ////////////////////////////

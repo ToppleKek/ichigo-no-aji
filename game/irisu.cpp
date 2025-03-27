@@ -167,28 +167,27 @@ static void on_collide(Ichigo::Entity *irisu, Ichigo::Entity *other, Vec2<f32> n
         } break;
 
         case ET_RECOVERY_HEART: {
-            // TODO @asset: Play a sound effect here.
-            // Ichigo::Mixer::play_audio_oneshot(Assets::coin_collect_audio_id, 1.0f, 1.0f, 1.0f);
+            Ichigo::Mixer::play_audio_oneshot(Assets::heart_collect_audio_id, 1.0f, 1.0f, 1.0f);
             Ichiaji::current_save_data.player_data.health = clamp(Ichiaji::current_save_data.player_data.health + RECOVERY_HEART_VALUE, 0.0f, PLAYER_STARTING_HEALTH + Ichiaji::player_bonuses.max_health);
             Ichigo::kill_entity_deferred(other);
         } break;
 
         case ET_HP_UP_COLLECTABLE: {
-            // TODO @asset: Play a sound effect here.
+            Ichigo::Mixer::play_audio_oneshot(Assets::heart_collect_audio_id, 1.0f, 1.0f, 1.0f);
             Ichiaji::give_item((Ichiaji::InventoryItem) other->user_data_i64);
             Ichigo::show_info("Max HP increased!");
             Ichigo::kill_entity_deferred(other);
         } break;
 
         case ET_ATTACK_SPEED_UP_COLLECTABLE: {
-            // TODO @asset: Play a sound effect here.
+            Ichigo::Mixer::play_audio_oneshot(Assets::as_up_collect_audio_id, 1.0f, 1.0f, 1.0f);
             Ichiaji::give_item((Ichiaji::InventoryItem) other->user_data_i64);
             Ichigo::show_info("Attack speed increased!");
             Ichigo::kill_entity_deferred(other);
         } break;
 
         case ET_FIRE_SPELL_COLLECTABLE: {
-            // TODO @asset: Play a sound effect here.
+            Ichigo::Mixer::play_audio_oneshot(Assets::as_up_collect_audio_id, 1.0f, 1.0f, 1.0f);
             Ichiaji::give_item(Ichiaji::INV_FIRE_SPELL);
             Ichigo::kill_entity_deferred(other);
             Ui::open_dialogue_ui(DIALOGUE_FIRE_SPELL_EXPLAIN, ARRAY_LEN(DIALOGUE_FIRE_SPELL_EXPLAIN));
