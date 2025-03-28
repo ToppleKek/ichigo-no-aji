@@ -623,10 +623,20 @@ void Ichiaji::drop_collectable(Vec2<f32> pos) {
 }
 
 static void draw_game_ui() {
+    static u32 last_money = UINT32_MAX;
+    static f32 money_ui_t = 0.0f;
+
     static const Ichigo::TextStyle ui_style = {
         .alignment    = Ichigo::TextAlignment::CENTER,
         .scale        = 0.75f,
         .colour       = {0.0f, 0.0f, 0.0f, 1.0f},
+        .line_spacing = 100.0f
+    };
+
+    static const Ichigo::TextStyle ui_style_white = {
+        .alignment    = Ichigo::TextAlignment::LEFT,
+        .scale        = 1.25f,
+        .colour       = {1.0f, 1.0f, 1.0f, 1.0f},
         .line_spacing = 100.0f
     };
 
@@ -665,8 +675,29 @@ static void draw_game_ui() {
     Bana::String health_string = Bana::make_string(64, Ichigo::Internal::temp_allocator);
     Bana::string_format(health_string, "%.1f / %.1f", Ichiaji::current_save_data.player_data.health, player_max_health);
 
-    Bana::String money_string = Bana::make_string(64, Ichigo::Internal::temp_allocator);
-    Bana::string_format(money_string, "%s %u", TL_STR(MONEY_UI), Ichiaji::current_save_data.player_data.money);
+    if (last_money != Ichiaji::current_save_data.player_data.money) {
+        money_ui_t = 5.0f;
+        last_money = Ichiaji::current_save_data.player_data.money;
+    }
+
+    if (money_ui_t > 0.0f) {
+        Bana::String money_string = Bana::make_string(64, Ichigo::Internal::temp_allocator);
+        Bana::string_format(money_string, "$%u", Ichiaji::current_save_data.player_data.money);
+
+        Ichigo::DrawCommand money_text_cmd = {
+            .type              = Ichigo::DrawCommandType::TEXT,
+            .coordinate_system = Ichigo::CoordinateSystem::SCREEN_ASPECT_FIX,
+            .transform         = m4identity_f32,
+            .string            = money_string.data,
+            .string_length     = money_string.length,
+            .string_pos        = {health_ui_rect.pos.x, money_ui_t < 1.0f ? bezier(SCREEN_ASPECT_FIX_HEIGHT + 5.0f, SCREEN_ASPECT_FIX_HEIGHT + 5.0f, money_ui_t, SCREEN_ASPECT_FIX_HEIGHT - 0.5f, SCREEN_ASPECT_FIX_HEIGHT - 0.5f) : SCREEN_ASPECT_FIX_HEIGHT - 0.5f},
+            .text_style        = ui_style_white
+        };
+
+        Ichigo::push_draw_command(money_text_cmd);
+
+        money_ui_t -= Ichigo::Internal::dt;
+    }
 
     Ichigo::DrawCommand health_text_cmd = {
         .type              = Ichigo::DrawCommandType::TEXT,
@@ -678,18 +709,7 @@ static void draw_game_ui() {
         .text_style        = ui_style
     };
 
-    Ichigo::DrawCommand money_text_cmd = {
-        .type              = Ichigo::DrawCommandType::TEXT,
-        .coordinate_system = Ichigo::CoordinateSystem::SCREEN_ASPECT_FIX,
-        .transform         = m4identity_f32,
-        .string            = money_string.data,
-        .string_length     = money_string.length,
-        .string_pos        = health_text_pos + Vec2<f32>{0.0f, 0.5f},
-        .text_style        = ui_style
-    };
-
     Ichigo::push_draw_command(health_text_cmd);
-    // Ichigo::push_draw_command(money_text_cmd);
 }
 
 ////////////////////////////
