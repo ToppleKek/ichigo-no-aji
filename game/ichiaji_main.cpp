@@ -650,11 +650,12 @@ static void draw_game_ui() {
         .line_spacing = 100.0f
     };
 
+    f32 player_max_health = PLAYER_STARTING_HEALTH + Ichiaji::player_bonuses.max_health;
+
     static Ichigo::Texture health_ui_tex   = Ichigo::Internal::textures[Assets::health_bar_ui_texture_id];
     static const Rect<f32> health_ui_rect  = {{0.2f, 0.2f}, pixels_to_metres(health_ui_tex.width), pixels_to_metres(health_ui_tex.height)};
     static const Vec2<f32> health_text_pos = {health_ui_rect.pos.x + health_ui_rect.w / 2.0f, (health_ui_rect.pos.y + health_ui_rect.h / 2.0f) + 0.1f};
-
-    f32 player_max_health = PLAYER_STARTING_HEALTH + Ichiaji::player_bonuses.max_health;
+    static f32 current_health_bar_pos      = 0.0f;
 
     static Ichigo::DrawCommand health_text_background_cmd = {
         .type              = Ichigo::DrawCommandType::TEXTURED_RECT,
@@ -665,9 +666,19 @@ static void draw_game_ui() {
         .texture_tint      = COLOUR_WHITE
     };
 
+    f32 target_health_bar_pos = ichigo_lerp(0.0f, Ichiaji::current_save_data.player_data.health / player_max_health, health_ui_rect.w - pixels_to_metres(4.0f));
+
+    // Here is an alternative easing function that looks nice but speeds up as health drops.
+    // ichigo_lerp(10.0f, safe_ratio_1(MIN(current_health_bar_pos, target_health_bar_pos), MAX(current_health_bar_pos, target_health_bar_pos)), 0.2f)
+    current_health_bar_pos = move_towards(
+        current_health_bar_pos,
+        target_health_bar_pos,
+        (0.25f + (DISTANCE(current_health_bar_pos, target_health_bar_pos) * 4.0f)) * Ichigo::Internal::dt
+    );
+
     Rect<f32> health_bar_rect = {
         {health_ui_rect.pos + Vec2<f32>{pixels_to_metres(2.0f), pixels_to_metres(2.0f)}},
-        ichigo_lerp(0.0f, Ichiaji::current_save_data.player_data.health / player_max_health, health_ui_rect.w - pixels_to_metres(4.0f)),
+        current_health_bar_pos,
         pixels_to_metres(12.0f)
     };
 
