@@ -1,5 +1,6 @@
 #include "miniboss_room.hpp"
 #include "rabbit_enemy.hpp"
+#include "asset_catalog.hpp"
 
 enum CutsceneState {
     CS_NOTHING,
@@ -17,6 +18,7 @@ static Ichigo::EntityID player_sense_entity_id = NULL_ENTITY_ID;
 static Ichigo::EntityID left_door_id           = NULL_ENTITY_ID;
 static Ichigo::EntityID right_door_id          = NULL_ENTITY_ID;
 static Ichigo::EntityID enemies[4]             = {};
+static Ichiaji::Bgm level_bgm                  = {};
 
 #define CAMERA_PAN_T 1.25f
 
@@ -52,6 +54,9 @@ static void on_collide(Ichigo::Entity *e, Ichigo::Entity *other, Vec2<f32> norma
     Ichigo::Camera::manual_focus_point = camera_start_pos;
     Ichigo::Camera::mode               = Ichigo::Camera::Mode::MANUAL;
     Ichiaji::program_state             = Ichiaji::PS_CUTSCENE;
+    level_bgm                          = Ichiaji::current_bgm;
+
+    Ichiaji::change_bgm({0, 0.0f, 0.0f});
 
     Ichigo::kill_entity_deferred(e);
 }
@@ -74,6 +79,7 @@ static void update(Ichigo::Entity *e) {
             };
 
             if (t == 1.0f) {
+                Ichiaji::change_bgm({Assets::test_song_audio_id, 0.864f, 54.188f});
                 cutscene_state = CS_DOOR_CLOSE;
             }
         } break;
@@ -110,6 +116,8 @@ static void update(Ichigo::Entity *e) {
             Ichigo::Camera::follow(Ichiaji::player_entity_id);
             Ichigo::Camera::mode = Ichigo::Camera::Mode::FOLLOW;
             Ichigo::kill_entity(e);
+
+            Ichiaji::change_bgm(level_bgm);
         } break;
     }
 }
@@ -123,6 +131,8 @@ void Miniboss::spawn_controller_entity(const Ichigo::EntityDescriptor &descripto
     player_sense_entity_id = NULL_ENTITY_ID;
     left_door_id           = NULL_ENTITY_ID;
     right_door_id          = NULL_ENTITY_ID;
+    level_bgm              = {};
+
 
     std::memset(enemies, 0, sizeof(enemies));
 

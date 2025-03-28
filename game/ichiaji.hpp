@@ -54,7 +54,14 @@ enum ProgramState {
     PS_PAUSE,
 };
 
+struct Bgm {
+    Ichigo::AudioID audio_id;
+    f32 loop_start;
+    f32 loop_end;
+};
+
 using LevelInitProc   = void ();
+using LevelEnterProc  = void ();
 using LevelUpdateProc = void ();
 using LevelSpawnProc  = bool (const Ichigo::EntityDescriptor &);
 struct Level {
@@ -63,6 +70,7 @@ struct Level {
     Bana::FixedArray<Ichigo::Background> backgrounds;
     Bana::FixedArray<Ichigo::EntityDescriptor> entity_descriptors;
     LevelInitProc *init_proc;
+    LevelEnterProc *enter_proc;
     LevelUpdateProc *update_proc;
     LevelSpawnProc *spawn_proc;
 };
@@ -117,6 +125,7 @@ extern bool input_disabled;
 extern Level all_levels[];
 extern i64 current_level_id;
 extern Ichigo::EntityID player_entity_id;
+extern Bgm current_bgm;
 
 using FullscreenTransitionCompleteCallback = void (uptr);
 void fullscreen_transition(Vec4<f32> from, Vec4<f32> to, f32 t, FullscreenTransitionCompleteCallback *on_complete, uptr callback_data);
@@ -124,6 +133,7 @@ void try_change_level(i64 level_id);
 void try_talk_to(Ichigo::Entity *entity);
 void recalculate_player_bonuses();
 void drop_collectable(Vec2<f32> pos);
+void change_bgm(Bgm new_bgm);
 
 inline bool item_obtained(InventoryItem item) {
     return FLAG_IS_SET(Ichiaji::current_save_data.player_data.inventory_flags, item);

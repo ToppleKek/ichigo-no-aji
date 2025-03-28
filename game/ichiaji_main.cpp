@@ -66,8 +66,6 @@ static Ichigo::TextStyle credit_style = {
 
 static Ichigo::SpriteSheet tileset_sheet;
 
-static Ichigo::Mixer::PlayingAudioID game_bgm;
-
 static Bana::Array<Ichigo::EntityDescriptor> current_entity_descriptors{};
 
 struct Coin {
@@ -77,6 +75,7 @@ struct Coin {
 
 Language               current_language           = ENGLISH;
 Ichiaji::GameSaveData  Ichiaji::current_save_data = {};
+Ichiaji::Bgm           Ichiaji::current_bgm       = {};
 Ichiaji::PlayerBonuses Ichiaji::player_bonuses    = {};
 Ichiaji::ProgramState  Ichiaji::program_state     = Ichiaji::PS_MAIN_MENU;
 bool                   Ichiaji::input_disabled    = false;
@@ -360,6 +359,8 @@ static void change_level(i64 level_id, bool first_start) {
     current_entity_descriptors.ensure_capacity(level.entity_descriptors.size);
     std::memcpy(current_entity_descriptors.data, level.entity_descriptors.data, level.entity_descriptors.size * sizeof(Ichigo::EntityDescriptor));
 
+    if (level.enter_proc) level.enter_proc();
+
     // == Spawn entities in world ==
     respawn_all_entities(current_entity_descriptors, first_start);
 }
@@ -375,14 +376,11 @@ static void init_game() {
     } else {
         change_level(Ichiaji::current_save_data.player_data.level_id, true);
     }
-
-    // == Setup initial game state ==
-    game_bgm = Ichigo::Mixer::play_audio(Assets::test_song_audio_id, 1.0f, 1.0f, 1.0f, 0.864f, 54.188f);
 }
 
 static void deinit_game() {
     Ichigo::Camera::mode = Ichigo::Camera::Mode::MANUAL;
-    Ichigo::Mixer::cancel_audio(game_bgm);
+    Ichiaji::change_bgm({0, 0.0f, 0.0f});
 
     change_level(0, false);
 }
@@ -619,6 +617,18 @@ void Ichiaji::drop_collectable(Vec2<f32> pos) {
         Collectables::spawn_recovery_heart(pos);
     } else {
         Collectables::spawn_coin(pos);
+    }
+}
+
+void Ichiaji::change_bgm(Bgm new_bgm) {
+    static Ichigo::Mixer::PlayingAudioID current_playing_bgm;
+    Ichigo::Mixer::cancel_audio(current_playing_bgm);
+
+    if (new_bgm.audio_id != 0) {
+        current_playing_bgm  = Ichigo::Mixer::play_audio(new_bgm.audio_id, 1.0f, 1.0f, 1.0f, new_bgm.loop_start, new_bgm.loop_end);
+        Ichiaji::current_bgm = new_bgm;
+    } else {
+        Ichiaji::current_bgm = {};
     }
 }
 

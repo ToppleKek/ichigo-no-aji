@@ -4,7 +4,7 @@
     Audio mixer.
 
     Author:      Braeden Hong
-    Last edited: 2024/11/30
+    Last edited: 2025/03/28
 */
 
 #include "mixer.hpp"
@@ -52,7 +52,7 @@ Ichigo::Mixer::PlayingAudioID Ichigo::Mixer::play_audio_oneshot(AudioID audio_id
 }
 
 Ichigo::Mixer::PlayingAudio *Ichigo::Mixer::get_playing_audio(PlayingAudioID id) {
-    if (id. index >= Ichigo::Mixer::playing_audio.size)
+    if (id.index >= Ichigo::Mixer::playing_audio.size)
         return nullptr;
 
     PlayingAudio *pa = &Ichigo::Mixer::playing_audio[id.index];

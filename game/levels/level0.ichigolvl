@@ -13,5 +13,6 @@ Ichiaji::Level level = {
     nullptr,
     nullptr,
     nullptr,
+    nullptr,
 };
 }

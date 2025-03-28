@@ -36,6 +36,9 @@ extern Ichigo::AudioID   heart_collect_audio_id;
 extern Ichigo::AudioID   as_up_collect_audio_id;
 extern Ichigo::AudioID   text_scroll_audio_id;
 extern Ichigo::AudioID   menu_accept_audio_id;
+extern Ichigo::AudioID   cave_drip_ambience_audio_id;
+extern Ichigo::AudioID   overworld_audio_id;
+extern Ichigo::AudioID   musekinin_audio_id;
 
 void load_assets();
 }
