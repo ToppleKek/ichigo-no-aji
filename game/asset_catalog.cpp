@@ -36,6 +36,8 @@ EMBED("assets/health-bar-ui.png",          health_bar_ui_png)
 EMBED("assets/music/cave_water_drip.mp3",  cave_drip_ambience_mp3)
 EMBED("assets/music/overworld.mp3",        overworld_mp3)
 EMBED("assets/music/musekinin.mp3",        musekinin_mp3)
+EMBED("assets/music/spell.mp3",            spell_mp3)
+EMBED("assets/music/fire.mp3",             fire_mp3)
 
 Ichigo::TextureID Assets::coin_texture_id                   = 0;
 Ichigo::TextureID Assets::shopkeep_texture_id               = 0;
@@ -73,6 +75,8 @@ Ichigo::AudioID   Assets::menu_accept_audio_id              = 0;
 Ichigo::AudioID   Assets::cave_drip_ambience_audio_id       = 0;
 Ichigo::AudioID   Assets::overworld_audio_id                = 0;
 Ichigo::AudioID   Assets::musekinin_audio_id                = 0;
+Ichigo::AudioID   Assets::spell_audio_id                    = 0;
+Ichigo::AudioID   Assets::fire_audio_id                     = 0;
 
 #define LOAD_TEXTURE(ID_NAME, FILE_NAME) Assets::ID_NAME = Ichigo::load_texture(FILE_NAME, FILE_NAME##_len)
 #define LOAD_AUDIO(ID_NAME, FILE_NAME)   Assets::ID_NAME = Ichigo::load_audio(FILE_NAME, FILE_NAME##_len)
@@ -114,4 +118,6 @@ void Assets::load_assets() {
     LOAD_AUDIO(cave_drip_ambience_audio_id,         cave_drip_ambience_mp3);
     LOAD_AUDIO(overworld_audio_id,                  overworld_mp3);
     LOAD_AUDIO(musekinin_audio_id,                  musekinin_mp3);
+    LOAD_AUDIO(spell_audio_id,                      spell_mp3);
+    LOAD_AUDIO(fire_audio_id,                       fire_mp3);
 }

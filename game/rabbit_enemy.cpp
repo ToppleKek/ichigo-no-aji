@@ -11,6 +11,7 @@ enum RabbitState {
     RS_JUMP,
     RS_ALERT,
     RS_CHASE,
+    RS_HURT
 };
 
 struct Rabbit {
@@ -19,24 +20,45 @@ struct Rabbit {
     f32 health;
 };
 
+static const Ichigo::Animation rabbit_idle = {
+    .tag                 = RS_IDLE,
+    .cell_of_first_frame = 2 * 5,
+    .cell_of_last_frame  = 2 * 5 + 3,
+    .cell_of_loop_start  = 2 * 5,
+    .cell_of_loop_end    = 2 * 5 + 3,
+    .seconds_per_frame   = 0.08f
+};
+
+static const Ichigo::Animation rabbit_walk = {
+    .tag                 = RS_WALK,
+    .cell_of_first_frame = 0 * 5,
+    .cell_of_last_frame  = 0 * 5 + 3,
+    .cell_of_loop_start  = 0 * 5,
+    .cell_of_loop_end    = 0 * 5 + 3,
+    .seconds_per_frame   = 0.08f
+};
+
+static const Ichigo::Animation rabbit_hurt = {
+    .tag                 = RS_HURT,
+    .cell_of_first_frame = 1 * 5,
+    .cell_of_last_frame  = 1 * 5 + 1,
+    .cell_of_loop_start  = 1 * 5,
+    .cell_of_loop_end    = 1 * 5 + 1,
+    .seconds_per_frame   = 0.08f
+};
+
 static Ichigo::Sprite rabbit_sprite;
-static u32 tex_width_px;
-static u32 tex_height_px;
 static Bana::BucketArray<Rabbit> rabbit_data;
 
+#define RABBIT_SPRITE_CELL_WIDTH_PX  25
+#define RABBIT_SPRITE_CELL_HEIGHT_PX 40
 void RabbitEnemy::init() {
-    rabbit_data       = make_bucket_array<Rabbit>(128, Ichigo::Internal::perm_allocator);
-
-    const Ichigo::Texture &tex = Ichigo::Internal::textures[Assets::rabbit_texture_id];
-
-    tex_width_px  = tex.width;
-    tex_height_px = tex.height;
-
+    rabbit_data   = make_bucket_array<Rabbit>(128, Ichigo::Internal::perm_allocator);
     rabbit_sprite = {};
     rabbit_sprite.pos_offset = {0.0f, 0.0f};
-    rabbit_sprite.width      = pixels_to_metres(tex_width_px);
-    rabbit_sprite.height     = pixels_to_metres(tex_height_px);
-    rabbit_sprite.sheet      = { tex_width_px, tex_height_px, Assets::rabbit_texture_id };
+    rabbit_sprite.width      = pixels_to_metres(RABBIT_SPRITE_CELL_WIDTH_PX);
+    rabbit_sprite.height     = pixels_to_metres(RABBIT_SPRITE_CELL_HEIGHT_PX);
+    rabbit_sprite.sheet      = { RABBIT_SPRITE_CELL_WIDTH_PX, RABBIT_SPRITE_CELL_HEIGHT_PX, Assets::rabbit_texture_id };
     rabbit_sprite.animation  = {};
 }
 
@@ -48,6 +70,14 @@ void RabbitEnemy::init() {
 #define RABBIT_CHASE_JUMP_FREQ 0.5f
 #define RABBIT_ALERT_DISTANCE_SQ 6.0f * 6.0f
 #define RABBIT_ACTIVATE_DISTANCE_SQ 13.0f * 13.0f
+
+static inline void maybe_enter_animation(Ichigo::Entity *entity, Ichigo::Animation animation) {
+    if (entity->sprite.animation.tag != animation.tag) {
+        entity->sprite.animation                    = animation;
+        entity->sprite.current_animation_frame      = 0;
+        entity->sprite.elapsed_animation_frame_time = 0.0f;
+    }
+}
 
 void update(Ichigo::Entity *self) {
     if (Ichiaji::program_state != Ichiaji::PS_GAME) {
@@ -67,6 +97,8 @@ void update(Ichigo::Entity *self) {
         } break;
 
         case RS_WANDER: {
+            maybe_enter_animation(self, rabbit_idle);
+
             if (distance.lengthsq() < RABBIT_ALERT_DISTANCE_SQ) {
                 // TODO: Play a sound effect here.
                 rabbit.state     = RS_ALERT;
@@ -87,6 +119,8 @@ void update(Ichigo::Entity *self) {
         } break;
 
         case RS_WALK: {
+            maybe_enter_animation(self, rabbit_walk);
+
             rabbit.cooldown_t -= Ichigo::Internal::dt;
             // FIXME: @fpsdep
             if (rabbit.cooldown_t <= 0.0f) {
@@ -105,6 +139,8 @@ void update(Ichigo::Entity *self) {
         } break;
 
         case RS_JUMP: {
+            maybe_enter_animation(self, rabbit_idle);
+
             rabbit.cooldown_t -= Ichigo::Internal::dt;
             if (rabbit.cooldown_t <= 0.0f) {
                 // NOTE: We resue RS_ALERT because it just places us back in chase mode when we land on the ground.
@@ -117,6 +153,8 @@ void update(Ichigo::Entity *self) {
         } break;
 
         case RS_ALERT: {
+            maybe_enter_animation(self, rabbit_idle);
+
             if (FLAG_IS_SET(self->flags, Ichigo::EF_ON_GROUND)) {
                 rabbit.state      = RS_CHASE;
                 rabbit.cooldown_t = RABBIT_CHASE_JUMP_FREQ;
@@ -124,6 +162,8 @@ void update(Ichigo::Entity *self) {
         } break;
 
         case RS_CHASE: {
+            maybe_enter_animation(self, rabbit_walk);
+
             if (distance.length() > 8.0f) {
                 rabbit.state       = RS_WANDER;
                 self->acceleration = {};
@@ -149,6 +189,15 @@ void update(Ichigo::Entity *self) {
                 }
             }
         } break;
+
+        case RS_HURT: {
+            maybe_enter_animation(self, rabbit_hurt);
+
+            rabbit.cooldown_t -= Ichigo::Internal::dt;
+            if (rabbit.cooldown_t <= 0.0f) {
+                rabbit.state = RS_CHASE;
+            }
+        } break;
     }
 
     Ichigo::move_entity_in_world(self);
@@ -160,7 +209,11 @@ void on_collide(Ichigo::Entity *self, Ichigo::Entity *other, [[maybe_unused]] Ve
     if (other->user_type_id == ET_SPELL || other->user_type_id == ET_FIRE_SPELL) {
         Rabbit &rabbit = rabbit_data[BIT_CAST(Bana::BucketLocator, self->user_data_i64)];
 
-        // TODO: Enter hurt state?
+        if (rabbit.state == RS_HURT) return;
+
+        rabbit.state       = RS_HURT;
+        rabbit.cooldown_t  = 1.0f;
+        self->acceleration = {};
         rabbit.health -= (other->user_type_id == ET_SPELL ? SPELL_DAMAGE : FIRE_SPELL_DAMAGE) + Ichiaji::player_bonuses.attack_power;
         if (rabbit.health <= 0.0f) {
             // TODO @asset: Play a sound here.
@@ -185,7 +238,7 @@ Ichigo::EntityID RabbitEnemy::spawn(const Ichigo::EntityDescriptor &descriptor) 
     auto bl  = rabbit_data.insert(r);
 
     std::strcpy(e->name, "rabbit");
-    e->col            = {descriptor.pos, pixels_to_metres(tex_width_px), pixels_to_metres(tex_height_px)};
+    e->col            = {descriptor.pos, pixels_to_metres(RABBIT_SPRITE_CELL_WIDTH_PX), pixels_to_metres(RABBIT_SPRITE_CELL_HEIGHT_PX)};
     e->max_velocity   = {4.0f, 12.0f};
     e->movement_speed = 6.0f;
     e->gravity        = 9.8f;

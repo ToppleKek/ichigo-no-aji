@@ -311,8 +311,8 @@ void Irisu::deinit() {
 
 static inline void maybe_enter_animation(Ichigo::Entity *entity, Ichigo::Animation animation) {
     if (entity->sprite.animation.tag != animation.tag) {
-        entity->sprite.animation = animation;
-        entity->sprite.current_animation_frame = 0;
+        entity->sprite.animation                    = animation;
+        entity->sprite.current_animation_frame      = 0;
         entity->sprite.elapsed_animation_frame_time = 0.0f;
     }
 }
@@ -409,11 +409,14 @@ static void cast_spell(Ichigo::Entity *irisu) {
         spell->col            = {irisu->col.pos + Vec2<f32>{0.0f, 0.2f}, spell_sprite.width, spell_sprite.height};
         spell->sprite         = spell_sprite;
         spell->user_type_id   = ET_SPELL;
+
+        Ichigo::Mixer::play_audio_oneshot(Assets::spell_audio_id, 1.0f, 1.0f, 1.0f);
     } else if (current_spell_type == ST_FIRE) {
         std::strcpy(spell->name, "fire_spell");
         spell->col            = {irisu->col.pos + Vec2<f32>{(FLAG_IS_SET(irisu->flags, Ichigo::EF_FLIP_H) ? irisu->col.w : -fire_spell_sprite.width), 0.2f}, fire_spell_sprite.width, fire_spell_sprite.height};
         spell->sprite         = fire_spell_sprite;
         spell->user_type_id   = ET_FIRE_SPELL;
+        Ichigo::Mixer::play_audio_oneshot(Assets::fire_audio_id, 1.0f, 1.0f, 1.0f);
     }
 
     attack_cooldown_remaining = DEFAULT_SPELL_COOLDOWN - Ichiaji::player_bonuses.attack_speed; // NOTE: This attack speed bonus could be a % of the default instead?
