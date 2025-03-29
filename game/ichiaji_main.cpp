@@ -705,16 +705,33 @@ static void draw_game_ui() {
         Bana::String money_string = Bana::make_string(64, Ichigo::Internal::temp_allocator);
         Bana::string_format(money_string, "$%u", Ichiaji::current_save_data.player_data.money);
 
+        Vec2<f32> money_ui_pos = {health_ui_rect.pos.x, SCREEN_ASPECT_FIX_HEIGHT - 1.0f};
+
+        if (money_ui_t > 4.85f) {
+            money_ui_pos.y = bezier(SCREEN_ASPECT_FIX_HEIGHT - 0.5f, SCREEN_ASPECT_FIX_HEIGHT - 0.5f, (5.0f - money_ui_t) / 0.15f, SCREEN_ASPECT_FIX_HEIGHT - 1.3f, SCREEN_ASPECT_FIX_HEIGHT - 1.0f);
+        } else if (money_ui_t < 1.0f) {
+            money_ui_pos.y = bezier(SCREEN_ASPECT_FIX_HEIGHT + 5.0f, SCREEN_ASPECT_FIX_HEIGHT + 5.0f, money_ui_t, SCREEN_ASPECT_FIX_HEIGHT - 2.0f, SCREEN_ASPECT_FIX_HEIGHT - 1.0f);
+        }
+
+        Ichigo::DrawCommand money_bg_cmd = {
+            .type              = Ichigo::DrawCommandType::SOLID_COLOUR_RECT,
+            .coordinate_system = Ichigo::CoordinateSystem::SCREEN_ASPECT_FIX,
+            .transform         = m4identity_f32,
+            .rect              = {money_ui_pos, get_text_width(money_string.data, money_string.length, ui_style_white) + 0.5f, 0.75f},
+            .colour            = {0.0f, 0.0f, 0.0f, 0.9f}
+        };
+
         Ichigo::DrawCommand money_text_cmd = {
             .type              = Ichigo::DrawCommandType::TEXT,
             .coordinate_system = Ichigo::CoordinateSystem::SCREEN_ASPECT_FIX,
             .transform         = m4identity_f32,
             .string            = money_string.data,
             .string_length     = money_string.length,
-            .string_pos        = {health_ui_rect.pos.x, money_ui_t < 1.0f ? bezier(SCREEN_ASPECT_FIX_HEIGHT + 5.0f, SCREEN_ASPECT_FIX_HEIGHT + 5.0f, money_ui_t, SCREEN_ASPECT_FIX_HEIGHT - 0.5f, SCREEN_ASPECT_FIX_HEIGHT - 0.5f) : SCREEN_ASPECT_FIX_HEIGHT - 0.5f},
+            .string_pos        = money_ui_pos + Vec2<f32>{0.25f, 0.5f},
             .text_style        = ui_style_white
         };
 
+        Ichigo::push_draw_command(money_bg_cmd);
         Ichigo::push_draw_command(money_text_cmd);
 
         money_ui_t -= Ichigo::Internal::dt;
