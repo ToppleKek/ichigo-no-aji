@@ -12,6 +12,7 @@ enum Strings {
     TITLE,
     SWITCH_LANGUAGE,
     START_GAME,
+    START_GAME_CONTROLLER,
     EXIT,
     INFO_TEXT,
     PAUSE,
@@ -48,11 +49,12 @@ enum Strings {
 using StringID = i64;
 
 static const constexpr char *STRINGS[STRING_COUNT][LANGUAGE_COUNT] = {
-    {"Ichigo! Demo Game", "いちご！デモンストレーションゲーム"},
+    {"MUSEKININ Society", "無責任部"},
     {"Language: English", "言語：日本語"},
-    {"Start game", "始める"},
+    {"Press ENTER", "Press ENTER"},
+    {"Press START", "Press START"},
     {"Exit", "終了"},
-    {"F5: Change language - 2024 Braeden Hong - ichigo no chikara de...!", "F5: 言語変換 - 2024 Braeden Hong - 苺の力で...!"},
+    {"F5: Change language - 2025 Braeden Hong - ichigo no chikara de...!", "F5: 言語変換 - 2025 Braeden Hong - 苺の力で...!"},
     {"Pause", "ポーズ"},
     {"Resume", "再開"},
     {"Return to menu", "メインメニューに戻る"},

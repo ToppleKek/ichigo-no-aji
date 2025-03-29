@@ -57,13 +57,6 @@ static Ichigo::TextStyle info_style = {
     .line_spacing = 100.0f
 };
 
-static Ichigo::TextStyle credit_style = {
-    .alignment    = Ichigo::TextAlignment::LEFT,
-    .scale        = 0.5f,
-    .colour       = colour_white,
-    .line_spacing = 100.0f
-};
-
 static Ichigo::SpriteSheet tileset_sheet;
 
 static Bana::Array<Ichigo::EntityDescriptor> current_entity_descriptors{};
@@ -888,65 +881,40 @@ void Ichigo::Game::update_and_render() {
         case Ichiaji::PS_MAIN_MENU: {
 #define FADE_IN_DURATION 1.5f
 #define MENU_ITEM_COUNT 2
-            static u32 selected_menu_item = 0;
             static f32 fade_in_t = -1.0f;
 
             if (fade_in_t < 0.0f) {
                 fade_in_t = FADE_IN_DURATION;
             }
 
+            Ichigo::DrawCommand title_draw_cmd = {
+                .type              = TEXTURED_RECT,
+                .coordinate_system = SCREEN_ASPECT_FIX,
+                .transform         = m4identity_f32,
+                .texture_rect      = {{0.0f, 0.0f}, SCREEN_ASPECT_FIX_WIDTH, SCREEN_ASPECT_FIX_HEIGHT},
+                .texture_id        = Assets::title_card_texture_id,
+                .texture_tint      = COLOUR_WHITE,
+            };
+
+            Ichigo::push_draw_command(title_draw_cmd);
+
             Ichigo::DrawCommand info_text_cmd = {
                 .type              = TEXT,
-                .coordinate_system = CAMERA,
+                .coordinate_system = SCREEN_ASPECT_FIX,
                 .transform         = m4identity_f32,
                 .string            = TL_STR(INFO_TEXT),
                 .string_length     = std::strlen(TL_STR(INFO_TEXT)),
-                .string_pos        = {Ichigo::Camera::screen_tile_dimensions.x, Ichigo::Camera::screen_tile_dimensions.y - 0.1f},
+                .string_pos        = {SCREEN_ASPECT_FIX_WIDTH, SCREEN_ASPECT_FIX_HEIGHT - 0.1f},
                 .text_style        = info_style
             };
 
             Ichigo::push_draw_command(info_text_cmd);
 
-            Ichigo::DrawCommand credit_text_cmd = {
-                .type              = TEXT,
-                .coordinate_system = CAMERA,
-                .transform         = m4identity_f32,
-                .string            = TL_STR(CREDIT_TEXT),
-                .string_length     = std::strlen(TL_STR(CREDIT_TEXT)),
-                .string_pos        = {0.0f, Ichigo::Camera::screen_tile_dimensions.y - 1.05f},
-                .text_style        = credit_style
-            };
-
-            Ichigo::push_draw_command(credit_text_cmd);
-
-            bool menu_down_button_down_this_frame   = Ichigo::Internal::keyboard_state[Ichigo::IK_DOWN].down_this_frame || Ichigo::Internal::gamepad.down.down_this_frame;
-            bool menu_up_button_down_this_frame     = Ichigo::Internal::keyboard_state[Ichigo::IK_UP].down_this_frame || Ichigo::Internal::gamepad.up.down_this_frame;
             bool menu_select_button_down_this_frame = Ichigo::Internal::keyboard_state[IK_ENTER].down_this_frame || Ichigo::Internal::gamepad.a.down_this_frame || Ichigo::Internal::gamepad.start.down_this_frame;
 
-            if (menu_down_button_down_this_frame) {
-                selected_menu_item = (selected_menu_item + 1) % MENU_ITEM_COUNT;
-            } else if (menu_up_button_down_this_frame) {
-                selected_menu_item = DEC_POSITIVE_OR(selected_menu_item, MENU_ITEM_COUNT - 1);
-            }
-
-            Ichigo::DrawCommand title_draw_cmd = {
-                .type              = TEXT,
-                .coordinate_system = CAMERA,
-                .transform         = m4identity_f32,
-                .string            = TL_STR(TITLE),
-                .string_length     = std::strlen(TL_STR(TITLE)),
-                .string_pos        = {Ichigo::Camera::screen_tile_dimensions.x / 2.0f, Ichigo::Camera::screen_tile_dimensions.y / ichigo_lerp(6.0f, fade_in_t / FADE_IN_DURATION, 4.0f)},
-                .text_style        = title_style
-            };
-
-            Ichigo::push_draw_command(title_draw_cmd);
 
             if (menu_select_button_down_this_frame) {
-                if (selected_menu_item == 0) {
-                    enter_new_program_state(Ichiaji::PS_GAME);
-                } else if (selected_menu_item == 1) {
-                    std::exit(0);
-                }
+                enter_new_program_state(Ichiaji::PS_GAME);
             }
 
             if (fade_in_t > 0.0f) {
@@ -969,30 +937,24 @@ void Ichigo::Game::update_and_render() {
                 f64 t = std::sin(Internal::platform_get_current_time() * 2.0f);
                 t *= t;
                 t = 0.5f + 0.5f * t;
-                Vec4<f32> pulse_colour = {0.6f, 0.2f, ichigo_lerp(0.4f, t, 0.9f), 1.0f};
+
+                f32 v = ichigo_lerp(0.4f, t, 0.9f);
+                Vec4<f32> pulse_colour = {1.0f, v, v, 1.0f};
+
+                u32 string_id = controller_connected ? START_GAME_CONTROLLER : START_GAME;
 
                 Ichigo::DrawCommand menu_draw_cmd = {
                     .type              = TEXT,
-                    .coordinate_system = CAMERA,
+                    .coordinate_system = SCREEN_ASPECT_FIX,
                     .transform         = m4identity_f32,
-                    .string            = TL_STR(START_GAME),
-                    .string_length     = std::strlen(TL_STR(START_GAME)),
-                    .string_pos        = {Ichigo::Camera::screen_tile_dimensions.x / 2.0f, Ichigo::Camera::screen_tile_dimensions.y / 1.5f},
+                    .string            = TL_STR(string_id),
+                    .string_length     = std::strlen(TL_STR(string_id)),
+                    .string_pos        = {Ichigo::Camera::screen_tile_dimensions.x / 2.0f, SCREEN_ASPECT_FIX_HEIGHT - 1.0f},
                     .text_style        = menu_item_style
                 };
 
-                if (selected_menu_item == 0) menu_draw_cmd.text_style.colour = pulse_colour;
-                else                         menu_draw_cmd.text_style.colour = colour_white;
+                menu_draw_cmd.text_style.colour = pulse_colour;
 
-
-                Ichigo::push_draw_command(menu_draw_cmd);
-
-                if (selected_menu_item == 1) menu_draw_cmd.text_style.colour = pulse_colour;
-                else                         menu_draw_cmd.text_style.colour = colour_white;
-
-                menu_draw_cmd.string        = TL_STR(EXIT);
-                menu_draw_cmd.string_length = std::strlen(TL_STR(EXIT)),
-                menu_draw_cmd.string_pos    = {Ichigo::Camera::screen_tile_dimensions.x / 2.0f, (Ichigo::Camera::screen_tile_dimensions.y / 1.5f) + 1.0f};
 
                 Ichigo::push_draw_command(menu_draw_cmd);
             }
