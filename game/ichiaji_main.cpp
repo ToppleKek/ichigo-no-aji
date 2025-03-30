@@ -128,13 +128,50 @@ static void spawn_gert(Vec2<f32> pos) {
     enemy->sprite = gert_sprite;
 }
 
+static void buchou_look_at_player(Ichigo::Entity *buchou) {
+    auto *player = Ichigo::get_entity(Ichiaji::player_entity_id);
+    if (!player) return;
+
+    f32 dx = player->col.pos.x - buchou->col.pos.x;
+
+    if (dx > 0.0f) {
+        SET_FLAG(buchou->flags, Ichigo::EF_FLIP_H);
+    } else {
+        CLEAR_FLAG(buchou->flags, Ichigo::EF_FLIP_H);
+    }
+}
+
 static void spawn_buchou(const Ichigo::EntityDescriptor &descriptor) {
     Ichigo::Entity *e = Ichigo::spawn_entity();
     std::strcpy(e->name, "buchou");
 
-    // TODO @asset: Sprite for this guy.
+    static Ichigo::Sprite buchou_sprite = {
+        .pos_offset = {},
+        .width      = pixels_to_metres(16.0f),
+        .height     = pixels_to_metres(32.0f),
+        .sheet      = {
+            .cell_width  = 16,
+            .cell_height = 32,
+            .texture     = Assets::buchou_texture_id
+        },
+        .animation  = {
+            .tag                 = 0,
+            .cell_of_first_frame = 0,
+            .cell_of_last_frame  = 1,
+            .cell_of_loop_start  = 0,
+            .cell_of_loop_end    = 1,
+            .seconds_per_frame   = 0.5f
+        },
+        .current_animation_frame      = 0,
+        .elapsed_animation_frame_time = 0.0f,
+    };
+
     e->col            = {descriptor.pos, 1.0f, 1.0f};
+    e->sprite         = buchou_sprite;
+    e->update_proc    = buchou_look_at_player;
     e->user_type_id   = ET_BUCHOU;
+
+    SET_FLAG(e->flags, Ichigo::EF_STATIC);
 }
 
 static void ice_block_update(Ichigo::Entity *e) {

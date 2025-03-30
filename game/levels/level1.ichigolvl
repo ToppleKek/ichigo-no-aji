@@ -21,6 +21,24 @@ static Ichigo::Background backgrounds[] = {
         Ichigo::BG_REPEAT_X,
         {2.0f, 2.4f},
         {0.2f, 0.2f},
+    },
+    {
+        0, // store
+        0,
+        {95.0f, 9.0f},
+        {1.0f, 1.0f},
+    },
+    {
+        0, // dorm
+        0,
+        {54.0f, 9.0f},
+        {1.0f, 1.0f},
+    },
+    {
+        0, // stalls
+        0,
+        {3.0f, 13.0f},
+        {1.0f, 1.0f},
     }
 };
 
@@ -43,6 +61,9 @@ static void init_hook() {
     backgrounds[0].texture_id = Assets::star_bg_texture_id;
     backgrounds[1].texture_id = Assets::star_bg_texture_id;
     backgrounds[2].texture_id = Assets::star_bg_texture_id;
+    backgrounds[3].texture_id = Assets::store_bg_texture_id;
+    backgrounds[4].texture_id = Assets::dorm_bg_texture_id;
+    backgrounds[5].texture_id = Assets::stalls_bg_texture_id;
 }
 
 static void on_enter() {

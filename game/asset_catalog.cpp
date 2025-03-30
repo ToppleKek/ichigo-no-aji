@@ -39,6 +39,10 @@ EMBED("assets/music/musekinin.mp3",        musekinin_mp3)
 EMBED("assets/music/spell.mp3",            spell_mp3)
 EMBED("assets/music/fire.mp3",             fire_mp3)
 EMBED("assets/title-card.png",             title_card_png)
+EMBED("assets/store.png",                  store_png)
+EMBED("assets/dorm.png",                   dorm_png)
+EMBED("assets/stalls.png",                 stalls_png)
+EMBED("assets/buchou.png",                 buchou_png)
 
 Ichigo::TextureID Assets::coin_texture_id                   = 0;
 Ichigo::TextureID Assets::shopkeep_texture_id               = 0;
@@ -65,6 +69,10 @@ Ichigo::TextureID Assets::cave_bg_texture_id                = 0;
 Ichigo::TextureID Assets::stalactites_bg_texture_id         = 0;
 Ichigo::TextureID Assets::health_bar_ui_texture_id          = 0;
 Ichigo::TextureID Assets::title_card_texture_id             = 0;
+Ichigo::TextureID Assets::store_bg_texture_id               = 0;
+Ichigo::TextureID Assets::dorm_bg_texture_id                = 0;
+Ichigo::TextureID Assets::stalls_bg_texture_id              = 0;
+Ichigo::TextureID Assets::buchou_texture_id                 = 0;
 Ichigo::AudioID   Assets::test_song_audio_id                = 0;
 Ichigo::AudioID   Assets::coin_collect_audio_id             = 0;
 Ichigo::AudioID   Assets::gert_death_audio_id               = 0;
@@ -109,6 +117,10 @@ void Assets::load_assets() {
     LOAD_TEXTURE(stalactites_bg_texture_id,         stalactites_bg_png);
     LOAD_TEXTURE(health_bar_ui_texture_id,          health_bar_ui_png);
     LOAD_TEXTURE(title_card_texture_id,             title_card_png);
+    LOAD_TEXTURE(store_bg_texture_id,               store_png);
+    LOAD_TEXTURE(dorm_bg_texture_id,                dorm_png);
+    LOAD_TEXTURE(stalls_bg_texture_id,              stalls_png);
+    LOAD_TEXTURE(buchou_texture_id,                 buchou_png);
     LOAD_AUDIO(test_song_audio_id,                  test_song_mp3);
     LOAD_AUDIO(coin_collect_audio_id,               coin_sound_mp3);
     LOAD_AUDIO(gert_death_audio_id,                 gert_death_mp3);
