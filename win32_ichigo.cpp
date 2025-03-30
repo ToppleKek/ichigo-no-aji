@@ -705,6 +705,7 @@ i32 WinMain(HINSTANCE instance, [[maybe_unused]] HINSTANCE prev_instance, [[mayb
     window_class.lpfnWndProc   = window_proc;
     window_class.hInstance     = instance;
     window_class.lpszClassName = L"ichigo";
+    window_class.hIcon         = LoadIcon(instance, MAKEINTRESOURCE(1));
     window_class.hCursor       = (HCURSOR) LoadImage(NULL, MAKEINTRESOURCE(OCR_NORMAL), IMAGE_CURSOR, 0, 0, LR_SHARED);
     RegisterClass(&window_class);
     window_handle = CreateWindowEx(0, window_class.lpszClassName, L"MUSEKININ", WS_OVERLAPPEDWINDOW | WS_VISIBLE, CW_USEDEFAULT, CW_USEDEFAULT, Ichigo::Internal::window_width, Ichigo::Internal::window_height, nullptr,

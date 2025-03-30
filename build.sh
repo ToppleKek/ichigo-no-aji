@@ -13,6 +13,7 @@ CXX_FILES_WIN32=(win32_ichigo.cpp)
 CXX_FILES_LINUX=(linux_ichigo.cpp)
 CXX_FILES_ENGINE_DEBUG=(main.cpp util.cpp entity.cpp camera.cpp asset.cpp mixer.cpp editor.cpp bana.cpp)
 CXX_FILES_ENGINE_RELEASE=(main.cpp util.cpp entity.cpp camera.cpp asset.cpp mixer.cpp bana.cpp)
+WIN32_RC_FILE="game/musekinin.rc"
 
 CXX_FILES_GAME=(
     game/ichiaji_main.cpp
@@ -77,6 +78,8 @@ if [ "${1}" = "build" ]; then
     rm -f build/objects/*.o
     if [ "$OS" = "win32" ]; then
         type ./thirdparty/tools/ctime.exe && ./thirdparty/tools/ctime.exe -begin ./build/timings.ctm
+        llvm-rc $WIN32_RC_FILE
+        mv "${WIN32_RC_FILE%.*}.res" build/objects/
         if [ "$MODE" = "debug" ]; then
             files_in_flight=0
             for file in ${CXX_FILES[*]}; do
@@ -91,7 +94,7 @@ if [ "${1}" = "build" ]; then
             done
 
             wait $(jobs -p)
-            clang++ ${CXX_FLAGS} ${CXX_FLAGS_GAME_DEBUG} -l ${LIBS} build/objects/*.o ${IMGUI_OBJECT_FILES_DIRECTORY}/*.o -o build/${EXE_NAME}
+            clang++ ${CXX_FLAGS} ${CXX_FLAGS_GAME_DEBUG} -l ${LIBS} build/objects/*.o ${IMGUI_OBJECT_FILES_DIRECTORY}/*.o build/objects/*.res -o build/${EXE_NAME}
         elif [ "$MODE" = "release" ]; then
             files_in_flight=0
             for file in ${CXX_FILES[*]}; do
