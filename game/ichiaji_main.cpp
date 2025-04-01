@@ -841,6 +841,11 @@ static void enter_game_state([[maybe_unused]] uptr data) {
 
 static void enter_main_menu_state([[maybe_unused]] uptr data) {
     deinit_game();
+
+    if (!Ichiaji::load_game()) {
+        Ichiaji::new_game();
+    }
+
     Ichiaji::program_state = Ichiaji::PS_MAIN_MENU;
 }
 
@@ -1081,7 +1086,7 @@ void Ichigo::Game::update_and_render() {
             draw_game_ui();
 
 #define PAUSE_MENU_FADE_DURATION 0.2f
-#define PAUSE_MENU_ITEM_COUNT 4
+#define PAUSE_MENU_ITEM_COUNT 3
             static u32 selected_menu_item = 0;
             static f32 fade_t = -1.0f;
 
@@ -1134,7 +1139,7 @@ void Ichigo::Game::update_and_render() {
                 .transform         = m4identity_f32,
                 .string            = TL_STR(RESUME_GAME),
                 .string_length     = std::strlen(TL_STR(RESUME_GAME)),
-                .string_pos        = {Ichigo::Camera::screen_tile_dimensions.x / 2.0f, Ichigo::Camera::screen_tile_dimensions.y / 1.7f},
+                .string_pos        = {Ichigo::Camera::screen_tile_dimensions.x / 2.0f, Ichigo::Camera::screen_tile_dimensions.y / 1.7f + 1.0f},
                 .text_style        = menu_item_style
             };
 
@@ -1147,22 +1152,13 @@ void Ichigo::Game::update_and_render() {
             if (selected_menu_item == 1) menu_draw_cmd.text_style.colour = pulse_colour;
             else                         menu_draw_cmd.text_style.colour = colour_white;
 
-            menu_draw_cmd.string        = TL_STR(SAVE_GAME);
-            menu_draw_cmd.string_length = std::strlen(TL_STR(SAVE_GAME)),
-            menu_draw_cmd.string_pos    = {Ichigo::Camera::screen_tile_dimensions.x / 2.0f, (Ichigo::Camera::screen_tile_dimensions.y / 1.7f) + 1.0f};
-
-            Ichigo::push_draw_command(menu_draw_cmd);
-
-            if (selected_menu_item == 2) menu_draw_cmd.text_style.colour = pulse_colour;
-            else                         menu_draw_cmd.text_style.colour = colour_white;
-
             menu_draw_cmd.string        = TL_STR(RETURN_TO_MENU);
             menu_draw_cmd.string_length = std::strlen(TL_STR(RETURN_TO_MENU)),
             menu_draw_cmd.string_pos    = {Ichigo::Camera::screen_tile_dimensions.x / 2.0f, (Ichigo::Camera::screen_tile_dimensions.y / 1.7f) + 2.0f};
 
             Ichigo::push_draw_command(menu_draw_cmd);
 
-            if (selected_menu_item == 3) menu_draw_cmd.text_style.colour = pulse_colour;
+            if (selected_menu_item == 2) menu_draw_cmd.text_style.colour = pulse_colour;
             else                         menu_draw_cmd.text_style.colour = colour_white;
 
             menu_draw_cmd.string        = TL_STR(EXIT);
@@ -1183,21 +1179,10 @@ void Ichigo::Game::update_and_render() {
                     selected_menu_item = 0;
                     fade_t = -1.0f;
                 } else if (selected_menu_item == 1) {
-                    // TODO: Remove this option from the menu in the finished game!
-                    if (Ichiaji::save_game()) {
-                        Ichigo::show_info("Saved!");
-                    } else {
-                        Ichigo::show_info("Failed to save game.");
-                    }
-
-                    Ichiaji::program_state = Ichiaji::PS_GAME;
-                    selected_menu_item = 0;
-                    fade_t = -1.0f;
-                } else if (selected_menu_item == 2) {
                     selected_menu_item = 0;
                     // fade_t = -1.0f;
                     enter_new_program_state(Ichiaji::PS_MAIN_MENU);
-                } else if (selected_menu_item == 3) {
+                } else if (selected_menu_item == 2) {
                     std::exit(0);
                 }
             }
