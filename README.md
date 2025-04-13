@@ -4,6 +4,12 @@
 
 *MUSEKININ Society* is an action platformer demo game.
 
+![Screenshot of the game.](/.github/meta/1.png)
+
+![Screenshot of the game.](/.github/meta/2.png)
+
+![Screenshot of the game.](/.github/meta/3.png)
+
 ## Building
 
 On Windows you must have MSYS2 or git bash installed.
